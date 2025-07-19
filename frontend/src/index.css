@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* Fallback styles in case Tailwind doesn't load */
+.fallback-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.fallback-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fallback-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.fallback-button:hover {
+  background: #2563eb;
+}
+
+.fallback-input {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  width: 100%;
+  margin-bottom: 8px;
+}

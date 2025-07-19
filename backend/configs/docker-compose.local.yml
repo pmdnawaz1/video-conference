@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    networks:
+      - enterprise-video-network
+
+networks:
+  enterprise-video-network:
+    driver: bridge
+

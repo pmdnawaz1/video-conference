@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env.dev
+    restart: unless-stopped
+    networks:
+      - enterprise-video-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 40s
+
+networks:
+  enterprise-video-network:
+    driver: bridge
+
