@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { Video, VideoOff, Mic, MicOff, Monitor, MonitorOff, Users, Phone, PhoneOff } from 'lucide-react'
+import { Video, VideoOff, Mic, MicOff, Phone } from 'lucide-react'
 import ChatInterface from '@/components/chat/ChatInterface.jsx'
+import AuthWrapper from '@/components/auth/AuthWrapper.jsx'
 import useAppStore from '@/stores/appStore.js'
+import useChatStore from '@/stores/chatStore.js'
 
 // Enhanced WebRTC Service with better debugging
 class EnhancedWebRTCService {
@@ -282,9 +284,9 @@ class EnhancedWebRTCService {
         break;
 
       case 'chatMessage':
-        console.log('💬 Received chat message from:', payload.senderId);
+        console.log('💬 Received chat message:', payload);
         if (this.onChatMessageCallback) {
-          this.onChatMessageCallback(payload.senderId, payload.message);
+          this.onChatMessageCallback(payload.sender.id, payload);
         }
         break;
 
@@ -347,11 +349,11 @@ class EnhancedWebRTCService {
   }
 
   // Send chat message
-  sendChatMessage(roomId, messageData) {
+  sendChatMessage(messageData) {
     const message = {
       type: 'chatMessage',
       payload: {
-        roomId: roomId,
+        roomId: this.roomId,
         message: messageData
       }
     };
@@ -381,7 +383,7 @@ class EnhancedWebRTCService {
   }
 }
 
-function App() {
+function LegacyVideoConference() {
   // Zustand store
   const {
     isConnected,
@@ -403,6 +405,8 @@ function App() {
     addDebugLog,
     leaveRoom: leaveRoomStore
   } = useAppStore()
+
+  const { addMessage } = useChatStore()
   
   // Local state for runtime data
   const [remoteStreams, setRemoteStreams] = useState(new Map())
@@ -453,16 +457,16 @@ function App() {
       removeConnectedUser(userId)
     })
 
-    service.onChatMessage((senderId, messageData) => {
-      console.log('💬 Chat message from:', senderId, messageData)
+    service.onChatMessage((senderId, message) => {
+      console.log('💬 Chat message from:', senderId, message)
       addDebugLog(`Chat message from ${senderId}`)
-      // The ChatInterface will handle the message through the store
+      addMessage(roomId, message)
     })
 
     return () => {
       service.disconnect()
     }
-  }, [])
+  }, [addConnectedUser, addDebugLog, addMessage, removeConnectedUser, roomId])
 
   // Handle local video stream
   useEffect(() => {
@@ -493,7 +497,7 @@ function App() {
       
       playVideo()
     }
-  }, [localStream])
+  }, [localStream, addDebugLog])
 
   const connectToServer = async () => {
     try {
@@ -821,6 +825,14 @@ function App() {
       </div>
     </div>
   )
+}
+
+function App() {
+  return (
+    <AuthWrapper>
+      <LegacyVideoConference />
+    </AuthWrapper>
+  );
 }
 
 export default App

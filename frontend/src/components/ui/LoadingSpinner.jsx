@@ -1,7 +1,13 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-const LoadingSpinner = ({ size = 'default', text = 'Loading...' }) => {
+// Simple icon-only spinner for inline use in enterprise components
+export const LoadingSpinner = ({ className = '' }) => (
+  <Loader2 className={`animate-spin ${className}`} />
+);
+
+// Original full-page loading component
+const LoadingPage = ({ size = 'default', text = 'Loading...' }) => {
   const sizeClasses = {
     sm: 'h-4 w-4',
     default: 'h-8 w-8',
@@ -18,5 +24,5 @@ const LoadingSpinner = ({ size = 'default', text = 'Loading...' }) => {
   );
 };
 
-export default LoadingSpinner;
+export default LoadingPage;
 

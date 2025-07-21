@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
-import { Send, Smile, X, MessageSquare } from 'lucide-react';
+import { Send, X, MessageSquare } from 'lucide-react';
 import useChatStore from '@/stores/chatStore.js';
 
 const ChatInterface = ({ roomId, currentUser, webrtcService, isMinimized = false, onToggle }) => {
@@ -17,7 +17,6 @@ const ChatInterface = ({ roomId, currentUser, webrtcService, isMinimized = false
     addMessage,
     openChat,
     closeChat,
-    toggleChat,
     isChatOpen,
     selectedRoomId,
     getUnreadCount,
@@ -65,7 +64,7 @@ const ChatInterface = ({ roomId, currentUser, webrtcService, isMinimized = false
     // Send via WebRTC service
     if (webrtcService && webrtcService.sendChatMessage) {
       try {
-        webrtcService.sendChatMessage(roomId, messageData);
+        webrtcService.sendChatMessage(messageData);
       } catch (error) {
         console.error('Failed to send chat message:', error);
       }

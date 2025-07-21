@@ -1,24 +1,29 @@
-# Development Dockerfile for React frontend
-FROM node:18-alpine
+# Development Dockerfile for Go Backend
+FROM golang:1.21-alpine AS base
+
+# Install development tools
+RUN apk add --no-cache git ca-certificates tzdata curl
 
 # Set working directory
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Copy go mod and sum files
+COPY go.mod go.sum ./
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-
-# Install dependencies
-RUN pnpm install
+# Download dependencies
+RUN go mod download
 
 # Copy source code
 COPY . .
 
+# Install air for hot reloading
+RUN go install github.com/cosmtrek/air@latest
+
+# Create uploads and recordings directories
+RUN mkdir -p uploads recordings
+
 # Expose port
-EXPOSE 5173
+EXPOSE 8081
 
-# Start development server
-CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]
-
+# Use air for hot reloading in development
+CMD ["air", "-c", ".air.toml"]

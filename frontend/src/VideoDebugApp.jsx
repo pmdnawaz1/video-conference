@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 
 // Simple video test component to debug video issues
@@ -87,7 +86,7 @@ function VideoDebugApp() {
         stream.getTracks().forEach(track => track.stop())
       }
     }
-  }, [])
+  }, [stream])
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
