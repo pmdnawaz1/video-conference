@@ -205,11 +205,12 @@ const VideoConference = ({ allowGuest = false }) => {
       return [...prev, { id: payload.userId, name: payload.userName || payload.userId }];
     });
 
-    // Always create offer when receiving userJoined (we are already in room, new user joining)
-    const shouldCreateOffer = true;
+    // Tie-breaking logic to prevent glare
+    const shouldCreateOffer = currentUserId.current > payload.userId;
     
     console.log('🔍 Offer decision:', {
       myUserId: currentUserId.current,
+      peerId: payload.userId,
       shouldCreateOffer: shouldCreateOffer
     });
     
