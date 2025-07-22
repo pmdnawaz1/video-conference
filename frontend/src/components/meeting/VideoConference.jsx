@@ -743,13 +743,20 @@ const VideoConference = ({ allowGuest = false }) => {
     setSocket(null);
   };
 
+  const getGridLayout = (numParticipants) => {
+    if (numParticipants <= 2) return 'grid-cols-1';
+    if (numParticipants <= 4) return 'grid-cols-2';
+    if (numParticipants <= 9) return 'grid-cols-3';
+    return 'grid-cols-4';
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="bg-card border-b border-border px-4 py-3">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+      <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-lg font-semibold">Meeting: {meetingId}</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-400">
               {participants.length + 1} participant{participants.length === 0 ? '' : 's'}
             </p>
           </div>
@@ -769,21 +776,36 @@ const VideoConference = ({ allowGuest = false }) => {
             </Button>
             <Button onClick={() => setShowParticipants(!showParticipants)} variant="outline" size="sm">
               <Users className="w-4 h-4 mr-2" />
-              Participants
             </Button>
             <Button onClick={() => setShowChat(!showChat)} variant="outline" size="sm">
               <MessageSquare className="w-4 h-4 mr-2" />
-              Chat
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="flex h-[calc(100vh-80px)]">
-        <div className="flex-1 relative">
-          <div className="grid grid-cols-2 gap-2 p-4 h-full">
+      <main className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col p-4">
+          <div className={`grid ${getGridLayout(participants.length + 1)} gap-4 flex-1`}>
+            <Card className="bg-gray-800 border-gray-700 overflow-hidden relative rounded-lg">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
+                You {isScreenSharing && '(Sharing)'}
+              </div>
+              {!isVideoEnabled && (
+                <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
+                  <VideoOff className="w-12 h-12 text-gray-400" />
+                </div>
+              )}
+            </Card>
             {participants.map(participant => (
-              <Card key={participant.id} className="bg-gray-800 border-gray-700 overflow-hidden">
+              <Card key={participant.id} className="bg-gray-800 border-gray-700 overflow-hidden relative rounded-lg">
                 <video
                   id={`remote-video-${participant.id}`}
                   ref={(videoElement) => {
@@ -802,30 +824,13 @@ const VideoConference = ({ allowGuest = false }) => {
                 </div>
               </Card>
             ))}
-            <Card className="bg-gray-800 border-gray-700 overflow-hidden relative">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
-                You {isScreenSharing && '(Sharing)'}
-              </div>
-              {!isVideoEnabled && (
-                <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
-                  <VideoOff className="w-12 h-12 text-gray-400" />
-                </div>
-              )}
-            </Card>
           </div>
-          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-            <div className="flex items-center space-x-4 bg-gray-800 rounded-lg px-6 py-3">
+          <footer className="flex justify-center items-center p-4">
+            <div className="flex items-center space-x-4 bg-gray-800 rounded-full px-6 py-3">
               <Button
                 onClick={toggleAudio}
                 size="sm"
-                variant={isAudioEnabled ? "outline" : "destructive"}
+                variant={isAudioEnabled ? "secondary" : "destructive"}
                 className="rounded-full w-12 h-12 p-0"
               >
                 {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
@@ -833,7 +838,7 @@ const VideoConference = ({ allowGuest = false }) => {
               <Button
                 onClick={toggleVideo}
                 size="sm"
-                variant={isVideoEnabled ? "outline" : "destructive"}
+                variant={isVideoEnabled ? "secondary" : "destructive"}
                 className="rounded-full w-12 h-12 p-0"
               >
                 {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
@@ -841,7 +846,7 @@ const VideoConference = ({ allowGuest = false }) => {
               <Button
                 onClick={toggleScreenShare}
                 size="sm"
-                variant={isScreenSharing ? "default" : "outline"}
+                variant={isScreenSharing ? "default" : "secondary"}
                 className="rounded-full w-12 h-12 p-0"
               >
                 <Monitor className="w-5 h-5" />
@@ -850,15 +855,15 @@ const VideoConference = ({ allowGuest = false }) => {
                 onClick={leaveMeeting}
                 size="sm"
                 variant="destructive"
-                className="rounded-full w-12 h-12 p-0"
+                className="rounded-full w-16 h-12 p-0"
               >
                 <PhoneOff className="w-5 h-5" />
               </Button>
             </div>
-          </div>
+          </footer>
         </div>
         {(showChat || showParticipants) && (
-          <div className="w-80 bg-gray-800 border-l border-gray-700">
+          <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
             {showParticipants && (
               <div className="p-4 border-b border-gray-700">
                 <h3 className="font-semibold mb-3">Participants ({participants.length + 1})</h3>
@@ -881,13 +886,13 @@ const VideoConference = ({ allowGuest = false }) => {
               </div>
             )}
             {showChat && (
-              <div className="flex-1">
+              <div className="flex-1 p-4">
                 <ChatInterface meetingId={meetingId} />
               </div>
             )}
-          </div>
+          </aside>
         )}
-      </div>
+      </main>
     </div>
   );
 };
