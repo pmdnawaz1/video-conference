@@ -315,39 +315,16 @@ const VideoConference = ({ allowGuest = false }) => {
     };
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && event.candidate.candidate && event.candidate.candidate.trim() !== '') {
-        if (event.candidate.type === 'relay') {
-          console.log('✅ Using TURN server for candidate:', event.candidate.address, 'for user:', userId);
-        }
+      if (event.candidate) {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
           socketRef.current.send(JSON.stringify({
             type: 'iceCandidate',
             payload: {
-              candidate: {
-                candidate: event.candidate.candidate,
-                sdpMid: event.candidate.sdpMid,
-                sdpMLineIndex: event.candidate.sdpMLineIndex,
-                usernameFragment: event.candidate.usernameFragment
-              },
+              candidate: event.candidate,
               targetId: userId
             }
           }));
-        } else {
-          console.warn('WebSocket not open, buffering ICE candidate for:', userId);
-          if (!pendingCandidates.current.has(userId)) {
-            pendingCandidates.current.set(userId, []);
-          }
-          pendingCandidates.current.get(userId).push({
-            candidate: event.candidate.candidate,
-            sdpMid: event.candidate.sdpMid,
-            sdpMLineIndex: event.candidate.sdpMLineIndex,
-            usernameFragment: event.candidate.usernameFragment
-          });
         }
-      } else if (event.candidate === null) {
-        console.log('ICE gathering complete for:', userId);
-      } else {
-        console.error('Invalid ICE candidate generated:', event.candidate);
       }
     };
 
@@ -421,12 +398,7 @@ const VideoConference = ({ allowGuest = false }) => {
       for (const candidateData of bufferedCandidates) {
         try {
           if (candidateData && candidateData.candidate && candidateData.candidate.trim() !== '') {
-            const candidateInit = new RTCIceCandidate({
-              candidate: candidateData.candidate,
-              sdpMid: candidateData.sdpMid,
-              sdpMLineIndex: candidateData.sdpMLineIndex,
-              usernameFragment: candidateData.usernameFragment
-            });
+            const candidateInit = new RTCIceCandidate(candidateData);
             await pc.addIceCandidate(candidateInit);
             console.log('Applied buffered ICE candidate for:', userId);
           }
@@ -541,12 +513,7 @@ const VideoConference = ({ allowGuest = false }) => {
         for (const candidateData of bufferedCandidates) {
           try {
             if (candidateData && candidateData.candidate && candidateData.candidate.trim() !== '') {
-              const candidateInit = new RTCIceCandidate({
-                candidate: candidateData.candidate,
-                sdpMid: candidateData.sdpMid,
-                sdpMLineIndex: candidateData.sdpMLineIndex,
-                usernameFragment: candidateData.usernameFragment
-              });
+              const candidateInit = new RTCIceCandidate(candidateData);
               await pc.addIceCandidate(candidateInit);
               console.log('✅ Processed buffered ICE candidate for:', payload.senderId);
             }
@@ -579,12 +546,7 @@ const VideoConference = ({ allowGuest = false }) => {
           pendingCandidates.current.get(payload.senderId).push(payload.candidate);
           return;
         }
-        const candidateInit = new RTCIceCandidate({
-          candidate: payload.candidate.candidate,
-          sdpMid: payload.candidate.sdpMid,
-          sdpMLineIndex: payload.candidate.sdpMLineIndex,
-          usernameFragment: payload.candidate.usernameFragment
-        });
+        const candidateInit = new RTCIceCandidate(payload.candidate);
         await pc.addIceCandidate(candidateInit);
         console.log('ICE candidate added successfully for:', payload.senderId);
       } catch (error) {
