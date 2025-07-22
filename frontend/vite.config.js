@@ -20,7 +20,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
-    open: true
+    open: true,
+    allowedHosts: ['dev.qubicgen.com'],
+    hmr: {
+      port: 3000,
+      host: 'localhost',
+      clientPort: 3000
+    }
   },
   preview: {
     port: 3000,
