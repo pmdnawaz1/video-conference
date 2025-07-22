@@ -3,16 +3,20 @@ module.exports = {
     {
       name: 'go-backend',
       cwd: './backend',
-      script: 'sh',
-      args: '-c "go run main.go"',
-      interpreter: '/bin/bash',
+      script: 'go',
+      args: 'run main.go',
+      env: {
+        NODE_ENV: 'production'
+      }
     },
     {
       name: 'vite-frontend',
       cwd: './frontend',
-      script: 'sh',
-      args: '-c "npm run build && npx serve dist"',
-      interpreter: '/bin/bash',
+      script: 'npm',
+      args: 'run dev',
+      env: {
+        NODE_ENV: 'development'
+      }
     },
   ],
 };
