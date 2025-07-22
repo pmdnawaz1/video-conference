@@ -20,6 +20,7 @@ const VideoConference = ({ allowGuest = false }) => {
   
   // Media states
   const [localStream, setLocalStream] = useState(null);
+  const localStreamRef = useRef(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -34,23 +35,29 @@ const VideoConference = ({ allowGuest = false }) => {
   // WebRTC states
   const [peerConnections, setPeerConnections] = useState(new Map());
   const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
 
+  // Add buffers for pending ICE candidates and answers
+  const pendingCandidates = useRef(new Map());
+  const pendingAnswers = useRef(new Map());
+
+  // 1. Ensure local media is initialized before signaling
   useEffect(() => {
-    let isConnected = false;
-    
+    let ws = null;
+    let cancelled = false;
+
     const setupMeeting = async () => {
-      if (isConnected) return;
-      isConnected = true;
-      
-      await initializeMediaDevices();
-      await connectToMeeting();
+      await initializeMediaDevices(); // Wait for localStream
+      if (cancelled) return;
+      ws = await connectToMeeting();  // Only then connect to signaling server
     };
-    
+
     setupMeeting();
-    
+
     return () => {
-      isConnected = false;
+      cancelled = true;
       cleanup();
+      if (ws) ws.close();
     };
   }, [meetingId]);
 
@@ -62,6 +69,7 @@ const VideoConference = ({ allowGuest = false }) => {
       });
       
       setLocalStream(stream);
+      localStreamRef.current = stream;
       
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
@@ -75,28 +83,39 @@ const VideoConference = ({ allowGuest = false }) => {
   };
 
   const connectToMeeting = async () => {
-    // Prevent duplicate connections
-    if (socket && socket.readyState === WebSocket.OPEN) {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected, skipping...');
-      return;
+      return socketRef.current;
     }
-    
     try {
       // Connect to WebSocket for signaling
-      const wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8081/ws'}`;
+      let wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8081/ws';
+      
+      // Debug: Log environment variables
+      console.log('Environment variables:', {
+        VITE_WS_URL: import.meta.env.VITE_WS_URL,
+        VITE_API_URL: import.meta.env.VITE_API_URL,
+        VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
+      });
+      
+      // If connecting to a remote server, use secure WebSocket
+      if (wsUrl.includes('://') && !wsUrl.startsWith('ws://localhost') && !wsUrl.startsWith('ws://127.0.0.1')) {
+        wsUrl = wsUrl.replace('ws://', 'wss://');
+      }
+      
       console.log('🔌 Connecting to WebSocket:', wsUrl);
       const ws = new WebSocket(wsUrl);
-      
+
       ws.onopen = () => {
         console.log('Connected to signaling server');
         setIsConnected(true);
-        
+
         // Join the meeting room
         const guestName = allowGuest && !user ? prompt('Enter your name:') || 'Guest' : (user?.first_name || 'Guest');
         const userId = user?.id ? `${user.id}_${Date.now()}` : `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         console.log('Joining meeting room:', meetingId, 'as user:', userId, 'name:', guestName);
-        
+
         ws.send(JSON.stringify({
           type: 'join',
           payload: {
@@ -106,22 +125,24 @@ const VideoConference = ({ allowGuest = false }) => {
           }
         }));
       };
-      
+
       ws.onmessage = handleSignalingMessage;
-      
+
       ws.onclose = () => {
         console.log('Disconnected from signaling server');
         setIsConnected(false);
       };
-      
+
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
       };
-      
+
       setSocket(ws);
-      
+      socketRef.current = ws;
+      return ws;
     } catch (error) {
       console.error('Failed to connect to meeting:', error);
+      return null;
     }
   };
 
@@ -150,7 +171,18 @@ const VideoConference = ({ allowGuest = false }) => {
     }
   };
 
+  // 2. Defensive checks in handleUserJoined
   const handleUserJoined = (payload) => {
+    if (!localStreamRef.current) {
+      // Retry after a short delay if local stream is not ready
+      setTimeout(() => handleUserJoined(payload), 100);
+      return;
+    }
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('WebSocket not open, cannot create peer connection');
+      setTimeout(() => handleUserJoined(payload), 100);
+      return;
+    }
     console.log('🆕 User joined:', payload.userId, 'Total participants will be:', participants.length + 1);
     
     // Check if user already exists to avoid duplicates
@@ -188,21 +220,36 @@ const VideoConference = ({ allowGuest = false }) => {
     }
   };
 
+  // 3. Defensive checks in createPeerConnection
   const createPeerConnection = async (userId, shouldCreateOffer = true) => {
+    if (!localStreamRef.current) {
+      console.warn('Local stream not ready, cannot create peer connection');
+      return null;
+    }
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('WebSocket not open, cannot create peer connection');
+      return null;
+    }
     console.log('🤝 Creating peer connection for user:', userId, 'createOffer:', shouldCreateOffer);
     
     const pc = new RTCPeerConnection({
       iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
+        {
+          urls: 'turn:relay1.expressturn.com:3478',
+          username: '000000002068541318',
+          credential: 'cvDp8AdIOuPvV0MnH38biHJEYHA='
+        },
+      ],
+      iceCandidatePoolSize: 10,
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'balanced'
     });
 
     // Add local stream to peer connection
-    if (localStream) {
-      localStream.getTracks().forEach(track => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
         console.log('📹 Adding local track to peer connection:', track.kind);
-        pc.addTrack(track, localStream);
+        pc.addTrack(track, localStreamRef.current);
       });
     } else {
       console.warn('⚠️ No local stream available for peer connection');
@@ -211,34 +258,47 @@ const VideoConference = ({ allowGuest = false }) => {
     // Handle remote stream
     pc.ontrack = (event) => {
       console.log('📹 Received remote track from:', userId, 'Stream:', event.streams[0]);
+      
+      // Store stream in remoteVideosRef for immediate use
+      if (!remoteVideosRef.current.has(userId)) {
+        remoteVideosRef.current.set(userId, event.streams[0]);
+      }
+      
       const remoteVideo = document.getElementById(`remote-video-${userId}`);
       if (remoteVideo) {
         remoteVideo.srcObject = event.streams[0];
         console.log('✅ Set remote video source for:', userId);
       } else {
-        console.error('❌ Remote video element not found for:', userId);
-        // Try again after a short delay to ensure DOM is ready
-        setTimeout(() => {
-          const retryVideo = document.getElementById(`remote-video-${userId}`);
-          if (retryVideo) {
-            retryVideo.srcObject = event.streams[0];
-            console.log('✅ Set remote video source for:', userId, '(retry successful)');
-          }
-        }, 100);
+        console.log('📹 Buffering remote stream for:', userId, '- element not ready yet');
+        // Store the stream for when the element becomes available
+        remoteVideosRef.current.set(userId, event.streams[0]);
       }
     };
 
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
-      if (event.candidate && socket) {
-        console.log('🧊 Sending ICE candidate to:', userId);
-        socket.send(JSON.stringify({
-          type: 'iceCandidate',
-          payload: {
-            candidate: event.candidate,
-            targetId: userId
-          }
-        }));
+      if (event.candidate) {
+        console.log('🧊 Generated ICE candidate for', userId, ':', {
+          type: event.candidate.type,
+          protocol: event.candidate.protocol,
+          address: event.candidate.address,
+          port: event.candidate.port,
+          relatedAddress: event.candidate.relatedAddress,
+          relatedPort: event.candidate.relatedPort
+        });
+        
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          console.log('🧊 Sending ICE candidate to:', userId);
+          socketRef.current.send(JSON.stringify({
+            type: 'iceCandidate',
+            payload: {
+              candidate: event.candidate,
+              targetId: userId
+            }
+          }));
+        }
+      } else {
+        console.log('🧊 ICE gathering complete for:', userId);
       }
     };
 
@@ -249,11 +309,43 @@ const VideoConference = ({ allowGuest = false }) => {
         console.log('✅ Peer connection established with:', userId);
       } else if (pc.connectionState === 'failed') {
         console.error('❌ Peer connection failed with:', userId);
+        // Try to restart ICE
+        setTimeout(() => {
+          if (pc.connectionState === 'failed') {
+            console.log('🔄 Attempting ICE restart for:', userId);
+            pc.restartIce();
+          }
+        }, 2000);
+      }
+    };
+
+    // Handle ICE connection state changes
+    pc.oniceconnectionstatechange = () => {
+      console.log('🧊 ICE connection state for', userId, ':', pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        console.warn('🔄 ICE connection issues, attempting restart for:', userId);
+        setTimeout(() => {
+          if (pc.iceConnectionState === 'failed') {
+            pc.restartIce();
+          }
+        }, 1000);
       }
     };
 
     setPeerConnections(prev => new Map(prev).set(userId, pc));
     
+    // Apply any pending answer
+    if (pendingAnswers.current.has(userId)) {
+      await pc.setRemoteDescription(pendingAnswers.current.get(userId));
+      pendingAnswers.current.delete(userId);
+    }
+    // Apply any pending ICE candidates
+    if (pendingCandidates.current.has(userId)) {
+      for (const candidate of pendingCandidates.current.get(userId)) {
+        await pc.addIceCandidate(candidate);
+      }
+      pendingCandidates.current.delete(userId);
+    }
     // Create and send offer only if requested (for new users joining)
     if (shouldCreateOffer) {
       try {
@@ -261,9 +353,9 @@ const VideoConference = ({ allowGuest = false }) => {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
           console.log('📨 Sending offer to:', userId);
-          socket.send(JSON.stringify({
+          socketRef.current.send(JSON.stringify({
             type: 'offer',
             payload: {
               sdp: offer,
@@ -292,9 +384,9 @@ const VideoConference = ({ allowGuest = false }) => {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     
-    if (socket) {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       console.log('📨 Sending answer to:', payload.senderId);
-      socket.send(JSON.stringify({
+      socketRef.current.send(JSON.stringify({
         type: 'answer',
         payload: {
           sdp: answer,
@@ -311,18 +403,35 @@ const VideoConference = ({ allowGuest = false }) => {
       console.log('📝 Setting remote description for answer from:', payload.senderId);
       await pc.setRemoteDescription(payload.sdp);
     } else {
-      console.error('❌ No peer connection found for answer from:', payload.senderId);
+      // Buffer the answer
+      pendingAnswers.current.set(payload.senderId, payload.sdp);
     }
   };
 
   const handleIceCandidate = async (payload) => {
-    console.log('🧊 Received ICE candidate from:', payload.senderId);
+    console.log('🧊 Received ICE candidate from:', payload.senderId, ':', {
+      type: payload.candidate.type,
+      protocol: payload.candidate.protocol,
+      address: payload.candidate.address,
+      port: payload.candidate.port
+    });
+    
     const pc = peerConnections.get(payload.senderId);
     if (pc) {
-      console.log('🧊 Adding ICE candidate from:', payload.senderId);
-      await pc.addIceCandidate(payload.candidate);
+      try {
+        console.log('🧊 Adding ICE candidate from:', payload.senderId);
+        await pc.addIceCandidate(payload.candidate);
+        console.log('✅ ICE candidate added successfully');
+      } catch (error) {
+        console.error('❌ Error adding ICE candidate:', error);
+      }
     } else {
-      console.error('❌ No peer connection found for ICE candidate from:', payload.senderId);
+      console.log('📦 Buffering ICE candidate from:', payload.senderId);
+      // Buffer the candidate
+      if (!pendingCandidates.current.has(payload.senderId)) {
+        pendingCandidates.current.set(payload.senderId, []);
+      }
+      pendingCandidates.current.get(payload.senderId).push(payload.candidate);
     }
   };
 
@@ -492,8 +601,8 @@ const VideoConference = ({ allowGuest = false }) => {
     peerConnections.forEach(pc => pc.close());
     
     // Close WebSocket
-    if (socket) {
-      socket.close();
+    if (socketRef.current) {
+      socketRef.current.close();
     }
     
     setLocalStream(null);
@@ -567,6 +676,12 @@ const VideoConference = ({ allowGuest = false }) => {
               <Card key={participant.id} className="bg-gray-800 border-gray-700 overflow-hidden">
                 <video
                   id={`remote-video-${participant.id}`}
+                  ref={(videoElement) => {
+                    if (videoElement && remoteVideosRef.current.has(participant.id)) {
+                      videoElement.srcObject = remoteVideosRef.current.get(participant.id);
+                      console.log('✅ Applied buffered stream to video element for:', participant.id);
+                    }
+                  }}
                   autoPlay
                   playsInline
                   className="w-full h-full object-cover"

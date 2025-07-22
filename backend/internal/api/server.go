@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"video-conference-backend/internal/api/handlers"
 	"video-conference-backend/internal/api/middleware"
 	"video-conference-backend/internal/config"
 	"video-conference-backend/internal/services"
+
+	"github.com/gorilla/mux"
 )
 
 // Server represents the API server
@@ -40,7 +41,7 @@ func (s *Server) setupRoutes() {
 	// Apply global middleware
 	s.router.Use(middleware.CORS(s.config.Server.CORSOrigins))
 	s.router.Use(middleware.Recovery())
-	
+
 	// WebSocket route with simple handler (compatible with working frontend)
 	s.router.HandleFunc("/ws", handlers.HandleSimpleWebSocket).Methods("GET")
 
@@ -65,7 +66,7 @@ func (s *Server) setupRoutes() {
 		public.HandleFunc("/auth/login", authHandler.Login).Methods("POST", "OPTIONS")
 		public.HandleFunc("/auth/refresh", authHandler.RefreshToken).Methods("POST", "OPTIONS")
 		public.HandleFunc("/auth/register", authHandler.Register).Methods("POST", "OPTIONS")
-		
+
 		// Public invitation routes
 		public.HandleFunc("/invitations/validate", invitationHandler.ValidateInvitation).Methods("GET", "OPTIONS")
 		public.HandleFunc("/invitations/{token}", invitationHandler.GetInvitationByToken).Methods("GET", "OPTIONS")
@@ -112,20 +113,19 @@ func (s *Server) setupRoutes() {
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	
+
 	status := map[string]interface{}{
 		"status":      "ok",
 		"environment": s.config.Server.Environment,
 		"services":    "enterprise backend services initialized",
 		"features": map[string]bool{
-			"auth":       s.services != nil,
-			"chat":       s.config.Features.Chat,
-			"recording":  s.config.Features.Recording,
+			"auth":           s.services != nil,
+			"chat":           s.config.Features.Chat,
+			"recording":      s.config.Features.Recording,
 			"screen_sharing": s.config.Features.ScreenSharing,
-			"waiting_room": s.config.Features.WaitingRoom,
+			"waiting_room":   s.config.Features.WaitingRoom,
 		},
 	}
 
 	json.NewEncoder(w).Encode(status)
 }
-
