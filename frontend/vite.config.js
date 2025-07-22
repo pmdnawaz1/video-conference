@@ -5,7 +5,7 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(),tailwindcss()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -17,4 +17,20 @@ export default defineConfig({
       "@/utils": path.resolve(__dirname, "./src/utils"),
     },
   },
+  server: {
+    port: 3000,
+    host: true,
+    open: true
+  },
+  preview: {
+    port: 3000,
+    host: true
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  }
 })

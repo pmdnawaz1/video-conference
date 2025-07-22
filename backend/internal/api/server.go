@@ -39,18 +39,18 @@ func (s *Server) Router() http.Handler {
 func (s *Server) setupRoutes() {
 	// Apply global middleware
 	s.router.Use(middleware.CORS(s.config.Server.CORSOrigins))
-	s.router.Use(middleware.Logging())
 	s.router.Use(middleware.Recovery())
+	
+	// WebSocket route with simple handler (compatible with working frontend)
+	s.router.HandleFunc("/ws", handlers.HandleSimpleWebSocket).Methods("GET")
 
-	// API v1 routes
+	// API v1 routes with logging middleware
 	api := s.router.PathPrefix("/api/v1").Subrouter()
+	api.Use(middleware.Logging())
 
 	// Health check
 	s.router.HandleFunc("/health", s.healthCheck).Methods("GET")
 	s.router.HandleFunc("/api/health", s.healthCheck).Methods("GET")
-	
-	// WebSocket route (outside middleware to avoid hijacker issues)
-	s.router.HandleFunc("/ws", handlers.HandleWebSocket).Methods("GET")
 
 	// Initialize handlers
 	if s.services != nil {

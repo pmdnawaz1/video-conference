@@ -2,14 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
-import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff, MessageSquare, Users, Settings, Monitor } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff, MessageSquare, Users, Settings, Monitor, Share, UserPlus, Copy } from 'lucide-react';
 import ChatInterface from '../chat/ChatInterface';
 import useAuthStore from '../../stores/authStore';
+import { useTheme } from '../../contexts/ThemeContext';
+import { MdDarkMode, MdLightMode } from 'react-icons/md';
 
-const VideoConference = () => {
+const VideoConference = ({ allowGuest = false }) => {
   const { meetingId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   
   // Video/Audio refs
   const localVideoRef = useRef(null);
@@ -33,10 +36,20 @@ const VideoConference = () => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    initializeMediaDevices();
-    connectToMeeting();
+    let isConnected = false;
+    
+    const setupMeeting = async () => {
+      if (isConnected) return;
+      isConnected = true;
+      
+      await initializeMediaDevices();
+      await connectToMeeting();
+    };
+    
+    setupMeeting();
     
     return () => {
+      isConnected = false;
       cleanup();
     };
   }, [meetingId]);
@@ -62,9 +75,16 @@ const VideoConference = () => {
   };
 
   const connectToMeeting = async () => {
+    // Prevent duplicate connections
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected, skipping...');
+      return;
+    }
+    
     try {
       // Connect to WebSocket for signaling
       const wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8081/ws'}`;
+      console.log('🔌 Connecting to WebSocket:', wsUrl);
       const ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
@@ -72,12 +92,17 @@ const VideoConference = () => {
         setIsConnected(true);
         
         // Join the meeting room
+        const guestName = allowGuest && !user ? prompt('Enter your name:') || 'Guest' : (user?.first_name || 'Guest');
+        const userId = user?.id ? `${user.id}_${Date.now()}` : `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        console.log('Joining meeting room:', meetingId, 'as user:', userId, 'name:', guestName);
+        
         ws.send(JSON.stringify({
           type: 'join',
           payload: {
             roomId: meetingId,
-            userId: user?.id || `guest_${Date.now()}`,
-            userName: user?.first_name || 'Guest'
+            userId: userId,
+            userName: guestName
           }
         }));
       };
@@ -126,11 +151,25 @@ const VideoConference = () => {
   };
 
   const handleUserJoined = (payload) => {
-    console.log('User joined:', payload.userId);
-    setParticipants(prev => [...prev, { id: payload.userId, name: payload.userName || payload.userId }]);
+    console.log('🆕 User joined:', payload.userId, 'Total participants will be:', participants.length + 1);
     
-    // Create peer connection for new user
-    createPeerConnection(payload.userId);
+    // Check if user already exists to avoid duplicates
+    setParticipants(prev => {
+      const existingUser = prev.find(p => p.id === payload.userId);
+      if (existingUser) {
+        console.log('User already exists, not adding duplicate');
+        return prev;
+      }
+      return [...prev, { id: payload.userId, name: payload.userName || payload.userId }];
+    });
+    
+    // Create peer connection for new user and automatically create offer
+    if (!peerConnections.has(payload.userId)) {
+      console.log('🤝 Creating peer connection with offer for new user:', payload.userId);
+      createPeerConnection(payload.userId, true); // true = create offer automatically
+    } else {
+      console.log('Peer connection already exists for:', payload.userId);
+    }
   };
 
   const handleUserLeft = (payload) => {
@@ -149,7 +188,9 @@ const VideoConference = () => {
     }
   };
 
-  const createPeerConnection = async (userId) => {
+  const createPeerConnection = async (userId, shouldCreateOffer = true) => {
+    console.log('🤝 Creating peer connection for user:', userId, 'createOffer:', shouldCreateOffer);
+    
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -160,22 +201,37 @@ const VideoConference = () => {
     // Add local stream to peer connection
     if (localStream) {
       localStream.getTracks().forEach(track => {
+        console.log('📹 Adding local track to peer connection:', track.kind);
         pc.addTrack(track, localStream);
       });
+    } else {
+      console.warn('⚠️ No local stream available for peer connection');
     }
 
     // Handle remote stream
     pc.ontrack = (event) => {
-      console.log('Received remote track from:', userId);
+      console.log('📹 Received remote track from:', userId, 'Stream:', event.streams[0]);
       const remoteVideo = document.getElementById(`remote-video-${userId}`);
       if (remoteVideo) {
         remoteVideo.srcObject = event.streams[0];
+        console.log('✅ Set remote video source for:', userId);
+      } else {
+        console.error('❌ Remote video element not found for:', userId);
+        // Try again after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          const retryVideo = document.getElementById(`remote-video-${userId}`);
+          if (retryVideo) {
+            retryVideo.srcObject = event.streams[0];
+            console.log('✅ Set remote video source for:', userId, '(retry successful)');
+          }
+        }, 100);
       }
     };
 
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate && socket) {
+        console.log('🧊 Sending ICE candidate to:', userId);
         socket.send(JSON.stringify({
           type: 'iceCandidate',
           payload: {
@@ -186,31 +242,58 @@ const VideoConference = () => {
       }
     };
 
+    // Handle connection state changes
+    pc.onconnectionstatechange = () => {
+      console.log('🔌 Connection state for', userId, ':', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        console.log('✅ Peer connection established with:', userId);
+      } else if (pc.connectionState === 'failed') {
+        console.error('❌ Peer connection failed with:', userId);
+      }
+    };
+
     setPeerConnections(prev => new Map(prev).set(userId, pc));
     
-    // Create and send offer
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    
-    if (socket) {
-      socket.send(JSON.stringify({
-        type: 'offer',
-        payload: {
-          sdp: offer,
-          targetId: userId
+    // Create and send offer only if requested (for new users joining)
+    if (shouldCreateOffer) {
+      try {
+        console.log('📤 Creating offer for:', userId);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          console.log('📨 Sending offer to:', userId);
+          socket.send(JSON.stringify({
+            type: 'offer',
+            payload: {
+              sdp: offer,
+              targetId: userId
+            }
+          }));
+        } else {
+          console.error('❌ WebSocket not open, cannot send offer to:', userId);
         }
-      }));
+      } catch (error) {
+        console.error('❌ Error creating/sending offer to:', userId, error);
+      }
     }
+    
+    return pc;
   };
 
   const handleOffer = async (payload) => {
-    const pc = peerConnections.get(payload.senderId) || await createPeerConnection(payload.senderId);
+    console.log('📥 Received offer from:', payload.senderId);
+    const pc = peerConnections.get(payload.senderId) || await createPeerConnection(payload.senderId, false); // false = don't create offer when receiving one
     
+    console.log('📝 Setting remote description for offer from:', payload.senderId);
     await pc.setRemoteDescription(payload.sdp);
+    
+    console.log('📤 Creating answer for:', payload.senderId);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     
     if (socket) {
+      console.log('📨 Sending answer to:', payload.senderId);
       socket.send(JSON.stringify({
         type: 'answer',
         payload: {
@@ -222,16 +305,24 @@ const VideoConference = () => {
   };
 
   const handleAnswer = async (payload) => {
+    console.log('📥 Received answer from:', payload.senderId);
     const pc = peerConnections.get(payload.senderId);
     if (pc) {
+      console.log('📝 Setting remote description for answer from:', payload.senderId);
       await pc.setRemoteDescription(payload.sdp);
+    } else {
+      console.error('❌ No peer connection found for answer from:', payload.senderId);
     }
   };
 
   const handleIceCandidate = async (payload) => {
+    console.log('🧊 Received ICE candidate from:', payload.senderId);
     const pc = peerConnections.get(payload.senderId);
     if (pc) {
+      console.log('🧊 Adding ICE candidate from:', payload.senderId);
       await pc.addIceCandidate(payload.candidate);
+    } else {
+      console.error('❌ No peer connection found for ICE candidate from:', payload.senderId);
     }
   };
 
@@ -316,7 +407,79 @@ const VideoConference = () => {
 
   const leaveMeeting = () => {
     cleanup();
-    navigate('/dashboard');
+    if (allowGuest || !user) {
+      window.close(); // Try to close tab for guest users
+      navigate('/'); // Fallback navigation
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const generateMeetingLink = () => {
+    return `${window.location.origin}/meeting/${meetingId}/join`;
+  };
+
+  const handleCopyMeetingLink = async () => {
+    const meetingLink = generateMeetingLink();
+    
+    try {
+      await navigator.clipboard.writeText(meetingLink);
+      alert('Meeting link copied to clipboard!');
+    } catch (error) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = meetingLink;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        alert('Meeting link copied to clipboard!');
+      } catch (fallbackError) {
+        alert(`Failed to copy link. Please copy manually: ${meetingLink}`);
+      }
+      
+      document.body.removeChild(textArea);
+    }
+  };
+
+  const handleInviteUsers = () => {
+    const emails = prompt('Enter email addresses (comma-separated):');
+    if (!emails) return;
+    
+    const emailList = emails.split(',').map(email => email.trim()).filter(email => email);
+    if (emailList.length === 0) return;
+    
+    sendInvitations(emailList);
+  };
+
+  const sendInvitations = async (emails) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/invitations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${useAuthStore.getState().accessToken}`,
+        },
+        body: JSON.stringify({
+          meeting_id: parseInt(meetingId),
+          emails: emails,
+          message: `You're invited to join the meeting`
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        alert(`Invitations sent successfully to ${emails.join(', ')}`);
+      } else {
+        alert('Failed to send invitations: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error sending invitations:', error);
+      alert('Error sending invitations: ' + error.message);
+    }
   };
 
   const cleanup = () => {
@@ -339,22 +502,46 @@ const VideoConference = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+      <div className="bg-card border-b border-border px-4 py-3">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-lg font-semibold">Meeting: {meetingId}</h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {participants.length + 1} participant{participants.length === 0 ? '' : 's'}
             </p>
           </div>
           <div className="flex items-center space-x-2">
             <Button
+              onClick={toggleDarkMode}
+              variant="outline"
+              size="sm"
+            >
+              {isDarkMode ? <MdLightMode className="w-4 h-4" /> : <MdDarkMode className="w-4 h-4" />}
+            </Button>
+            {user && (
+              <Button
+                onClick={handleInviteUsers}
+                variant="outline"
+                size="sm"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Invite
+              </Button>
+            )}
+            <Button
+              onClick={handleCopyMeetingLink}
+              variant="outline"
+              size="sm"
+            >
+              <Share className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+            <Button
               onClick={() => setShowParticipants(!showParticipants)}
               variant="outline"
               size="sm"
-              className="text-white border-gray-600"
             >
               <Users className="w-4 h-4 mr-2" />
               Participants
@@ -363,7 +550,6 @@ const VideoConference = () => {
               onClick={() => setShowChat(!showChat)}
               variant="outline"
               size="sm"
-              className="text-white border-gray-600"
             >
               <MessageSquare className="w-4 h-4 mr-2" />
               Chat

@@ -18,13 +18,11 @@ var upgrader = websocket.Upgrader{
 
 // Message types for WebRTC signaling
 type SignalingMessage struct {
-	Type      string      `json:"type"`
-	RoomID    string      `json:"roomId"`
-	UserID    string      `json:"userId"`
-	Data      interface{} `json:"data,omitempty"`
-	Offer     interface{} `json:"offer,omitempty"`
-	Answer    interface{} `json:"answer,omitempty"`
-	Candidate interface{} `json:"candidate,omitempty"`
+	Type    string      `json:"type"`
+	RoomID  string      `json:"roomId,omitempty"`
+	UserID  string      `json:"userId,omitempty"`
+	Payload interface{} `json:"payload,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 // Client represents a WebSocket connection
@@ -97,14 +95,17 @@ func (h *Hub) registerClient(client *Client) {
 	room.clients[client] = true
 	room.mutex.Unlock()
 
-	log.Printf("Client %s joined room %s", client.userID, client.roomID)
+	log.Printf("Client %s joined room %s (total clients in room: %d)", client.userID, client.roomID, len(room.clients))
 
 	// Notify other clients in the room that a new user joined
 	joinMessage := SignalingMessage{
-		Type:   "user-joined",
-		RoomID: client.roomID,
-		UserID: client.userID,
+		Type: "userJoined",
+		Payload: map[string]interface{}{
+			"userId":   client.userID,
+			"userName": client.userID, // We can enhance this with actual user names later
+		},
 	}
+	log.Printf("Broadcasting userJoined message for %s to room %s", client.userID, client.roomID)
 	h.broadcastToRoom(client.roomID, joinMessage, client)
 }
 
@@ -134,9 +135,10 @@ func (h *Hub) unregisterClient(client *Client) {
 
 	// Notify other clients that user left
 	leaveMessage := SignalingMessage{
-		Type:   "user-left",
-		RoomID: client.roomID,
-		UserID: client.userID,
+		Type: "userLeft",
+		Payload: map[string]interface{}{
+			"userId": client.userID,
+		},
 	}
 	h.broadcastToRoom(client.roomID, leaveMessage, nil)
 }
@@ -176,6 +178,32 @@ func (h *Hub) broadcastToRoom(roomID string, message SignalingMessage, exclude *
 	}
 }
 
+func (h *Hub) broadcastToUser(roomID string, targetUserID string, message SignalingMessage) {
+	h.mutex.RLock()
+	room, exists := h.rooms[roomID]
+	h.mutex.RUnlock()
+
+	if !exists {
+		return
+	}
+
+	room.mutex.RLock()
+	defer room.mutex.RUnlock()
+
+	for client := range room.clients {
+		if client.userID == targetUserID {
+			select {
+			case client.send <- message:
+			default:
+				// Client's send channel is full, close it
+				close(client.send)
+				delete(room.clients, client)
+			}
+			break
+		}
+	}
+}
+
 // Global hub instance
 var hub = NewHub()
 
@@ -186,33 +214,29 @@ func init() {
 
 // HandleWebSocket handles WebSocket connections for video conferencing
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	log.Printf("WebSocket connection attempt from: %s", r.RemoteAddr)
+	
 	// Upgrade HTTP connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
+		http.Error(w, "WebSocket upgrade failed", http.StatusBadRequest)
 		return
 	}
+	
+	log.Printf("WebSocket connection established successfully")
 
-	// Get room ID and user ID from query parameters
+	// Get room ID and user ID from query parameters (legacy support)
 	roomID := r.URL.Query().Get("roomId")
 	userID := r.URL.Query().Get("userId")
 
-	if roomID == "" || userID == "" {
-		log.Printf("Missing roomId or userId in WebSocket connection")
-		conn.Close()
-		return
-	}
-
-	// Create new client
+	// Create new client - will be set from join message if not provided
 	client := &Client{
 		conn:   conn,
 		roomID: roomID,
 		userID: userID,
 		send:   make(chan SignalingMessage, 256),
 	}
-
-	// Register client with hub
-	hub.register <- client
 
 	// Start goroutines for handling client
 	go client.writePump()
@@ -222,7 +246,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 // readPump pumps messages from the WebSocket connection to the hub
 func (c *Client) readPump() {
 	defer func() {
-		hub.unregister <- c
+		if c.roomID != "" && c.userID != "" {
+			hub.unregister <- c
+		}
 		c.conn.Close()
 	}()
 
@@ -236,17 +262,45 @@ func (c *Client) readPump() {
 			break
 		}
 
-		// Set the sender information
-		message.RoomID = c.roomID
-		message.UserID = c.userID
-
 		// Handle different message types
 		switch message.Type {
-		case "offer", "answer", "ice-candidate":
-			// Broadcast signaling messages to other clients in the room
-			hub.broadcast <- message
+		case "join":
+			// Handle join message from frontend
+			if payload, ok := message.Payload.(map[string]interface{}); ok {
+				if roomId, ok := payload["roomId"].(string); ok {
+					c.roomID = roomId
+					log.Printf("User joining room: %s", roomId)
+				}
+				if userId, ok := payload["userId"].(string); ok {
+					c.userID = userId
+					log.Printf("User ID: %s", userId)
+				}
+				if userName, ok := payload["userName"].(string); ok {
+					log.Printf("User name: %s", userName)
+				}
+				// Register client after getting room/user info
+				log.Printf("Registering client %s to room %s", c.userID, c.roomID)
+				hub.register <- c
+			}
+		case "offer", "answer", "iceCandidate":
+			// Set the sender information and forward to target
+			if payload, ok := message.Payload.(map[string]interface{}); ok {
+				if targetId, ok := payload["targetId"].(string); ok {
+					// Send message to specific target
+					hub.broadcastToUser(c.roomID, targetId, SignalingMessage{
+						Type: message.Type,
+						Payload: map[string]interface{}{
+							"senderId": c.userID,
+							"sdp":      payload["sdp"],
+							"candidate": payload["candidate"],
+						},
+					})
+				}
+			}
 		case "chat":
 			// Broadcast chat messages to all clients in the room
+			message.RoomID = c.roomID
+			message.UserID = c.userID
 			hub.broadcast <- message
 		default:
 			log.Printf("Unknown message type: %s", message.Type)

@@ -76,8 +76,8 @@ func (s *InvitationService) CreateInvitation(userID int, req InvitationRequest) 
 
 	// Insert invitation into database
 	query := `
-		INSERT INTO invitations (client_id, meeting_id, invitation_type, email, status, role, token, expires_at, invited_by, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO invitations (client_id, meeting_id, invitation_type, email, status, role, token, expires_at, inviter_user_id, invited_by, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id`
 	
 	// Get client ID from meeting
@@ -92,7 +92,8 @@ func (s *InvitationService) CreateInvitation(userID int, req InvitationRequest) 
 		invitation.Role,
 		"", // Token will be generated after
 		invitation.ExpiresAt,
-		invitation.InvitedBy,
+		invitation.InvitedBy, // inviter_user_id
+		invitation.InvitedBy, // invited_by (for consistency)
 		invitation.CreatedAt,
 		invitation.UpdatedAt)
 	if err != nil {

@@ -7,6 +7,9 @@ import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import InvitationForm from './InvitationForm';
+import { useTheme } from '../../contexts/ThemeContext';
+import { MdDarkMode, MdLightMode } from 'react-icons/md';
+import { FiPlus, FiShare, FiUsers, FiLogOut } from 'react-icons/fi';
 
 const MeetingDashboard = () => {
   const navigate = useNavigate();
@@ -50,6 +53,7 @@ const MeetingDashboard = () => {
   } = useMeetingStore();
 
   const { user, logout } = useAuthStore();
+  const { isDarkMode, toggleDarkMode } = useTheme();
 
   useEffect(() => {
     fetchMeetings();
@@ -216,16 +220,23 @@ const MeetingDashboard = () => {
   const pastMeetings = getPastMeetings();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">Meeting Dashboard</h1>
-              <p className="text-sm text-gray-600">Welcome back, {user?.first_name}!</p>
+              <h1 className="text-xl font-semibold text-foreground">Meeting Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Welcome back, {user?.first_name}!</p>
             </div>
             <div className="flex items-center space-x-4">
+              <Button
+                onClick={toggleDarkMode}
+                variant="outline"
+                size="sm"
+              >
+                {isDarkMode ? <MdLightMode className="w-4 h-4" /> : <MdDarkMode className="w-4 h-4" />}
+              </Button>
               <Button
                 onClick={handleStartInstantMeeting}
                 disabled={isCreating}
@@ -237,19 +248,24 @@ const MeetingDashboard = () => {
                     Starting...
                   </>
                 ) : (
-                  'Start Instant Meeting'
+                  <>
+                    <FiPlus className="w-4 h-4 mr-2" />
+                    Start Instant Meeting
+                  </>
                 )}
               </Button>
               <Button
                 onClick={() => setShowCreateForm(true)}
                 className="bg-blue-600 hover:bg-blue-700"
               >
+                <FiPlus className="w-4 h-4 mr-2" />
                 Schedule Meeting
               </Button>
               <Button
                 onClick={logout}
                 variant="outline"
               >
+                <FiLogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
             </div>
@@ -260,8 +276,8 @@ const MeetingDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Display */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800">{error}</p>
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+            <p className="text-destructive">{error}</p>
           </div>
         )}
 
