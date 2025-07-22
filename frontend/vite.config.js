@@ -24,7 +24,7 @@ export default defineConfig({
     allowedHosts: ['dev.qubicgen.com'],
     hmr: {
       port: 3000,
-      host: 'dev.qubicgen.com',
+      host: 'localhost',
       clientPort: 3000
     }
   },
