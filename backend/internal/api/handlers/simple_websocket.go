@@ -113,6 +113,8 @@ func (c *SimpleClient) handleMessage(msg SimpleMessage) {
 	switch msg.Type {
 	case "join":
 		c.handleJoinRoom(msg.Payload)
+	case "getParticipants":
+		c.handleGetParticipants(msg.Payload)
 	case "offer":
 		c.forwardToTarget(msg)
 	case "answer":
@@ -159,12 +161,35 @@ func (c *SimpleClient) handleJoinRoom(payload interface{}) {
 
 	// Add client to room
 	room.mutex.Lock()
+	
+	// Send existing participants to the new user
+	existingUsers := make([]map[string]interface{}, 0)
+	for existingUserID := range room.Clients {
+		if existingUserID != userID {
+			existingUsers = append(existingUsers, map[string]interface{}{
+				"userId":   existingUserID,
+				"userName": existingUserID,
+			})
+		}
+	}
+	
 	room.Clients[userID] = c
 	room.mutex.Unlock()
 
 	log.Printf("User %s joined room %s (total clients: %d)", userID, roomID, len(room.Clients))
 
-	// Notify other users in the room
+	// Send existing users to the new client first
+	if len(existingUsers) > 0 {
+		for _, existingUser := range existingUsers {
+			c.Send <- SimpleMessage{
+				Type:    "userJoined",
+				Payload: existingUser,
+			}
+			log.Printf("Sent existing user %s to new user %s", existingUser["userId"], userID)
+		}
+	}
+
+	// Then notify other users about the new join
 	c.broadcastToRoom(SimpleMessage{
 		Type: "userJoined",
 		Payload: map[string]interface{}{
@@ -172,6 +197,54 @@ func (c *SimpleClient) handleJoinRoom(payload interface{}) {
 			"userName": userID,
 		},
 	}, userID)
+}
+
+func (c *SimpleClient) handleGetParticipants(payload interface{}) {
+	data, ok := payload.(map[string]interface{})
+	if !ok {
+		log.Printf("Invalid getParticipants payload")
+		return
+	}
+
+	roomID, _ := data["roomId"].(string)
+	if roomID == "" {
+		log.Printf("Missing roomId in getParticipants request")
+		return
+	}
+
+	log.Printf("Sending participants list for room %s to user %s", roomID, c.UserID)
+
+	simpleHub.mutex.RLock()
+	room, exists := simpleHub.Rooms[roomID]
+	simpleHub.mutex.RUnlock()
+
+	if !exists {
+		log.Printf("Room %s not found for getParticipants", roomID)
+		c.Send <- SimpleMessage{
+			Type:    "participants",
+			Payload: []interface{}{},
+		}
+		return
+	}
+
+	room.mutex.RLock()
+	participants := make([]map[string]interface{}, 0)
+	for userID := range room.Clients {
+		if userID != c.UserID { // Don't include the requesting user
+			participants = append(participants, map[string]interface{}{
+				"userId":   userID,
+				"userName": userID,
+			})
+		}
+	}
+	room.mutex.RUnlock()
+
+	c.Send <- SimpleMessage{
+		Type:    "participants",
+		Payload: participants,
+	}
+	
+	log.Printf("Sent %d participants to user %s in room %s", len(participants), c.UserID, roomID)
 }
 
 func (c *SimpleClient) forwardToTarget(msg SimpleMessage) {
