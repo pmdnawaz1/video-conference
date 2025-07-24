@@ -42,10 +42,14 @@ const VideoConference = ({ allowGuest = false }) => {
   // Buffers for pending ICE candidates and answers
   const pendingCandidates = useRef(new Map());
   const pendingAnswers = useRef(new Map());
+  
+  // Track negotiation state to prevent glare
+  const negotiationState = useRef(new Map()); // userId -> 'offering' | 'answering' | 'stable'
 
   useEffect(() => {
     let ws = null;
     let cancelled = false;
+    let pingInterval = null;
 
     console.log('🚀 Initializing VideoConference for meeting:', meetingId);
     console.log('🌐 Current URL:', window.location.href);
@@ -54,6 +58,13 @@ const VideoConference = ({ allowGuest = false }) => {
       await initializeMediaDevices();
       if (cancelled) return;
       ws = await connectToMeeting();
+      if (ws) {
+        pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 30000); // Send a ping every 30 seconds
+      }
     };
 
     setupMeeting();
@@ -61,6 +72,9 @@ const VideoConference = ({ allowGuest = false }) => {
     return () => {
       cancelled = true;
       console.log('🧹 Cleaning up VideoConference for meeting:', meetingId);
+      if (pingInterval) {
+        clearInterval(pingInterval);
+      }
       cleanup();
       if (ws) ws.close();
     };
@@ -72,6 +86,13 @@ const VideoConference = ({ allowGuest = false }) => {
         video: { width: 1280, height: 720 },
         audio: true
       });
+
+      // Disable audio by default
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = false;
+      }
+
       setLocalStream(stream);
       localStreamRef.current = stream;
       if (localVideoRef.current) {
@@ -208,13 +229,15 @@ const VideoConference = ({ allowGuest = false }) => {
     // Tie-breaking logic to prevent glare
     const shouldCreateOffer = currentUserId.current > payload.userId;
     
-    console.log('🔍 Offer decision:', {
-      myUserId: currentUserId.current,
-      peerId: payload.userId,
-      shouldCreateOffer: shouldCreateOffer
-    });
-    
-    createPeerConnection(payload.userId, shouldCreateOffer);
+    if (shouldCreateOffer) {
+      negotiationState.current.set(payload.userId, 'offering');
+      console.log('🔍 Offer decision: Creating offer for', payload.userId);
+      createPeerConnection(payload.userId, true);
+    } else {
+      negotiationState.current.set(payload.userId, 'stable');
+      console.log('🔍 Offer decision: Waiting for offer from', payload.userId);
+      createPeerConnection(payload.userId, false);
+    }
   };
 
   const handleUserLeft = (payload) => {
@@ -223,6 +246,7 @@ const VideoConference = ({ allowGuest = false }) => {
     if (pc) {
       pc.close();
       peerConnectionsRef.current.delete(payload.userId);
+      negotiationState.current.delete(payload.userId);
       console.log('🗑️ Removed peer connection for:', payload.userId);
     }
   };
@@ -234,6 +258,10 @@ const VideoConference = ({ allowGuest = false }) => {
     if (payload && Array.isArray(payload)) {
       payload.forEach(participant => {
         if (participant.userId && participant.userId !== currentUserId.current) {
+          if (peerConnectionsRef.current.has(participant.userId)) {
+            console.log('Skipping participant, already have a connection:', participant.userId);
+            return;
+          }
           console.log('👤 Processing existing participant:', participant.userId);
           
           // Don't add to participants list if already exists
@@ -320,7 +348,7 @@ const VideoConference = ({ allowGuest = false }) => {
           socketRef.current.send(JSON.stringify({
             type: 'iceCandidate',
             payload: {
-              candidate: event.candidate,
+              candidate: event.candidate.toJSON(),
               targetId: userId
             }
           }));
@@ -440,6 +468,13 @@ const VideoConference = ({ allowGuest = false }) => {
   const handleOffer = async (payload) => {
     console.log('📥 Received offer from:', payload.senderId);
     
+    const state = negotiationState.current.get(payload.senderId);
+    if (state === 'offering') {
+      console.warn('⚠️ Glare detected! Ignoring offer from', payload.senderId);
+      return;
+    }
+    negotiationState.current.set(payload.senderId, 'answering');
+    
     // Add sender to participants list if not already there
     setParticipants(prev => {
       const existingUser = prev.find(p => p.id === payload.senderId);
@@ -449,6 +484,9 @@ const VideoConference = ({ allowGuest = false }) => {
       console.log('➕ Adding participant from offer:', payload.senderId);
       return [...prev, { id: payload.senderId, name: payload.senderId }];
     });
+    
+    // Wait a bit for React to render the participant before creating peer connection
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Ensure we have a peer connection
     let pc = peerConnectionsRef.current.get(payload.senderId);
@@ -480,9 +518,11 @@ const VideoConference = ({ allowGuest = false }) => {
         };
         console.log('📨 Sending answer to:', payload.senderId, 'Message:', answerMessage);
         socketRef.current.send(JSON.stringify(answerMessage));
+        negotiationState.current.set(payload.senderId, 'stable');
       }
     } catch (error) {
       console.error('❌ Error handling offer from:', payload.senderId, error);
+      negotiationState.current.set(payload.senderId, 'stable');
     }
   };
 
@@ -503,6 +543,7 @@ const VideoConference = ({ allowGuest = false }) => {
     try {
       console.log('📝 Setting remote description for answer from:', payload.senderId);
       await pc.setRemoteDescription(payload.sdp);
+      negotiationState.current.set(payload.senderId, 'stable');
       console.log('✅ Remote description set successfully for:', payload.senderId);
       
       // Process buffered ICE candidates
@@ -773,9 +814,13 @@ const VideoConference = ({ allowGuest = false }) => {
                   id={`remote-video-${participant.id}`}
                   ref={(videoElement) => {
                     console.log('🎬 Video element ref callback for:', participant.id, 'Element:', !!videoElement, 'Has stream:', remoteVideosRef.current.has(participant.id));
-                    if (videoElement && remoteVideosRef.current.has(participant.id)) {
-                      console.log('📺 Applying buffered stream to video element for:', participant.id);
-                      videoElement.srcObject = remoteVideosRef.current.get(participant.id);
+                    if (videoElement) {
+                      if (remoteVideosRef.current.has(participant.id)) {
+                        console.log('📺 Applying buffered stream to video element for:', participant.id);
+                        videoElement.srcObject = remoteVideosRef.current.get(participant.id);
+                      } else {
+                        console.log('⏳ Video element ready, waiting for stream for:', participant.id);
+                      }
                     }
                   }}
                   autoPlay
