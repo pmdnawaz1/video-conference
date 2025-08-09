@@ -1,10 +1,12 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"video-conference-backend/internal/config"
 )
@@ -170,6 +172,70 @@ func (s *EmailService) SendPasswordResetEmail(to, resetLink string) error {
 </body>
 </html>
 `, resetLink)
+
+	msg := EmailMessage{
+		To:      []string{to},
+		Subject: subject,
+		Body:    htmlBody,
+		IsHTML:  true,
+	}
+
+	return s.SendEmail(msg)
+}
+
+// SendAdminInvitation sends an admin invitation email
+func (s *EmailService) SendAdminInvitation(ctx context.Context, to string, data map[string]interface{}) error {
+	firstName := data["first_name"].(string)
+	lastName := data["last_name"].(string)
+	invitationURL := data["invitation_url"].(string)
+	expiresAt := data["expires_at"].(time.Time)
+	
+	subject := "Admin Invitation - Video Conference Platform"
+	
+	htmlBody := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .invitation-button { display: inline-block; background-color: #10B981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+        .warning { background-color: #FEF3C7; border: 1px solid #F59E0B; padding: 15px; border-radius: 5px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>🎉 You're Invited as an Admin!</h2>
+        </div>
+        <div class="content">
+            <p>Hi %s %s,</p>
+            <p>You've been invited to join Video Conference Platform as an Administrator!</p>
+            <p>As an admin, you'll be able to:</p>
+            <ul>
+                <li>Manage organization settings</li>
+                <li>Invite and manage users</li>
+                <li>Create and monitor meetings</li>
+                <li>Access analytics and reports</li>
+                <li>Configure platform features</li>
+            </ul>
+            <p>To complete your registration, click the button below and create your password:</p>
+            <a href="%s" class="invitation-button">Accept Invitation & Set Password</a>
+            <div class="warning">
+                <strong>⚠️ Important:</strong> This invitation will expire on %s. Please complete your registration before then.
+            </div>
+            <p>If you have any questions or need assistance, please contact our support team.</p>
+        </div>
+        <div class="footer">
+            <p>Welcome to the team!<br><strong>Video Conference Platform</strong></p>
+        </div>
+    </div>
+</body>
+</html>
+`, firstName, lastName, invitationURL, expiresAt.Format("January 2, 2006 at 3:04 PM"))
 
 	msg := EmailMessage{
 		To:      []string{to},

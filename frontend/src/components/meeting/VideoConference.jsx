@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare, Users, UserPlus, Share, Monitor } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare, Users, UserPlus, Share, Monitor, LayoutGrid, MoreVertical, Pin, PinOff } from 'lucide-react';
 import ChatInterface from '../chat/ChatInterface';
 import useAuthStore from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -30,6 +30,9 @@ const VideoConference = ({ allowGuest = false }) => {
   const [participants, setParticipants] = useState([]);
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [pinnedId, setPinnedId] = useState(null); // 'local' or remote userId
+  const pinnedVideoRef = useRef(null);
+  const pinnedIdRef = useRef(null);
 
   // WebRTC states
   const [socket, setSocket] = useState(null);
@@ -280,6 +283,40 @@ const VideoConference = ({ allowGuest = false }) => {
     }
   };
 
+  // Keep pinned stage video in sync with selected stream
+  useEffect(() => {
+    if (!pinnedVideoRef.current) return;
+    if (pinnedId === 'local') {
+      if (localStreamRef.current) {
+        pinnedVideoRef.current.srcObject = localStreamRef.current;
+      }
+    } else if (pinnedId) {
+      const stream = remoteVideosRef.current.get(pinnedId);
+      if (stream) {
+        pinnedVideoRef.current.srcObject = stream;
+      }
+    }
+  }, [pinnedId]);
+
+  // Mirror pinnedId in a ref for access inside event handlers
+  useEffect(() => {
+    pinnedIdRef.current = pinnedId;
+  }, [pinnedId]);
+
+  // Update pinned video when local stream first becomes available
+  useEffect(() => {
+    if (pinnedId === 'local' && pinnedVideoRef.current && localStreamRef.current) {
+      pinnedVideoRef.current.srcObject = localStreamRef.current;
+    }
+  }, [localStream, pinnedId]);
+
+  // Ensure the currently rendered local video element always has the stream
+  useEffect(() => {
+    if (localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+  }, [pinnedId, localStream]);
+
   const createPeerConnection = async (userId, shouldCreateOffer = true) => {
     if (!localStreamRef.current) {
       console.warn('Local stream not ready, cannot create peer connection');
@@ -331,6 +368,10 @@ const VideoConference = ({ allowGuest = false }) => {
       
       if (!remoteVideosRef.current.has(userId)) {
         remoteVideosRef.current.set(userId, event.streams[0]);
+      }
+      // If this user is currently pinned, update the stage video immediately
+      if (pinnedIdRef.current === userId && pinnedVideoRef.current) {
+        pinnedVideoRef.current.srcObject = event.streams[0];
       }
       const remoteVideo = document.getElementById(`remote-video-${userId}`);
       if (remoteVideo) {
@@ -755,136 +796,305 @@ const VideoConference = ({ allowGuest = false }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-      <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-lg font-semibold">Meeting: {meetingId}</h1>
-            <p className="text-sm text-gray-400">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Top App Bar */}
+      <header className="bg-card border-b border-border px-4 py-2">
+        <div className="flex justify-between items-center gap-4">
+          <div className="min-w-0">
+            <h1 className="text-base font-semibold truncate">Meeting • {meetingId}</h1>
+            <p className="text-xs text-muted-foreground">
               {participants.length + 1} participant{participants.length === 0 ? '' : 's'}
             </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button onClick={toggleDarkMode} variant="outline" size="sm">
-              {isDarkMode ? <MdLightMode className="w-4 h-4" /> : <MdDarkMode className="w-4 h-4" />}
-            </Button>
+          <div className="flex items-center gap-2">
             {user && (
-              <Button onClick={handleInviteUsers} variant="outline" size="sm">
-                <UserPlus className="w-4 h-4 mr-2" />
+              <Button onClick={handleInviteUsers} variant="outline" size="sm" className="gap-2">
+                <UserPlus className="w-4 h-4" />
                 Invite
               </Button>
             )}
-            <Button onClick={handleCopyMeetingLink} variant="outline" size="sm">
-              <Share className="w-4 h-4 mr-2" />
+            <Button onClick={handleCopyMeetingLink} variant="outline" size="sm" className="gap-2">
+              <Share className="w-4 h-4" />
               Share
             </Button>
-            <Button onClick={() => setShowParticipants(!showParticipants)} variant="outline" size="sm">
-              <Users className="w-4 h-4 mr-2" />
+            <Button onClick={() => setShowParticipants(!showParticipants)} variant={showParticipants ? 'default' : 'outline'} size="sm" className="gap-2">
+              <Users className="w-4 h-4" />
+              People
             </Button>
-            <Button onClick={() => setShowChat(!showChat)} variant="outline" size="sm">
-              <MessageSquare className="w-4 h-4 mr-2" />
+            <Button onClick={() => setShowChat(!showChat)} variant={showChat ? 'default' : 'outline'} size="sm" className="gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Chat
+            </Button>
+            <Button onClick={toggleDarkMode} variant="outline" size="sm">
+              {isDarkMode ? <MdLightMode className="w-4 h-4" /> : <MdDarkMode className="w-4 h-4" />}
             </Button>
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col p-4">
-          <div className={`grid ${getGridLayout(participants.length + 1)} gap-4 flex-1`}>
-            <Card className="bg-gray-800 border-gray-700 overflow-hidden relative rounded-lg">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
-                You {isScreenSharing && '(Sharing)'}
-              </div>
-              {!isVideoEnabled && (
-                <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
-                  <VideoOff className="w-12 h-12 text-gray-400" />
-                </div>
-              )}
-            </Card>
-            {participants.map(participant => (
-              <Card key={participant.id} className="bg-gray-800 border-gray-700 overflow-hidden relative rounded-lg">
+        <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+          {/* Stage + Grid/Filmstrip */}
+          {!pinnedId ? (
+            <div className={`grid ${getGridLayout(participants.length + 1)} gap-4 flex-1 auto-rows-[minmax(0,1fr)]`}>
+              {/* Local Tile */}
+              <Card className="relative overflow-hidden rounded-xl border-border bg-black">
                 <video
-                  id={`remote-video-${participant.id}`}
-                  ref={(videoElement) => {
-                    console.log('🎬 Video element ref callback for:', participant.id, 'Element:', !!videoElement, 'Has stream:', remoteVideosRef.current.has(participant.id));
-                    if (videoElement) {
-                      if (remoteVideosRef.current.has(participant.id)) {
-                        console.log('📺 Applying buffered stream to video element for:', participant.id);
-                        videoElement.srcObject = remoteVideosRef.current.get(participant.id);
-                      } else {
-                        console.log('⏳ Video element ready, waiting for stream for:', participant.id);
-                      }
-                    }
-                  }}
+                  ref={localVideoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
-                  {participant.name}
+                <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">
+                  You {isScreenSharing && '(Sharing)'}
+                </div>
+                {/* Pin button */}
+                <div className="absolute top-2 right-2">
+                  <Button
+                    onClick={() => setPinnedId('local')}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full"
+                    title="Pin"
+                  >
+                    <Pin className="w-4 h-4" />
+                  </Button>
+                </div>
+                {!isVideoEnabled && (
+                  <div className="absolute inset-0 bg-neutral-800 flex items-center justify-center">
+                    <VideoOff className="w-12 h-12 text-neutral-400" />
+                  </div>
+                )}
+              </Card>
+
+              {/* Remote Tiles */}
+              {participants.map(participant => (
+                <Card key={participant.id} className="relative overflow-hidden rounded-xl border-border bg-black">
+                  <video
+                    id={`remote-video-${participant.id}`}
+                    ref={(videoElement) => {
+                      console.log('🎬 Video element ref callback for:', participant.id, 'Element:', !!videoElement, 'Has stream:', remoteVideosRef.current.has(participant.id));
+                      if (videoElement) {
+                        if (remoteVideosRef.current.has(participant.id)) {
+                          console.log('📺 Applying buffered stream to video element for:', participant.id);
+                          videoElement.srcObject = remoteVideosRef.current.get(participant.id);
+                        } else {
+                          console.log('⏳ Video element ready, waiting for stream for:', participant.id);
+                        }
+                      }
+                    }}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">
+                    {participant.name}
+                  </div>
+                  {/* Pin button */}
+                  <div className="absolute top-2 right-2">
+                    <Button
+                      onClick={() => setPinnedId(participant.id)}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0 rounded-full"
+                      title="Pin"
+                    >
+                      <Pin className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+              {/* Spotlight stage */}
+              <Card className="relative flex-1 overflow-hidden rounded-xl border-border bg-black">
+                <video
+                  ref={pinnedVideoRef}
+                  autoPlay
+                  playsInline
+                  muted={pinnedId === 'local'}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">
+                  {pinnedId === 'local' ? 'You' : (participants.find(p => p.id === pinnedId)?.name || pinnedId)}
+                </div>
+                {/* Unpin button */}
+                <div className="absolute top-2 right-2 flex items-center gap-2">
+                  <Button
+                    onClick={() => setPinnedId(null)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full"
+                    title="Unpin"
+                  >
+                    <PinOff className="w-4 h-4" />
+                  </Button>
                 </div>
               </Card>
-            ))}
-          </div>
-          <footer className="flex justify-center items-center p-4">
-            <div className="flex items-center space-x-4 bg-gray-800 rounded-full px-6 py-3">
-              <Button
-                onClick={toggleAudio}
-                size="sm"
-                variant={isAudioEnabled ? "secondary" : "destructive"}
-                className="rounded-full w-12 h-12 p-0"
-              >
-                {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              </Button>
-              <Button
-                onClick={toggleVideo}
-                size="sm"
-                variant={isVideoEnabled ? "secondary" : "destructive"}
-                className="rounded-full w-12 h-12 p-0"
-              >
-                {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-              </Button>
-              <Button
-                onClick={toggleScreenShare}
-                size="sm"
-                variant={isScreenSharing ? "default" : "secondary"}
-                className="rounded-full w-12 h-12 p-0"
-              >
-                <Monitor className="w-5 h-5" />
-              </Button>
-              <Button
-                onClick={leaveMeeting}
-                size="sm"
-                variant="destructive"
-                className="rounded-full w-16 h-12 p-0"
-              >
-                <PhoneOff className="w-5 h-5" />
-              </Button>
+
+              {/* Filmstrip */}
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {/* Local thumbnail (if not pinned) */}
+                {pinnedId !== 'local' && (
+                  <Card className="relative overflow-hidden rounded-lg border-border bg-black w-56 h-32 shrink-0">
+                    <video
+                      ref={localVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[10px]">
+                      You {isScreenSharing && '(Sharing)'}
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <Button
+                        onClick={() => setPinnedId('local')}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 rounded-full"
+                        title="Pin"
+                      >
+                        <Pin className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Remote thumbnails (exclude pinned) */}
+                {participants.filter(p => p.id !== pinnedId).map(participant => (
+                  <Card key={participant.id} className="relative overflow-hidden rounded-lg border-border bg-black w-56 h-32 shrink-0">
+                    <video
+                      id={`remote-video-${participant.id}`}
+                      ref={(videoElement) => {
+                        if (videoElement) {
+                          if (remoteVideosRef.current.has(participant.id)) {
+                            videoElement.srcObject = remoteVideosRef.current.get(participant.id);
+                          }
+                        }
+                      }}
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[10px]">
+                      {participant.name}
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <Button
+                        onClick={() => setPinnedId(participant.id)}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 rounded-full"
+                        title="Pin"
+                      >
+                        <Pin className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </footer>
+          )}
+
+          {/* Bottom Controls */}
+          <div className="flex justify-center items-center pb-2">
+            <Card className="rounded-full px-3 py-2 border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={toggleAudio}
+                  size="sm"
+                  variant={isAudioEnabled ? 'default' : 'destructive'}
+                  className="rounded-full w-12 h-12 p-0"
+                >
+                  {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                </Button>
+                <Button
+                  onClick={toggleVideo}
+                  size="sm"
+                  variant={isVideoEnabled ? 'default' : 'destructive'}
+                  className="rounded-full w-12 h-12 p-0"
+                >
+                  {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                </Button>
+                <Button
+                  onClick={toggleScreenShare}
+                  size="sm"
+                  variant={isScreenSharing ? 'default' : 'outline'}
+                  className="rounded-full w-12 h-12 p-0"
+                >
+                  <Monitor className="w-5 h-5" />
+                </Button>
+                {/* Spacer */}
+                <div className="w-2" />
+                <Button
+                  onClick={leaveMeeting}
+                  size="sm"
+                  variant="destructive"
+                  className="rounded-full w-16 h-12 p-0"
+                  title="Leave call"
+                >
+                  <PhoneOff className="w-5 h-5" />
+                </Button>
+                {/* Spacer */}
+                <div className="w-2" />
+                <Button
+                  onClick={() => setShowParticipants(!showParticipants)}
+                  size="sm"
+                  variant={showParticipants ? 'default' : 'outline'}
+                  className="rounded-full w-12 h-12 p-0"
+                  title="People"
+                >
+                  <Users className="w-5 h-5" />
+                </Button>
+                <Button
+                  onClick={() => setShowChat(!showChat)}
+                  size="sm"
+                  variant={showChat ? 'default' : 'outline'}
+                  className="rounded-full w-12 h-12 p-0"
+                  title="Chat"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full w-12 h-12 p-0"
+                  title="Layout"
+                  disabled
+                >
+                  <LayoutGrid className="w-5 h-5 opacity-50" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full w-12 h-12 p-0"
+                  title="More options"
+                  disabled
+                >
+                  <MoreVertical className="w-5 h-5 opacity-50" />
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
         {(showChat || showParticipants) && (
-          <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+          <aside className="w-80 bg-card border-l border-border flex flex-col">
             {showParticipants && (
-              <div className="p-4 border-b border-gray-700">
+              <div className="p-4 border-b border-border">
                 <h3 className="font-semibold mb-3">Participants ({participants.length + 1})</h3>
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm">
                       {user?.first_name?.[0] || 'Y'}
                     </div>
                     <span className="text-sm">You</span>
                   </div>
                   {participants.map(participant => (
-                    <div key={participant.id} className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-sm">
+                    <div key={participant.id} className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm">
                         {participant.name[0]}
                       </div>
                       <span className="text-sm">{participant.name}</span>

@@ -53,6 +53,13 @@ func NewConnection(cfg config.DatabaseConfig) (*DB, error) {
 
 // RunMigrations runs database migrations using the new migration system
 func RunMigrations(db *DB) error {
+	// For the new system, we'll use the complete schema redesign
+	log.Printf("🔄 Running complete database schema redesign...")
+	return MigrateToNewSchema(db)
+}
+
+// RunLegacyMigrations runs the old step-by-step migrations (for backward compatibility)
+func RunLegacyMigrations(db *DB) error {
 	return runMigrationsFromCode(db)
 }
 
