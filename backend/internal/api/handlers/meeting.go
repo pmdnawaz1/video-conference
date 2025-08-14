@@ -88,30 +88,20 @@ func (h *MeetingHandler) CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set default max participants if not provided
-	maxParticipants := 100
-	if req.MaxParticipants != nil {
-		maxParticipants = *req.MaxParticipants
-	}
+	// Default duration is set to 60 minutes
 
 	// Create meeting
 	meeting := &models.Meeting{
 		ClientID:            clientID,
 		Title:               req.Title,
 		Description:         req.Description,
-		CreatedByUserID:     userID,
-		Password:            req.Password,
-		ScheduledStart:      req.ScheduledStart,
-		ScheduledEnd:        req.ScheduledEnd,
-		Status:              models.MeetingStatusScheduled,
-		MaxParticipants:     maxParticipants,
-		AllowAnonymous:      false,
-		RequireApproval:     false,
-		EnableWaitingRoom:   false,
-		EnableChat:          true,
-		EnableScreenSharing: true,
-		EnableRecording:     false,
-		Settings:            models.JSONB(req.Settings),
+		HostID:                &userID,
+		Password:              req.Password,
+		ScheduledStart:        req.ScheduledStart,
+		ScheduledEnd:          req.ScheduledEnd,
+		Status:                models.MeetingStatusScheduled,
+		WaitingRoomEnabled:    false,
+		MeetingSettings:       nil,
 	}
 
 	err := h.meetingService.CreateMeeting(r.Context(), meeting)
@@ -140,7 +130,7 @@ func (h *MeetingHandler) GetMeeting(w http.ResponseWriter, r *http.Request) {
 
 	// Check if user has access to this meeting
 	userID := utils.GetUserIDFromContext(r)
-	if meeting.CreatedByUserID != userID {
+	if meeting.HostID != nil && *meeting.HostID != userID {
 		// TODO: Check if user is a participant
 		utils.WriteError(w, http.StatusForbidden, "Access denied")
 		return
@@ -181,7 +171,7 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 
 	// Check if user is the host
 	userID := utils.GetUserIDFromContext(r)
-	if meeting.CreatedByUserID != userID {
+	if meeting.HostID != nil && *meeting.HostID != userID {
 		utils.WriteError(w, http.StatusForbidden, "Only the host can update the meeting")
 		return
 	}
@@ -203,7 +193,7 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 		meeting.Password = updateReq.Password
 	}
 	if updateReq.Settings != nil {
-		meeting.Settings = models.JSONB(updateReq.Settings)
+		meeting.MeetingSettings = nil // Settings not implemented yet
 	}
 
 	err = h.meetingService.UpdateMeeting(r.Context(), meeting)

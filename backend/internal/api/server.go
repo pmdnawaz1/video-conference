@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"video-conference-backend/internal/api/handlers"
 	"video-conference-backend/internal/api/middleware"
@@ -39,11 +40,11 @@ func (s *Server) Router() http.Handler {
 // setupRoutes configures all API routes
 func (s *Server) setupRoutes() {
 	// Apply global middleware
-	s.router.Use(middleware.CORS(s.config.Server.CORSOrigins))
+	s.router.Use(middleware.CORS(strings.Split(s.config.Server.CORSOrigins, ",")))
 	s.router.Use(middleware.Recovery())
 
-	// WebSocket route with simple handler (compatible with working frontend)
-	s.router.HandleFunc("/ws", handlers.HandleSimpleWebSocket).Methods("GET")
+	// WebSocket route with enhanced handler supporting all frontend message types
+	s.router.HandleFunc("/ws", handlers.HandleWebSocket).Methods("GET")
 
 	// API v1 routes with logging middleware
 	api := s.router.PathPrefix("/api/v1").Subrouter()
@@ -56,15 +57,16 @@ func (s *Server) setupRoutes() {
 	// Initialize handlers
 	if s.services != nil {
 		authHandler := handlers.NewAuthHandler(s.services.Auth, s.services.User)
-		userHandler := handlers.NewUserHandler(s.services.User)
+		userHandler := handlers.NewUserHandler(s.services.User, s.services.UserAnalytics, s.services.UserPreference)
 		clientHandler := handlers.NewClientHandler(s.services.Client)
 		meetingHandler := handlers.NewMeetingHandler(s.services.Meeting)
 		chatHandler := handlers.NewChatHandler(s.services.Chat)
 		invitationHandler := handlers.NewInvitationHandler(s.services.Invitation, s.services.User, s.services.Email, s.services.Calendar)
 		authMFAHandler := handlers.NewMFAHandler(s.services.Auth)
-		adminHandler := handlers.AdminHandler(s.services.Admin, s.services.User)
+		adminHandler := handlers.AdminHandler(s.services.Admin, s.services.User, s.services.UserInvitation)
 		superAdminHandler := handlers.SuperAdminHandler(s.services.SuperAdmin)
 		adminDashboardHandler := handlers.AdminDashboardHandler(s.services.AdminDashboard)
+		userInvitationHandler := handlers.UserInvitationHandler(s.services.UserInvitation)
 		// Public routes (no authentication required)
 		public := api.PathPrefix("/public").Subrouter()
 		public.HandleFunc("/auth/login", authHandler.Login).Methods("POST", "OPTIONS")
@@ -75,6 +77,10 @@ func (s *Server) setupRoutes() {
 		public.HandleFunc("/invitations/validate", invitationHandler.ValidateInvitation).Methods("GET", "OPTIONS")
 		public.HandleFunc("/invitations/{token}", invitationHandler.GetInvitationByToken).Methods("GET", "OPTIONS")
 
+		// Public user invitation routes
+		public.HandleFunc("/user-invitations/validate", userInvitationHandler.ValidateUserInvitation).Methods("GET", "OPTIONS")
+		public.HandleFunc("/user-invitations/complete", userInvitationHandler.CompleteUserRegistration).Methods("POST", "OPTIONS")
+
 		// Protected routes (authentication required)
 		protected := api.PathPrefix("").Subrouter()
 		protected.Use(middleware.JWTAuth(s.services.Auth))
@@ -83,6 +89,9 @@ func (s *Server) setupRoutes() {
 		protected.HandleFunc("/users/me", userHandler.GetProfile).Methods("GET", "OPTIONS")
 		protected.HandleFunc("/users/me", userHandler.UpdateProfile).Methods("PUT", "OPTIONS")
 		protected.HandleFunc("/users/me/password", userHandler.ChangePassword).Methods("PUT", "OPTIONS")
+		protected.HandleFunc("/users/me/analytics", userHandler.GetUserAnalytics).Methods("GET", "OPTIONS")
+		protected.HandleFunc("/users/me/preferences", userHandler.GetUserPreferences).Methods("GET", "OPTIONS")
+		protected.HandleFunc("/users/me/preferences", userHandler.UpdateUserPreferences).Methods("PUT", "OPTIONS")
 		
 		// MFA routes
 		protected.HandleFunc("/mfa/enable", authMFAHandler.EnableMFA).Methods("POST", "OPTIONS")
@@ -193,7 +202,7 @@ func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	status := map[string]interface{}{
+	status := map[string]any{
 		"status":      "ok",
 		"environment": s.config.Server.Environment,
 		"services":    "enterprise backend services initialized",

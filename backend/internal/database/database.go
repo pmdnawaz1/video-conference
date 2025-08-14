@@ -53,14 +53,50 @@ func NewConnection(cfg config.DatabaseConfig) (*DB, error) {
 
 // RunMigrations runs database migrations using the new migration system
 func RunMigrations(db *DB) error {
-	// For the new system, we'll use the complete schema redesign
-	log.Printf("🔄 Running complete database schema redesign...")
-	return MigrateToNewSchema(db)
+	// Check if tables exist, only run initial migration if needed
+	var tableCount int
+	err := db.DB.QueryRow("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'").Scan(&tableCount)
+	if err != nil {
+		return fmt.Errorf("failed to check existing tables: %w", err)
+	}
+	
+	if tableCount < 10 { // If we have fewer than 10 tables, run initial setup
+		log.Printf("🔄 Running initial database schema setup...")
+		return MigrateToNewSchema(db)
+	} else {
+		log.Printf("✅ Database schema already exists (%d tables found), skipping destructive migration", tableCount)
+		// Run any additive migrations here if needed
+		return ensureRefreshTokensTable(db)
+	}
+}
+
+// ensureRefreshTokensTable creates refresh_tokens table if it doesn't exist
+func ensureRefreshTokensTable(db *DB) error {
+	query := `
+	CREATE TABLE IF NOT EXISTS refresh_tokens (
+		id SERIAL PRIMARY KEY,
+		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		token TEXT NOT NULL UNIQUE,
+		expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+	);
+	
+	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
+	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);`
+	
+	_, err := db.DB.Exec(query)
+	if err != nil {
+		log.Printf("⚠️ Note: refresh_tokens table might already exist")
+	}
+	return nil
 }
 
 // RunLegacyMigrations runs the old step-by-step migrations (for backward compatibility)
+// Deprecated: Use RunMigrations instead
 func RunLegacyMigrations(db *DB) error {
-	return runMigrationsFromCode(db)
+	return fmt.Errorf("legacy migrations are no longer supported, use RunMigrations instead")
 }
 
 // Transaction wraps a function in a database transaction

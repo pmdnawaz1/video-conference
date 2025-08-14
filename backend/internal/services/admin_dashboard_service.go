@@ -288,7 +288,7 @@ func (s *adminDashboardService) GetDashboardOverview(ctx context.Context, adminI
 	overview := &AdminDashboardOverview{
 		ClientID:     admin.ClientID,
 		AdminName:    admin.FirstName + " " + admin.LastName,
-		LastActivity: admin.LastLogin,
+		LastActivity: nil, // LastLogin field not available in current schema
 	}
 
 	// Get organization name
@@ -547,18 +547,18 @@ func (s *adminDashboardService) CreateInstantMeeting(ctx context.Context, req *I
 	// Create meeting using existing meeting service
 	meeting := &models.Meeting{
 		ClientID:            req.ClientID,
-		CreatedByUserID:     req.AdminID,
+		CreatedBy:     &req.AdminID,
 		Title:               req.Title,
 		Description:         &req.Description,
 		MeetingID:           models.GenerateMeetingID(),
 		ScheduledStart:      time.Now(),
 		ScheduledEnd:        time.Now().Add(1 * time.Hour), // Default 1 hour
 		Status:              "active",
-		MaxParticipants:     100,
-		EnableWaitingRoom:   req.WaitingRoomEnabled,
-		EnableChat:          req.ChatEnabled,
-		EnableRecording:     req.IsRecordingEnabled,
-		Settings:            make(models.JSONB),
+		MaxDurationMinutes:     60,
+		WaitingRoomEnabled:   req.WaitingRoomEnabled,
+		ChatEnabled:          req.ChatEnabled,
+		RecordingAutoStart:     req.IsRecordingEnabled,
+		MeetingSettings:            nil,
 	}
 
 	err := s.meetingSvc.CreateMeeting(ctx, meeting)
@@ -580,18 +580,18 @@ func (s *adminDashboardService) CreateInstantMeeting(ctx context.Context, req *I
 func (s *adminDashboardService) CreateScheduledMeeting(ctx context.Context, req *ScheduledMeetingRequest) (*models.Meeting, error) {
 	meeting := &models.Meeting{
 		ClientID:            req.ClientID,
-		CreatedByUserID:     req.AdminID,
+		CreatedBy:     &req.AdminID,
 		Title:               req.Title,
 		Description:         &req.Description,
 		MeetingID:           models.GenerateMeetingID(),
 		ScheduledStart:      req.ScheduledStart,
 		ScheduledEnd:        req.ScheduledEnd,
 		Status:              "scheduled",
-		MaxParticipants:     100,
-		EnableWaitingRoom:   req.WaitingRoomEnabled,
-		EnableChat:          req.ChatEnabled,
-		EnableRecording:     req.IsRecordingEnabled,
-		Settings:            make(models.JSONB),
+		MaxDurationMinutes:     60,
+		WaitingRoomEnabled:   req.WaitingRoomEnabled,
+		ChatEnabled:          req.ChatEnabled,
+		RecordingAutoStart:     req.IsRecordingEnabled,
+		MeetingSettings:            nil,
 	}
 
 	err := s.meetingSvc.CreateMeeting(ctx, meeting)
@@ -619,18 +619,18 @@ func (s *adminDashboardService) CreateRecurringMeeting(ctx context.Context, req 
 	for _, dateRange := range dates {
 		meeting := &models.Meeting{
 			ClientID:            req.ClientID,
-			CreatedByUserID:     req.AdminID,
+			CreatedBy:     &req.AdminID,
 			Title:               req.Title,
 			Description:         &req.Description,
 			MeetingID:           models.GenerateMeetingID(),
 			ScheduledStart:      dateRange.Start,
 			ScheduledEnd:        dateRange.End,
 			Status:              "scheduled",
-			MaxParticipants:     100,
-			EnableWaitingRoom:   req.WaitingRoomEnabled,
-			EnableChat:          req.ChatEnabled,
-			EnableRecording:     req.IsRecordingEnabled,
-			Settings:            make(models.JSONB),
+			MaxDurationMinutes:     60,
+			WaitingRoomEnabled:   req.WaitingRoomEnabled,
+			ChatEnabled:          req.ChatEnabled,
+			RecordingAutoStart:     req.IsRecordingEnabled,
+			MeetingSettings:            nil,
 		}
 
 		err := s.meetingSvc.CreateMeeting(ctx, meeting)
@@ -867,8 +867,8 @@ func (s *adminDashboardService) CreateUserGroup(ctx context.Context, req *Create
 func (s *adminDashboardService) InviteUser(ctx context.Context, req *UserInvitationRequest) (*models.UserInvitation, error) {
 	// Create user invitation
 	invitation := &models.UserInvitation{
-		ClientID:        req.ClientID,
-		AdminID:         req.InvitedBy,
+		ClientID:        &req.ClientID,
+		AdminID:         &req.InvitedBy,
 		Email:           req.Email,
 		FirstName:       req.FirstName,
 		LastName:        req.LastName,

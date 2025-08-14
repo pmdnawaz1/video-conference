@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
-import MeetingDashboard from '../meetings/MeetingDashboard';
+import UserDashboard from '../../pages/UserDashboard';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 const AuthWrapper = ({ children }) => {
@@ -131,7 +131,7 @@ const AuthWrapper = ({ children }) => {
 
   // If authenticated, show the enterprise dashboard
   if (isAuthenticated && user) {
-    return <MeetingDashboard />;
+    return <UserDashboard />;
   }
 
   // Show authentication forms

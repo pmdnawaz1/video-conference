@@ -27,7 +27,7 @@ type ServerConfig struct {
 	Port        string
 	Environment string
 	Debug       bool
-	CORSOrigins []string
+	CORSOrigins string
 }
 
 type DatabaseConfig struct {
@@ -51,12 +51,15 @@ type AuthConfig struct {
 }
 
 type EmailConfig struct {
-	SMTPHost     string
-	SMTPPort     int
-	SMTPUsername string
-	SMTPPassword string
+	Host         string
+	Port         int
+	Username     string
+	Password     string
+	From         string
 	FromName     string
-	FromEmail    string
+	SupportEmail string
+	EnableTLS    bool
+	EnableSSL    bool
 }
 
 type WebRTCConfig struct {
@@ -111,7 +114,7 @@ func Load() (*Config, error) {
 			Port:        getEnv("PORT", "8081"),
 			Environment: getEnv("ENV", "development"),
 			Debug:       getBoolEnv("DEBUG", true),
-			CORSOrigins: strings.Split(getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173"), ","),
+			CORSOrigins: getEnv("CORS_ORIGINS", "http://localhost:3000,https://localhost:3000,http://localhost:5173,https://localhost:5173"),
 		},
 		Database: DatabaseConfig{
 			Host:            getEnv("DB_HOST", "localhost"),
@@ -132,12 +135,15 @@ func Load() (*Config, error) {
 			BCryptCost:          getIntEnv("BCRYPT_COST", 12),
 		},
 		Email: EmailConfig{
-			SMTPHost:     getEnv("SMTP_HOST", ""),
-			SMTPPort:     getIntEnv("SMTP_PORT", 587),
-			SMTPUsername: getEnv("SMTP_USERNAME", ""),
-			SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+			Host:         getEnv("SMTP_HOST", ""),
+			Port:         getIntEnv("SMTP_PORT", 587),
+			Username:     getEnv("SMTP_USERNAME", ""),
+			Password:     getEnv("SMTP_PASSWORD", ""),
+			From:         getEnv("SMTP_FROM_EMAIL", ""),
 			FromName:     getEnv("SMTP_FROM_NAME", "Video Conference Platform"),
-			FromEmail:    getEnv("SMTP_FROM_EMAIL", ""),
+			SupportEmail: getEnv("SUPPORT_EMAIL", "support@videoconference.com"),
+			EnableTLS:    getBoolEnv("SMTP_ENABLE_TLS", true),
+			EnableSSL:    getBoolEnv("SMTP_ENABLE_SSL", false),
 		},
 		WebRTC: WebRTCConfig{
 			STUNServers:    strings.Split(getEnv("STUN_SERVERS", "stun:stun.l.google.com:19302"), ","),

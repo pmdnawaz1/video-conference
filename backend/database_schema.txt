@@ -1,0 +1,408 @@
+          table_name          |          column_name           |          data_type          | is_nullable |                      column_default                      
+------------------------------+--------------------------------+-----------------------------+-------------+----------------------------------------------------------
+ admin_invitations            | id                             | integer                     | NO          | nextval('admin_invitations_id_seq'::regclass)
+ admin_invitations            | client_id                      | integer                     | YES         | 
+ admin_invitations            | email                          | character varying           | NO          | 
+ admin_invitations            | first_name                     | character varying           | NO          | 
+ admin_invitations            | last_name                      | character varying           | NO          | 
+ admin_invitations            | token                          | character varying           | NO          | 
+ admin_invitations            | expires_at                     | timestamp without time zone | NO          | 
+ admin_invitations            | status                         | character varying           | YES         | 'pending'::character varying
+ admin_invitations            | invited_by                     | integer                     | YES         | 
+ admin_invitations            | accepted_at                    | timestamp without time zone | YES         | 
+ admin_invitations            | password_created_at            | timestamp without time zone | YES         | 
+ admin_invitations            | reminder_sent_count            | integer                     | YES         | 0
+ admin_invitations            | last_reminder_sent             | timestamp without time zone | YES         | 
+ admin_invitations            | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ admin_invitations            | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ chat_messages                | id                             | integer                     | NO          | nextval('chat_messages_id_seq'::regclass)
+ chat_messages                | meeting_id                     | integer                     | YES         | 
+ chat_messages                | sender_id                      | integer                     | YES         | 
+ chat_messages                | sender_email                   | character varying           | YES         | 
+ chat_messages                | sender_name                    | character varying           | NO          | 
+ chat_messages                | message                        | text                        | NO          | 
+ chat_messages                | message_type                   | character varying           | YES         | 'text'::character varying
+ chat_messages                | thread_id                      | integer                     | YES         | 
+ chat_messages                | message_status                 | character varying           | YES         | 'sent'::character varying
+ chat_messages                | edited_at                      | timestamp without time zone | YES         | 
+ chat_messages                | edited_by                      | integer                     | YES         | 
+ chat_messages                | original_message               | text                        | YES         | 
+ chat_messages                | reactions                      | jsonb                       | YES         | 
+ chat_messages                | mentions                       | jsonb                       | YES         | 
+ chat_messages                | file_attachments               | jsonb                       | YES         | 
+ chat_messages                | message_priority               | character varying           | YES         | 'normal'::character varying
+ chat_messages                | is_announcement                | boolean                     | YES         | false
+ chat_messages                | expires_at                     | timestamp without time zone | YES         | 
+ chat_messages                | translation_data               | jsonb                       | YES         | 
+ chat_messages                | sentiment_score                | numeric                     | YES         | 
+ chat_messages                | flagged_content                | boolean                     | YES         | false
+ chat_messages                | flag_reason                    | text                        | YES         | 
+ chat_messages                | metadata                       | jsonb                       | YES         | 
+ chat_messages                | is_moderated                   | boolean                     | YES         | false
+ chat_messages                | moderated_by                   | integer                     | YES         | 
+ chat_messages                | moderated_at                   | timestamp without time zone | YES         | 
+ chat_messages                | reply_to_id                    | integer                     | YES         | 
+ chat_messages                | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ chat_messages                | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ client_features              | id                             | integer                     | NO          | nextval('client_features_id_seq'::regclass)
+ client_features              | client_id                      | integer                     | YES         | 
+ client_features              | chat_enabled                   | boolean                     | YES         | true
+ client_features              | reactions_enabled              | boolean                     | YES         | true
+ client_features              | screen_sharing_enabled         | boolean                     | YES         | true
+ client_features              | recording_enabled              | boolean                     | YES         | false
+ client_features              | raise_hand_enabled             | boolean                     | YES         | true
+ client_features              | waiting_room_enabled           | boolean                     | YES         | false
+ client_features              | max_participants               | integer                     | YES         | 100
+ client_features              | admin_approval_required        | boolean                     | YES         | true
+ client_features              | default_video_permission       | boolean                     | YES         | false
+ client_features              | default_audio_permission       | boolean                     | YES         | false
+ client_features              | default_screen_permission      | boolean                     | YES         | false
+ client_features              | allow_user_video_request       | boolean                     | YES         | true
+ client_features              | allow_user_audio_request       | boolean                     | YES         | true
+ client_features              | allow_user_screen_request      | boolean                     | YES         | true
+ client_features              | auto_approve_requests          | boolean                     | YES         | false
+ client_features              | meeting_lobby_enabled          | boolean                     | YES         | true
+ client_features              | participant_limit              | integer                     | YES         | 100
+ client_features              | meeting_duration_limit         | integer                     | YES         | 480
+ client_features              | file_sharing_enabled           | boolean                     | YES         | true
+ client_features              | file_size_limit_mb             | integer                     | YES         | 100
+ client_features              | whiteboard_enabled             | boolean                     | YES         | false
+ client_features              | polls_enabled                  | boolean                     | YES         | false
+ client_features              | q_and_a_enabled                | boolean                     | YES         | false
+ client_features              | live_streaming_enabled         | boolean                     | YES         | false
+ client_features              | meeting_templates_enabled      | boolean                     | YES         | true
+ client_features              | custom_backgrounds_enabled     | boolean                     | YES         | true
+ client_features              | noise_cancellation_enabled     | boolean                     | YES         | true
+ client_features              | transcription_enabled          | boolean                     | YES         | false
+ client_features              | translation_enabled            | boolean                     | YES         | false
+ client_features              | meeting_insights_enabled       | boolean                     | YES         | true
+ client_features              | api_access_enabled             | boolean                     | YES         | false
+ client_features              | webhook_notifications_enabled  | boolean                     | YES         | false
+ client_features              | sso_required                   | boolean                     | YES         | false
+ client_features              | ip_restrictions                | jsonb                       | YES         | 
+ client_features              | allowed_domains                | jsonb                       | YES         | 
+ client_features              | blocked_domains                | jsonb                       | YES         | 
+ client_features              | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ client_features              | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ clients                      | id                             | integer                     | NO          | nextval('clients_id_seq'::regclass)
+ clients                      | email                          | character varying           | NO          | 
+ clients                      | app_name                       | character varying           | NO          | 
+ clients                      | organization_name              | character varying           | NO          | 
+ clients                      | organization_type              | character varying           | YES         | 'business'::character varying
+ clients                      | subscription_plan              | character varying           | YES         | 'free'::character varying
+ clients                      | subscription_expires_at        | timestamp without time zone | YES         | 
+ clients                      | max_admins                     | integer                     | YES         | 5
+ clients                      | max_users                      | integer                     | YES         | 100
+ clients                      | max_concurrent_meetings        | integer                     | YES         | 10
+ clients                      | storage_limit_gb               | integer                     | YES         | 10
+ clients                      | logo_url                       | character varying           | YES         | 
+ clients                      | theme                          | character varying           | YES         | 'default'::character varying
+ clients                      | primary_color                  | character varying           | YES         | '#007bff'::character varying
+ clients                      | custom_domain                  | character varying           | YES         | 
+ clients                      | branding_config                | jsonb                       | YES         | 
+ clients                      | sso_enabled                    | boolean                     | YES         | false
+ clients                      | sso_config                     | jsonb                       | YES         | 
+ clients                      | security_settings              | jsonb                       | YES         | 
+ clients                      | billing_contact_email          | character varying           | YES         | 
+ clients                      | technical_contact_email        | character varying           | YES         | 
+ clients                      | timezone                       | character varying           | YES         | 'UTC'::character varying
+ clients                      | business_hours                 | jsonb                       | YES         | 
+ clients                      | is_active                      | boolean                     | YES         | true
+ clients                      | trial_ends_at                  | timestamp without time zone | YES         | 
+ clients                      | created_by                     | integer                     | YES         | 
+ clients                      | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ clients                      | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ email_templates              | id                             | integer                     | NO          | nextval('email_templates_id_seq'::regclass)
+ email_templates              | client_id                      | integer                     | YES         | 
+ email_templates              | type                           | character varying           | NO          | 
+ email_templates              | name                           | character varying           | NO          | 
+ email_templates              | subject                        | character varying           | NO          | 
+ email_templates              | html_body                      | text                        | NO          | 
+ email_templates              | text_body                      | text                        | YES         | 
+ email_templates              | variables                      | jsonb                       | YES         | '{}'::jsonb
+ email_templates              | is_default                     | boolean                     | YES         | false
+ email_templates              | is_active                      | boolean                     | YES         | true
+ email_templates              | created_by                     | integer                     | YES         | 
+ email_templates              | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ email_templates              | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ groups                       | id                             | integer                     | NO          | nextval('groups_id_seq'::regclass)
+ groups                       | client_id                      | integer                     | YES         | 
+ groups                       | name                           | character varying           | NO          | 
+ groups                       | description                    | text                        | YES         | 
+ groups                       | group_type                     | character varying           | YES         | 'custom'::character varying
+ groups                       | is_active                      | boolean                     | YES         | true
+ groups                       | max_members                    | integer                     | YES         | 1000
+ groups                       | auto_add_new_users             | boolean                     | YES         | false
+ groups                       | email_domain_filter            | character varying           | YES         | 
+ groups                       | group_settings                 | jsonb                       | YES         | 
+ groups                       | meeting_defaults               | jsonb                       | YES         | 
+ groups                       | notification_settings          | jsonb                       | YES         | 
+ groups                       | external_id                    | character varying           | YES         | 
+ groups                       | sync_source                    | character varying           | YES         | 'manual'::character varying
+ groups                       | last_sync_at                   | timestamp without time zone | YES         | 
+ groups                       | sync_errors                    | jsonb                       | YES         | 
+ groups                       | created_by                     | integer                     | YES         | 
+ groups                       | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ groups                       | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_analytics            | id                             | integer                     | NO          | nextval('meeting_analytics_id_seq'::regclass)
+ meeting_analytics            | meeting_id                     | integer                     | YES         | 
+ meeting_analytics            | participant_count              | integer                     | YES         | 0
+ meeting_analytics            | peak_participants              | integer                     | YES         | 0
+ meeting_analytics            | total_duration_seconds         | integer                     | YES         | 0
+ meeting_analytics            | chat_messages_count            | integer                     | YES         | 0
+ meeting_analytics            | screen_shares_count            | integer                     | YES         | 0
+ meeting_analytics            | recordings_count               | integer                     | YES         | 0
+ meeting_analytics            | raise_hands_count              | integer                     | YES         | 0
+ meeting_analytics            | permission_requests_count      | integer                     | YES         | 0
+ meeting_analytics            | average_participant_duration   | integer                     | YES         | 0
+ meeting_analytics            | participant_join_times         | jsonb                       | YES         | 
+ meeting_analytics            | participant_leave_times        | jsonb                       | YES         | 
+ meeting_analytics            | feature_usage_stats            | jsonb                       | YES         | 
+ meeting_analytics            | quality_metrics                | jsonb                       | YES         | 
+ meeting_analytics            | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_analytics            | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_participant_extended | id                             | integer                     | NO          | nextval('meeting_participant_extended_id_seq'::regclass)
+ meeting_participant_extended | meeting_participant_id         | integer                     | YES         | 
+ meeting_participant_extended | connection_quality             | character varying           | YES         | 'good'::character varying
+ meeting_participant_extended | device_info                    | jsonb                       | YES         | 
+ meeting_participant_extended | browser_info                   | jsonb                       | YES         | 
+ meeting_participant_extended | network_info                   | jsonb                       | YES         | 
+ meeting_participant_extended | permissions_granted            | jsonb                       | YES         | 
+ meeting_participant_extended | speaking_time_seconds          | integer                     | YES         | 0
+ meeting_participant_extended | chat_messages_sent             | integer                     | YES         | 0
+ meeting_participant_extended | reactions_sent                 | integer                     | YES         | 0
+ meeting_participant_extended | screen_share_duration          | integer                     | YES         | 0
+ meeting_participant_extended | hand_raises_count              | integer                     | YES         | 0
+ meeting_participant_extended | last_activity_at               | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_participant_extended | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_participant_extended | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_participants         | id                             | integer                     | NO          | nextval('meeting_participants_id_seq'::regclass)
+ meeting_participants         | meeting_id                     | integer                     | YES         | 
+ meeting_participants         | user_id                        | integer                     | YES         | 
+ meeting_participants         | group_id                       | integer                     | YES         | 
+ meeting_participants         | email                          | character varying           | YES         | 
+ meeting_participants         | guest_name                     | character varying           | YES         | 
+ meeting_participants         | role                           | character varying           | YES         | 'attendee'::character varying
+ meeting_participants         | status                         | character varying           | YES         | 'invited'::character varying
+ meeting_participants         | joined_at                      | timestamp with time zone    | YES         | 
+ meeting_participants         | left_at                        | timestamp with time zone    | YES         | 
+ meeting_participants         | invited_by                     | integer                     | YES         | 
+ meeting_participants         | invited_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_permissions          | id                             | integer                     | NO          | nextval('meeting_permissions_id_seq'::regclass)
+ meeting_permissions          | meeting_id                     | integer                     | YES         | 
+ meeting_permissions          | user_id                        | integer                     | YES         | 
+ meeting_permissions          | permission_type                | character varying           | NO          | 
+ meeting_permissions          | is_granted                     | boolean                     | YES         | false
+ meeting_permissions          | requested_at                   | timestamp without time zone | YES         | 
+ meeting_permissions          | approved_at                    | timestamp without time zone | YES         | 
+ meeting_permissions          | denied_at                      | timestamp without time zone | YES         | 
+ meeting_permissions          | approved_by                    | integer                     | YES         | 
+ meeting_permissions          | denied_by                      | integer                     | YES         | 
+ meeting_permissions          | request_message                | text                        | YES         | 
+ meeting_permissions          | admin_response                 | text                        | YES         | 
+ meeting_permissions          | auto_granted                   | boolean                     | YES         | false
+ meeting_permissions          | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meeting_permissions          | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meetings                     | id                             | integer                     | NO          | nextval('meetings_id_seq'::regclass)
+ meetings                     | client_id                      | integer                     | YES         | 
+ meetings                     | title                          | character varying           | NO          | 
+ meetings                     | description                    | text                        | YES         | 
+ meetings                     | host_id                        | integer                     | YES         | 
+ meetings                     | meeting_id                     | character varying           | NO          | 
+ meetings                     | meeting_type                   | character varying           | YES         | 'scheduled'::character varying
+ meetings                     | scheduled_start                | timestamp with time zone    | NO          | 
+ meetings                     | scheduled_end                  | timestamp with time zone    | NO          | 
+ meetings                     | actual_start                   | timestamp with time zone    | YES         | 
+ meetings                     | actual_end                     | timestamp with time zone    | YES         | 
+ meetings                     | buffer_start_minutes           | integer                     | YES         | 15
+ meetings                     | buffer_end_minutes             | integer                     | YES         | 30
+ meetings                     | status                         | character varying           | YES         | 'scheduled'::character varying
+ meetings                     | is_active                      | boolean                     | YES         | false
+ meetings                     | admin_only_controls            | boolean                     | YES         | true
+ meetings                     | waiting_room_enabled           | boolean                     | YES         | true
+ meetings                     | auto_admit_users               | boolean                     | YES         | false
+ meetings                     | lock_meeting                   | boolean                     | YES         | false
+ meetings                     | mute_participants_on_join      | boolean                     | YES         | true
+ meetings                     | disable_video_on_join          | boolean                     | YES         | true
+ meetings                     | allow_screen_sharing           | boolean                     | YES         | false
+ meetings                     | recording_auto_start           | boolean                     | YES         | false
+ meetings                     | chat_enabled                   | boolean                     | YES         | true
+ meetings                     | raise_hand_enabled             | boolean                     | YES         | true
+ meetings                     | breakout_rooms_enabled         | boolean                     | YES         | false
+ meetings                     | max_duration_minutes           | integer                     | YES         | 480
+ meetings                     | password                       | character varying           | YES         | 
+ meetings                     | require_meeting_password       | boolean                     | YES         | false
+ meetings                     | participant_join_approval      | boolean                     | YES         | false
+ meetings                     | allow_anonymous_users          | boolean                     | YES         | false
+ meetings                     | meeting_settings               | jsonb                       | YES         | 
+ meetings                     | lobby_message                  | text                        | YES         | 
+ meetings                     | entry_exit_chime               | boolean                     | YES         | false
+ meetings                     | calendar_event_id              | character varying           | YES         | 
+ meetings                     | google_meet_link               | character varying           | YES         | 
+ meetings                     | zoom_meeting_id                | character varying           | YES         | 
+ meetings                     | teams_meeting_url              | character varying           | YES         | 
+ meetings                     | recording_consent_required     | boolean                     | YES         | true
+ meetings                     | data_retention_days            | integer                     | YES         | 365
+ meetings                     | meeting_notes                  | text                        | YES         | 
+ meetings                     | meeting_summary                | jsonb                       | YES         | 
+ meetings                     | quality_rating                 | integer                     | YES         | 
+ meetings                     | feedback_comments              | text                        | YES         | 
+ meetings                     | recurring_pattern              | jsonb                       | YES         | 
+ meetings                     | parent_meeting_id              | integer                     | YES         | 
+ meetings                     | occurrence_date                | date                        | YES         | 
+ meetings                     | is_cancelled                   | boolean                     | YES         | false
+ meetings                     | cancellation_reason            | text                        | YES         | 
+ meetings                     | cancelled_by                   | integer                     | YES         | 
+ meetings                     | cancelled_at                   | timestamp without time zone | YES         | 
+ meetings                     | created_by                     | integer                     | YES         | 
+ meetings                     | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ meetings                     | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ raise_hands                  | id                             | integer                     | NO          | nextval('raise_hands_id_seq'::regclass)
+ raise_hands                  | meeting_id                     | integer                     | YES         | 
+ raise_hands                  | user_id                        | integer                     | YES         | 
+ raise_hands                  | raised_at                      | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ raise_hands                  | lowered_at                     | timestamp without time zone | YES         | 
+ raise_hands                  | lowered_by                     | integer                     | YES         | 
+ raise_hands                  | auto_lowered                   | boolean                     | YES         | false
+ raise_hands                  | acknowledged_by                | integer                     | YES         | 
+ raise_hands                  | acknowledged_at                | timestamp without time zone | YES         | 
+ raise_hands                  | queue_position                 | integer                     | YES         | 
+ raise_hands                  | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ recordings                   | id                             | integer                     | NO          | nextval('recordings_id_seq'::regclass)
+ recordings                   | meeting_id                     | integer                     | YES         | 
+ recordings                   | title                          | character varying           | NO          | 
+ recordings                   | description                    | text                        | YES         | 
+ recordings                   | status                         | character varying           | YES         | 'pending'::character varying
+ recordings                   | started_at                     | timestamp with time zone    | YES         | 
+ recordings                   | ended_at                       | timestamp with time zone    | YES         | 
+ recordings                   | duration                       | integer                     | YES         | 
+ recordings                   | file_size                      | bigint                      | YES         | 
+ recordings                   | file_path                      | text                        | YES         | 
+ recordings                   | download_url                   | text                        | YES         | 
+ recordings                   | streaming_url                  | text                        | YES         | 
+ recordings                   | metadata                       | jsonb                       | YES         | 
+ recordings                   | settings                       | jsonb                       | YES         | 
+ recordings                   | started_by                     | integer                     | YES         | 
+ recordings                   | stopped_by                     | integer                     | YES         | 
+ recordings                   | is_public                      | boolean                     | YES         | false
+ recordings                   | password                       | character varying           | YES         | 
+ recordings                   | expires_at                     | timestamp with time zone    | YES         | 
+ recordings                   | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ recordings                   | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ speaking_activity            | id                             | integer                     | NO          | nextval('speaking_activity_id_seq'::regclass)
+ speaking_activity            | meeting_id                     | integer                     | YES         | 
+ speaking_activity            | user_id                        | integer                     | YES         | 
+ speaking_activity            | started_speaking_at            | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ speaking_activity            | stopped_speaking_at            | timestamp without time zone | YES         | 
+ speaking_activity            | duration_seconds               | integer                     | YES         | 
+ speaking_activity            | audio_level_avg                | numeric                     | YES         | 
+ speaking_activity            | audio_level_peak               | numeric                     | YES         | 
+ speaking_activity            | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_analytics               | id                             | integer                     | NO          | nextval('user_analytics_id_seq'::regclass)
+ user_analytics               | user_id                        | integer                     | YES         | 
+ user_analytics               | client_id                      | integer                     | YES         | 
+ user_analytics               | total_meetings_joined          | integer                     | YES         | 0
+ user_analytics               | total_meeting_duration_minutes | integer                     | YES         | 0
+ user_analytics               | total_speaking_time_minutes    | integer                     | YES         | 0
+ user_analytics               | total_chat_messages            | integer                     | YES         | 0
+ user_analytics               | meetings_this_week             | integer                     | YES         | 0
+ user_analytics               | meetings_this_month            | integer                     | YES         | 0
+ user_analytics               | average_meeting_duration       | integer                     | YES         | 0
+ user_analytics               | most_active_day_of_week        | integer                     | YES         | 1
+ user_analytics               | most_active_hour               | integer                     | YES         | 9
+ user_analytics               | engagement_score               | numeric                     | YES         | 0.0
+ user_analytics               | last_meeting_date              | date                        | YES         | 
+ user_analytics               | first_meeting_date             | date                        | YES         | 
+ user_analytics               | preferred_meeting_duration     | integer                     | YES         | 60
+ user_analytics               | participation_trends           | jsonb                       | YES         | 
+ user_analytics               | feature_usage_stats            | jsonb                       | YES         | 
+ user_analytics               | device_preferences             | jsonb                       | YES         | 
+ user_analytics               | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_analytics               | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_group_memberships       | id                             | integer                     | NO          | nextval('user_group_memberships_id_seq'::regclass)
+ user_group_memberships       | user_id                        | integer                     | YES         | 
+ user_group_memberships       | group_id                       | integer                     | YES         | 
+ user_group_memberships       | added_by                       | integer                     | YES         | 
+ user_group_memberships       | added_at                       | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_invitations             | id                             | integer                     | NO          | nextval('user_invitations_id_seq'::regclass)
+ user_invitations             | client_id                      | integer                     | YES         | 
+ user_invitations             | admin_id                       | integer                     | YES         | 
+ user_invitations             | email                          | character varying           | NO          | 
+ user_invitations             | first_name                     | character varying           | NO          | 
+ user_invitations             | last_name                      | character varying           | NO          | 
+ user_invitations             | token                          | character varying           | NO          | 
+ user_invitations             | expires_at                     | timestamp without time zone | NO          | 
+ user_invitations             | status                         | character varying           | YES         | 'pending'::character varying
+ user_invitations             | welcome_message                | text                        | YES         | 
+ user_invitations             | accepted_at                    | timestamp without time zone | YES         | 
+ user_invitations             | password_created_at            | timestamp without time zone | YES         | 
+ user_invitations             | reminder_sent_count            | integer                     | YES         | 0
+ user_invitations             | last_reminder_sent             | timestamp without time zone | YES         | 
+ user_invitations             | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_invitations             | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_meeting_bookmarks       | id                             | integer                     | NO          | nextval('user_meeting_bookmarks_id_seq'::regclass)
+ user_meeting_bookmarks       | user_id                        | integer                     | YES         | 
+ user_meeting_bookmarks       | meeting_id                     | integer                     | YES         | 
+ user_meeting_bookmarks       | bookmark_time_seconds          | integer                     | NO          | 
+ user_meeting_bookmarks       | bookmark_title                 | character varying           | YES         | 
+ user_meeting_bookmarks       | bookmark_description           | text                        | YES         | 
+ user_meeting_bookmarks       | bookmark_type                  | character varying           | YES         | 'note'::character varying
+ user_meeting_bookmarks       | is_private                     | boolean                     | YES         | true
+ user_meeting_bookmarks       | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_meeting_bookmarks       | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_preferences             | id                             | integer                     | NO          | nextval('user_preferences_id_seq'::regclass)
+ user_preferences             | user_id                        | integer                     | YES         | 
+ user_preferences             | default_audio_enabled          | boolean                     | YES         | false
+ user_preferences             | default_video_enabled          | boolean                     | YES         | false
+ user_preferences             | auto_join_audio                | boolean                     | YES         | true
+ user_preferences             | preferred_camera_device        | character varying           | YES         | 
+ user_preferences             | preferred_microphone_device    | character varying           | YES         | 
+ user_preferences             | preferred_speaker_device       | character varying           | YES         | 
+ user_preferences             | notification_email_enabled     | boolean                     | YES         | true
+ user_preferences             | notification_browser_enabled   | boolean                     | YES         | true
+ user_preferences             | notification_meeting_reminders | boolean                     | YES         | true
+ user_preferences             | notification_chat_messages     | boolean                     | YES         | true
+ user_preferences             | notification_meeting_invites   | boolean                     | YES         | true
+ user_preferences             | theme_preference               | character varying           | YES         | 'system'::character varying
+ user_preferences             | language_preference            | character varying           | YES         | 'en'::character varying
+ user_preferences             | timezone_preference            | character varying           | YES         | 'UTC'::character varying
+ user_preferences             | meeting_view_preference        | character varying           | YES         | 'grid'::character varying
+ user_preferences             | chat_position                  | character varying           | YES         | 'right'::character varying
+ user_preferences             | show_participant_names         | boolean                     | YES         | true
+ user_preferences             | show_connection_quality        | boolean                     | YES         | true
+ user_preferences             | auto_hide_controls             | boolean                     | YES         | false
+ user_preferences             | keyboard_shortcuts_enabled     | boolean                     | YES         | true
+ user_preferences             | high_contrast_mode             | boolean                     | YES         | false
+ user_preferences             | reduce_motion                  | boolean                     | YES         | false
+ user_preferences             | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ user_preferences             | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ users                        | id                             | integer                     | NO          | nextval('users_id_seq'::regclass)
+ users                        | email                          | character varying           | NO          | 
+ users                        | password_hash                  | character varying           | NO          | 
+ users                        | first_name                     | character varying           | NO          | 
+ users                        | last_name                      | character varying           | NO          | 
+ users                        | role                           | character varying           | NO          | 
+ users                        | status                         | character varying           | YES         | 'pending'::character varying
+ users                        | client_id                      | integer                     | YES         | 
+ users                        | invitation_token               | character varying           | YES         | 
+ users                        | invitation_expires_at          | timestamp without time zone | YES         | 
+ users                        | is_invited                     | boolean                     | YES         | false
+ users                        | password_created               | boolean                     | YES         | false
+ users                        | two_factor_enabled             | boolean                     | YES         | false
+ users                        | two_factor_secret              | character varying           | YES         | 
+ users                        | login_attempts                 | integer                     | YES         | 0
+ users                        | locked_until                   | timestamp without time zone | YES         | 
+ users                        | password_reset_token           | character varying           | YES         | 
+ users                        | password_reset_expires         | timestamp without time zone | YES         | 
+ users                        | last_password_change           | timestamp without time zone | YES         | 
+ users                        | force_password_change          | boolean                     | YES         | false
+ users                        | email_verified                 | boolean                     | YES         | false
+ users                        | email_verification_token       | character varying           | YES         | 
+ users                        | timezone                       | character varying           | YES         | 'UTC'::character varying
+ users                        | language                       | character varying           | YES         | 'en'::character varying
+ users                        | notification_preferences       | jsonb                       | YES         | 
+ users                        | created_by                     | integer                     | YES         | 
+ users                        | created_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+ users                        | updated_at                     | timestamp without time zone | YES         | CURRENT_TIMESTAMP
+(404 rows)
+

@@ -54,18 +54,18 @@ func (s *meetingService) CreateMeeting(ctx context.Context, meeting *models.Meet
 
 	query := `
 		INSERT INTO meetings (client_id, title, description, created_by_user_id, meeting_id, password, 
-		                     scheduled_start, scheduled_end, status, max_participants, allow_anonymous,
-		                     require_approval, enable_waiting_room, enable_chat, enable_screen_sharing,
-		                     enable_recording, settings)
+		                     scheduled_start, scheduled_end, status, max_duration_minutes, allow_anonymous_users,
+		                     participant_join_approval, enable_waiting_room, enable_chat, enable_screen_sharing,
+		                     enable_recording, meeting_settings)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 		RETURNING id, created_at, updated_at`
 	
 	err := s.db.GetContext(ctx, meeting, query,
-		meeting.ClientID, meeting.Title, meeting.Description, meeting.CreatedByUserID, meeting.MeetingID,
+		meeting.ClientID, meeting.Title, meeting.Description, meeting.CreatedBy, meeting.MeetingID,
 		meeting.Password, meeting.ScheduledStart, meeting.ScheduledEnd, meeting.Status,
-		meeting.MaxParticipants, meeting.AllowAnonymous, meeting.RequireApproval,
-		meeting.EnableWaitingRoom, meeting.EnableChat, meeting.EnableScreenSharing,
-		meeting.EnableRecording, meeting.Settings)
+		meeting.MaxDurationMinutes, meeting.AllowAnonymousUsers, meeting.ParticipantJoinApproval,
+		meeting.WaitingRoomEnabled, meeting.ChatEnabled, meeting.AllowScreenSharing,
+		meeting.RecordingAutoStart, meeting.MeetingSettings)
 	if err != nil {
 		return fmt.Errorf("failed to create meeting: %w", err)
 	}
@@ -106,7 +106,7 @@ func (s *meetingService) UpdateMeeting(ctx context.Context, meeting *models.Meet
 	
 	_, err := s.db.ExecContext(ctx, query,
 		meeting.ID, meeting.Title, meeting.Description, meeting.ScheduledStart,
-		meeting.ScheduledEnd, meeting.Password, meeting.Settings)
+		meeting.ScheduledEnd, meeting.Password, meeting.MeetingSettings)
 	if err != nil {
 		return fmt.Errorf("failed to update meeting: %w", err)
 	}

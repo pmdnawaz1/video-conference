@@ -49,7 +49,7 @@ func (s *InvitationService) CreateInvitation(userID int, req InvitationRequest) 
 	}
 
 	// Verify user has permission to invite to this meeting
-	if meeting.CreatedByUserID != userID {
+	if meeting.CreatedBy != nil && *meeting.CreatedBy != userID {
 		return nil, "", fmt.Errorf("user does not have permission to invite to this meeting")
 	}
 

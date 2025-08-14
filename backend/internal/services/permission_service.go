@@ -14,24 +14,24 @@ type PermissionService interface {
 	GetPermissionRequest(ctx context.Context, requestID int) (*models.MeetingPermission, error)
 	GetUserPermissionRequests(ctx context.Context, meetingID int, userID int) ([]*models.MeetingPermission, error)
 	GetPendingPermissionRequests(ctx context.Context, meetingID int) ([]*PermissionRequestSummary, error)
-	
+
 	// Permission Management
 	ApprovePermission(ctx context.Context, requestID int, adminID int, response string) error
 	DenyPermission(ctx context.Context, requestID int, adminID int, response string) error
 	BulkApprovePermissions(ctx context.Context, requestIDs []int, adminID int, response string) error
 	BulkDenyPermissions(ctx context.Context, requestIDs []int, adminID int, response string) error
-	
+
 	// Permission Status
 	GetUserPermissions(ctx context.Context, meetingID int, userID int) (*UserPermissionStatus, error)
 	UpdateUserPermissions(ctx context.Context, meetingID int, userID int, permissions map[string]bool, adminID int) error
 	RevokePermission(ctx context.Context, meetingID int, userID int, permissionType string, adminID int, reason string) error
-	
+
 	// Default Permission Templates
 	CreatePermissionTemplate(ctx context.Context, template *PermissionTemplate) error
 	GetPermissionTemplate(ctx context.Context, templateID int) (*PermissionTemplate, error)
 	ApplyPermissionTemplate(ctx context.Context, meetingID int, templateID int, adminID int) error
 	GetDefaultPermissions(ctx context.Context, meetingID int) (*DefaultPermissions, error)
-	
+
 	// Real-time Permission Updates
 	GetPermissionUpdates(ctx context.Context, meetingID int, since time.Time) ([]*PermissionUpdate, error)
 	BroadcastPermissionUpdate(ctx context.Context, update *PermissionUpdate) error
@@ -39,73 +39,73 @@ type PermissionService interface {
 
 // Request/Response types for Permission operations
 type PermissionRequest struct {
-	MeetingID       int    `json:"meeting_id" validate:"required"`
-	UserID          int    `json:"user_id" validate:"required"`
-	PermissionType  string `json:"permission_type" validate:"required,oneof=video audio screen_share chat recording"`
-	RequestMessage  string `json:"request_message,omitempty"`
+	MeetingID      int    `json:"meeting_id" validate:"required"`
+	UserID         int    `json:"user_id" validate:"required"`
+	PermissionType string `json:"permission_type" validate:"required,oneof=video audio screen_share chat recording"`
+	RequestMessage string `json:"request_message,omitempty"`
 }
 
 type PermissionRequestSummary struct {
-	ID              int       `json:"id"`
-	MeetingID       int       `json:"meeting_id"`
-	UserID          int       `json:"user_id"`
-	UserName        string    `json:"user_name"`
-	UserEmail       string    `json:"user_email"`
-	PermissionType  string    `json:"permission_type"`
-	RequestMessage  string    `json:"request_message,omitempty"`
-	RequestedAt     time.Time `json:"requested_at"`
-	TimeWaiting     int       `json:"time_waiting_minutes"`
+	ID             int       `json:"id"`
+	MeetingID      int       `json:"meeting_id"`
+	UserID         int       `json:"user_id"`
+	UserName       string    `json:"user_name"`
+	UserEmail      string    `json:"user_email"`
+	PermissionType string    `json:"permission_type"`
+	RequestMessage string    `json:"request_message,omitempty"`
+	RequestedAt    time.Time `json:"requested_at"`
+	TimeWaiting    int       `json:"time_waiting_minutes"`
 }
 
 type UserPermissionStatus struct {
-	UserID          int                    `json:"user_id"`
-	MeetingID       int                    `json:"meeting_id"`
-	Permissions     map[string]bool        `json:"permissions"`
+	UserID          int                         `json:"user_id"`
+	MeetingID       int                         `json:"meeting_id"`
+	Permissions     map[string]bool             `json:"permissions"`
 	PendingRequests []*models.MeetingPermission `json:"pending_requests"`
-	LastUpdated     time.Time             `json:"last_updated"`
-	UpdatedBy       *int                  `json:"updated_by,omitempty"`
-	AdminName       string                `json:"admin_name,omitempty"`
+	LastUpdated     time.Time                   `json:"last_updated"`
+	UpdatedBy       *int                        `json:"updated_by,omitempty"`
+	AdminName       string                      `json:"admin_name,omitempty"`
 }
 
 type PermissionTemplate struct {
-	ID                  int                    `json:"id"`
-	ClientID            int                    `json:"client_id"`
-	Name                string                 `json:"name"`
-	Description         string                 `json:"description"`
-	MeetingType         string                 `json:"meeting_type"` // all, instant, scheduled, recurring
-	DefaultPermissions  map[string]bool        `json:"default_permissions"`
-	AutoGrantPermissions []string              `json:"auto_grant_permissions"`
-	IsActive            bool                   `json:"is_active"`
-	CreatedBy           int                    `json:"created_by"`
-	CreatedAt           time.Time              `json:"created_at"`
-	UpdatedAt           time.Time              `json:"updated_at"`
+	ID                   int             `json:"id"`
+	ClientID             int             `json:"client_id"`
+	Name                 string          `json:"name"`
+	Description          string          `json:"description"`
+	MeetingType          string          `json:"meeting_type"` // all, instant, scheduled, recurring
+	DefaultPermissions   map[string]bool `json:"default_permissions"`
+	AutoGrantPermissions []string        `json:"auto_grant_permissions"`
+	IsActive             bool            `json:"is_active"`
+	CreatedBy            int             `json:"created_by"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
 }
 
 type DefaultPermissions struct {
-	MeetingID           int                    `json:"meeting_id"`
-	VideoEnabled        bool                   `json:"video_enabled"`
-	AudioEnabled        bool                   `json:"audio_enabled"`
-	ScreenShareEnabled  bool                   `json:"screen_share_enabled"`
-	ChatEnabled         bool                   `json:"chat_enabled"`
-	RecordingEnabled    bool                   `json:"recording_enabled"`
-	AutoGrantVideo      bool                   `json:"auto_grant_video"`
-	AutoGrantAudio      bool                   `json:"auto_grant_audio"`
-	AutoGrantScreenShare bool                  `json:"auto_grant_screen_share"`
-	AutoGrantChat       bool                   `json:"auto_grant_chat"`
-	RequireApproval     []string               `json:"require_approval"`
+	MeetingID            int      `json:"meeting_id"`
+	VideoEnabled         bool     `json:"video_enabled"`
+	AudioEnabled         bool     `json:"audio_enabled"`
+	ScreenShareEnabled   bool     `json:"screen_share_enabled"`
+	ChatEnabled          bool     `json:"chat_enabled"`
+	RecordingEnabled     bool     `json:"recording_enabled"`
+	AutoGrantVideo       bool     `json:"auto_grant_video"`
+	AutoGrantAudio       bool     `json:"auto_grant_audio"`
+	AutoGrantScreenShare bool     `json:"auto_grant_screen_share"`
+	AutoGrantChat        bool     `json:"auto_grant_chat"`
+	RequireApproval      []string `json:"require_approval"`
 }
 
 type PermissionUpdate struct {
-	ID              int                    `json:"id"`
-	MeetingID       int                    `json:"meeting_id"`
-	UserID          int                    `json:"user_id"`
-	PermissionType  string                 `json:"permission_type"`
-	Action          string                 `json:"action"` // granted, denied, revoked, requested
-	AdminID         *int                   `json:"admin_id,omitempty"`
-	Reason          string                 `json:"reason,omitempty"`
-	Timestamp       time.Time              `json:"timestamp"`
-	UserName        string                 `json:"user_name,omitempty"`
-	AdminName       string                 `json:"admin_name,omitempty"`
+	ID             int       `json:"id"`
+	MeetingID      int       `json:"meeting_id"`
+	UserID         int       `json:"user_id"`
+	PermissionType string    `json:"permission_type"`
+	Action         string    `json:"action"` // granted, denied, revoked, requested
+	AdminID        *int      `json:"admin_id,omitempty"`
+	Reason         string    `json:"reason,omitempty"`
+	Timestamp      time.Time `json:"timestamp"`
+	UserName       string    `json:"user_name,omitempty"`
+	AdminName      string    `json:"admin_name,omitempty"`
 }
 
 type permissionService struct {
@@ -129,7 +129,7 @@ func (s *permissionService) RequestPermission(ctx context.Context, req *Permissi
 		SELECT id FROM meeting_permissions 
 		WHERE meeting_id = $1 AND user_id = $2 AND permission_type = $3 
 		AND (approved_at IS NULL AND denied_at IS NULL)`
-	
+
 	err := s.db.GetContext(ctx, &existingID, checkQuery, req.MeetingID, req.UserID, req.PermissionType)
 	if err == nil {
 		return nil, fmt.Errorf("permission request already pending for %s", req.PermissionType)
@@ -137,15 +137,15 @@ func (s *permissionService) RequestPermission(ctx context.Context, req *Permissi
 
 	// Create new permission request
 	permission := &models.MeetingPermission{
-		MeetingID:      req.MeetingID,
-		UserID:         req.UserID,
+		MeetingID:      models.IntPtr(req.MeetingID),
+		UserID:         models.IntPtr(req.UserID),
 		PermissionType: req.PermissionType,
 		IsGranted:      false,
 		RequestedAt:    &time.Time{},
 		RequestMessage: &req.RequestMessage,
 		AutoGranted:    false,
 	}
-	
+
 	*permission.RequestedAt = time.Now()
 
 	query := `
@@ -155,7 +155,7 @@ func (s *permissionService) RequestPermission(ctx context.Context, req *Permissi
 		RETURNING id, created_at, updated_at`
 
 	err = s.db.GetContext(ctx, permission, query,
-		permission.MeetingID, permission.UserID, permission.PermissionType,
+		*permission.MeetingID, *permission.UserID, permission.PermissionType,
 		permission.IsGranted, permission.RequestedAt, permission.RequestMessage,
 		permission.AutoGranted)
 	if err != nil {
@@ -170,7 +170,7 @@ func (s *permissionService) RequestPermission(ctx context.Context, req *Permissi
 		if err != nil {
 			return permission, nil // Return the request even if auto-grant fails
 		}
-		
+
 		// Update the permission object
 		permission.IsGranted = true
 		permission.AutoGranted = true
@@ -183,7 +183,7 @@ func (s *permissionService) RequestPermission(ctx context.Context, req *Permissi
 
 func (s *permissionService) GetPermissionRequest(ctx context.Context, requestID int) (*models.MeetingPermission, error) {
 	permission := &models.MeetingPermission{}
-	
+
 	query := `
 		SELECT id, meeting_id, user_id, permission_type, is_granted, requested_at,
 			   approved_at, denied_at, approved_by, denied_by, request_message,
@@ -201,7 +201,7 @@ func (s *permissionService) GetPermissionRequest(ctx context.Context, requestID 
 
 func (s *permissionService) GetUserPermissionRequests(ctx context.Context, meetingID int, userID int) ([]*models.MeetingPermission, error) {
 	var permissions []*models.MeetingPermission
-	
+
 	query := `
 		SELECT id, meeting_id, user_id, permission_type, is_granted, requested_at,
 			   approved_at, denied_at, approved_by, denied_by, request_message,
@@ -220,7 +220,7 @@ func (s *permissionService) GetUserPermissionRequests(ctx context.Context, meeti
 
 func (s *permissionService) GetPendingPermissionRequests(ctx context.Context, meetingID int) ([]*PermissionRequestSummary, error) {
 	var requests []*PermissionRequestSummary
-	
+
 	query := `
 		SELECT 
 			mp.id, mp.meeting_id, mp.user_id, mp.permission_type, 
@@ -248,7 +248,7 @@ func (s *permissionService) GetPendingPermissionRequests(ctx context.Context, me
 
 func (s *permissionService) ApprovePermission(ctx context.Context, requestID int, adminID int, response string) error {
 	now := time.Now()
-	
+
 	query := `
 		UPDATE meeting_permissions 
 		SET is_granted = true, approved_at = $1, approved_by = $2, admin_response = $3, updated_at = CURRENT_TIMESTAMP
@@ -276,15 +276,15 @@ func (s *permissionService) ApprovePermission(ctx context.Context, requestID int
 
 	// Broadcast permission update
 	update := &PermissionUpdate{
-		MeetingID:      permission.MeetingID,
-		UserID:         permission.UserID,
+		MeetingID:      *permission.MeetingID,
+		UserID:         *permission.UserID,
 		PermissionType: permission.PermissionType,
 		Action:         "granted",
 		AdminID:        &adminID,
 		Reason:         response,
 		Timestamp:      now,
 	}
-	
+
 	s.BroadcastPermissionUpdate(ctx, update)
 
 	return nil
@@ -292,7 +292,7 @@ func (s *permissionService) ApprovePermission(ctx context.Context, requestID int
 
 func (s *permissionService) DenyPermission(ctx context.Context, requestID int, adminID int, response string) error {
 	now := time.Now()
-	
+
 	query := `
 		UPDATE meeting_permissions 
 		SET is_granted = false, denied_at = $1, denied_by = $2, admin_response = $3, updated_at = CURRENT_TIMESTAMP
@@ -320,15 +320,15 @@ func (s *permissionService) DenyPermission(ctx context.Context, requestID int, a
 
 	// Broadcast permission update
 	update := &PermissionUpdate{
-		MeetingID:      permission.MeetingID,
-		UserID:         permission.UserID,
+		MeetingID:      *permission.MeetingID,
+		UserID:         *permission.UserID,
 		PermissionType: permission.PermissionType,
 		Action:         "denied",
 		AdminID:        &adminID,
 		Reason:         response,
 		Timestamp:      now,
 	}
-	
+
 	s.BroadcastPermissionUpdate(ctx, update)
 
 	return nil
@@ -340,14 +340,14 @@ func (s *permissionService) BulkApprovePermissions(ctx context.Context, requestI
 	}
 
 	now := time.Now()
-	
+
 	// Build placeholders for IN clause
 	placeholders := make([]string, len(requestIDs))
 	args := make([]interface{}, len(requestIDs)+3)
 	args[0] = now
 	args[1] = adminID
 	args[2] = response
-	
+
 	for i, id := range requestIDs {
 		placeholders[i] = fmt.Sprintf("$%d", i+4)
 		args[i+3] = id
@@ -378,8 +378,8 @@ func (s *permissionService) BulkApprovePermissions(ctx context.Context, requestI
 		permission, err := s.GetPermissionRequest(ctx, requestID)
 		if err == nil {
 			update := &PermissionUpdate{
-				MeetingID:      permission.MeetingID,
-				UserID:         permission.UserID,
+				MeetingID:      *permission.MeetingID,
+				UserID:         *permission.UserID,
 				PermissionType: permission.PermissionType,
 				Action:         "granted",
 				AdminID:        &adminID,
@@ -399,14 +399,14 @@ func (s *permissionService) BulkDenyPermissions(ctx context.Context, requestIDs 
 	}
 
 	now := time.Now()
-	
+
 	// Build placeholders for IN clause
 	placeholders := make([]string, len(requestIDs))
 	args := make([]interface{}, len(requestIDs)+3)
 	args[0] = now
 	args[1] = adminID
 	args[2] = response
-	
+
 	for i, id := range requestIDs {
 		placeholders[i] = fmt.Sprintf("$%d", i+4)
 		args[i+3] = id
@@ -461,20 +461,20 @@ func (s *permissionService) GetUserPermissions(ctx context.Context, meetingID in
 
 	var latestUpdate time.Time
 	var approvedBy *int
-	
+
 	for rows.Next() {
 		var permissionType string
 		var isGranted bool
 		var approvedAt *time.Time
 		var approver *int
-		
+
 		err := rows.Scan(&permissionType, &isGranted, &approvedAt, &approver)
 		if err != nil {
 			continue
 		}
-		
+
 		status.Permissions[permissionType] = isGranted
-		
+
 		if approvedAt != nil && approvedAt.After(latestUpdate) {
 			latestUpdate = *approvedAt
 			approvedBy = approver
@@ -570,7 +570,7 @@ func (s *permissionService) UpdateUserPermissions(ctx context.Context, meetingID
 
 func (s *permissionService) RevokePermission(ctx context.Context, meetingID int, userID int, permissionType string, adminID int, reason string) error {
 	now := time.Now()
-	
+
 	query := `
 		UPDATE meeting_permissions 
 		SET is_granted = false, denied_at = $1, denied_by = $2, admin_response = $3, updated_at = CURRENT_TIMESTAMP
@@ -600,7 +600,7 @@ func (s *permissionService) RevokePermission(ctx context.Context, meetingID int,
 		Reason:         reason,
 		Timestamp:      now,
 	}
-	
+
 	s.BroadcastPermissionUpdate(ctx, update)
 
 	return nil
@@ -653,17 +653,17 @@ func (s *permissionService) ApplyPermissionTemplate(ctx context.Context, meeting
 
 func (s *permissionService) GetDefaultPermissions(ctx context.Context, meetingID int) (*DefaultPermissions, error) {
 	defaults := &DefaultPermissions{
-		MeetingID:           meetingID,
-		VideoEnabled:        true,
-		AudioEnabled:        true,
-		ScreenShareEnabled:  true,
-		ChatEnabled:         true,
-		RecordingEnabled:    false,
-		AutoGrantVideo:      false,
-		AutoGrantAudio:      true,  // Audio often auto-granted
+		MeetingID:            meetingID,
+		VideoEnabled:         true,
+		AudioEnabled:         true,
+		ScreenShareEnabled:   true,
+		ChatEnabled:          true,
+		RecordingEnabled:     false,
+		AutoGrantVideo:       false,
+		AutoGrantAudio:       true, // Audio often auto-granted
 		AutoGrantScreenShare: false,
-		AutoGrantChat:       true,  // Chat often auto-granted
-		RequireApproval:     []string{"video", "screen_share", "recording"},
+		AutoGrantChat:        true, // Chat often auto-granted
+		RequireApproval:      []string{"video", "screen_share", "recording"},
 	}
 
 	return defaults, nil
@@ -682,6 +682,6 @@ func (s *permissionService) GetPermissionUpdates(ctx context.Context, meetingID 
 func (s *permissionService) BroadcastPermissionUpdate(ctx context.Context, update *PermissionUpdate) error {
 	// This would integrate with WebSocket system to broadcast updates
 	// For now, just log the update
-	fmt.Printf("Broadcasting permission update: %+v\n", update)
+	fmt.Printf("Broadcasting permission update: %+v", update)
 	return nil
 }

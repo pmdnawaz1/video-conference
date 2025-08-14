@@ -1,0 +1,57 @@
+CREATE TABLE IF NOT EXISTS user_analytics (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    client_id INTEGER NOT NULL REFERENCES clients(id),
+    total_meetings_joined INTEGER DEFAULT 0,
+    total_meeting_duration_minutes INTEGER DEFAULT 0,
+    total_speaking_time_minutes INTEGER DEFAULT 0,
+    total_chat_messages INTEGER DEFAULT 0,
+    meetings_this_week INTEGER DEFAULT 0,
+    meetings_this_month INTEGER DEFAULT 0,
+    average_meeting_duration INTEGER DEFAULT 0,
+    most_active_day_of_week INTEGER,
+    most_active_hour INTEGER,
+    engagement_score DECIMAL(5,2) DEFAULT 0.0,
+    last_meeting_date DATE,
+    first_meeting_date DATE,
+    preferred_meeting_duration INTEGER,
+    participation_trends JSONB,
+    feature_usage_stats JSONB,
+    device_preferences JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_analytics_client_id ON user_analytics(client_id);
+CREATE INDEX IF NOT EXISTS idx_user_analytics_engagement_score ON user_analytics(engagement_score);
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    default_audio_enabled BOOLEAN DEFAULT false,
+    default_video_enabled BOOLEAN DEFAULT false,
+    auto_join_audio BOOLEAN DEFAULT true,
+    preferred_camera_device VARCHAR(255),
+    preferred_microphone_device VARCHAR(255),
+    preferred_speaker_device VARCHAR(255),
+    notification_email_enabled BOOLEAN DEFAULT true,
+    notification_browser_enabled BOOLEAN DEFAULT true,
+    notification_meeting_reminders BOOLEAN DEFAULT true,
+    notification_chat_messages BOOLEAN DEFAULT true,
+    notification_meeting_invites BOOLEAN DEFAULT true,
+    theme_preference VARCHAR(50) DEFAULT 'system',
+    language_preference VARCHAR(10) DEFAULT 'en',
+    timezone_preference VARCHAR(100) DEFAULT 'UTC',
+    meeting_view_preference VARCHAR(50) DEFAULT 'grid',
+    chat_position VARCHAR(50) DEFAULT 'right',
+    show_participant_names BOOLEAN DEFAULT true,
+    show_connection_quality BOOLEAN DEFAULT true,
+    auto_hide_controls BOOLEAN DEFAULT false,
+    keyboard_shortcuts_enabled BOOLEAN DEFAULT true,
+    high_contrast_mode BOOLEAN DEFAULT false,
+    reduce_motion BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id)
+);

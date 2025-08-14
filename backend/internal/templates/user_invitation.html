@@ -1,0 +1,10 @@
+{{ define "body" }}
+    <p>Hi {{ .FirstName }},</p>
+    <p>You've been invited by {{ .InviterName }} to join the Video Conference Platform!</p>
+    <p>To get started, please click the link below to set up your account:</p>
+    <a href="{{ .InvitationLink }}" class="invitation-button">Set Up Your Account</a>
+    <div class="warning">
+        <strong>⚠️ Important:</strong> This invitation will expire on {{ .ExpiresAt }}. Please complete your registration before then.
+    </div>
+    <p>If you have any questions, please contact your inviter or our support team.</p>
+{{ end }}

@@ -1,0 +1,283 @@
+========================================
+Comprehensive Codebase and Schema Analysis
+========================================
+
+**Date of Analysis:** 2025-08-13
+
+**Methodology:** This analysis is based on a static review of the files provided in the `/home/pmdnawaz1/Documents/video-conference/` directory. The database schema is inferred from `backend/database_schema.txt` and files within `backend/migrations/`, primarily `complete_schema_redesign.sql`. The code is cross-referenced with the project documentation (`docs/*.md`).
+
+**Limitation:** Direct connection to the live database at `34.16.8.106` is not possible due to environmental constraints. All database-related findings are based on the repository's schema files.
+
+---
+
+### **Executive Summary of Findings**
+
+The codebase is in a state of significant transition. A major redesign of the architecture and database schema has been planned (and the schema itself has been scripted), but the Go backend and React frontend code have not been fully updated to reflect these changes. This has resulted in a mix of legacy code, incomplete features, and broken integrations.
+
+**Key Issues:**
+1.  **Legacy Code:** Outdated files and implementations exist alongside newer ones, creating confusion and redundancy (e.g., multiple WebSocket handlers, email services, and database schemas).
+2.  **Model-Schema Mismatch:** The Go data models in `internal/models/` do not accurately represent the target database schema defined in `migrations/complete_schema_redesign.sql`.
+3.  **Broken Integrations:** The API and WebSocket integrations are fundamentally broken in many areas. The frontend sends data and messages that the backend is not equipped to handle.
+4.  **Incomplete Features:** Numerous UI components and backend services exist as placeholders for features that are not yet implemented, as confirmed by the status documents.
+
+---
+
+### **Part 1: Detailed Backend Analysis (`@backend/`)**
+
+#### **1.1. Documentation and Configuration**
+
+*   **File: `backend/README.md`**
+    *   **Analysis:** This file is **critically outdated** and harmful to the project. It describes a simple application with only three endpoints (`/createRoom`, etc.) that do not exist in the current router (`internal/api/server.go`). The project structure it shows is also incorrect, omitting the entire `internal` directory.
+    *   **Recommendation:** This README should be **deleted or completely rewritten** immediately to prevent developer confusion.
+
+*   **File: `backend/.env.example`**
+    *   **Line 45: `FEATURE_BREAKOUT_ROOMS=false`**: This feature flag is set to `false`. This aligns with the documentation stating advanced features are missing. However, the frontend component `VideoConference.jsx` may contain dormant UI code for this.
+    *   **Lines 48-49: `GOOGLE_CALENDAR_CLIENT_ID`, `SLACK_WEBHOOK_URL`**: These variables are present but the corresponding integrations are not complete. The Slack integration is not mentioned as a priority anywhere.
+    *   **Recommendation:** Clean up environment variables to only include those for currently implemented or in-progress features.
+
+#### **1.2. Database Migrations and Schema**
+
+*   **File: `backend/migrations/schema.sql`**
+    *   **Analysis:** This file represents the old database schema. It is completely superseded by `complete_schema_redesign.sql`.
+    *   **Recommendation:** This file is **unnecessary** and should be deleted.
+
+*   **File: `backend/migrations/remove_external_integrations.sql`**
+    *   **Lines 4-7:** `ALTER TABLE meetings DROP COLUMN IF EXISTS google_meet_link, ...`
+    *   **Analysis:** This script provides definitive proof that third-party meeting links are a deprecated feature. Any logic in the Go models or services that still references these fields is dead code.
+    *   **Recommendation:** Remove all references to `google_meet_link`, `zoom_meeting_id`, and `teams_meeting_url` from the Go codebase.
+
+*   **File: `backend/internal/database/migrations.go`**
+    *   **Analysis:** This file defines a legacy, step-by-step migration system that seems to have been abandoned in favor of the `new_migrations.go` approach (reset and apply new schema). The `main.go` file calls `database.RunMigrations`, which now points to the new system.
+    *   **Recommendation:** The `runMigrationsFromCode` function and its constituent SQL constants are **unnecessary** and can be removed to simplify the database package.
+
+#### **1.3. Application Logic (API, Services, Models)**
+
+*   **File: `internal/api/server.go`**
+    *   **Line 27: `s.router.HandleFunc("/ws", handlers.HandleSimpleWebSocket)`**
+        *   **Analysis:** This is the most critical integration issue. The router is pointing the primary `/ws` endpoint to the legacy `simple_websocket.go` handler. This handler does not understand any of the advanced commands the frontend (`VideoConference.jsx`) is sending, such as permission requests or raise hand events. All such real-time features will fail silently.
+        *   **Recommendation:** This line must be changed to point to a new, fully implemented WebSocket handler that matches the design documents.
+
+*   **File: `internal/models/models.go` vs. `internal/models/admin_models.go`**
+    *   **Analysis:** There is a severe structural problem here. Core entities are defined in `models.go` and then extended in `admin_models.go` (e.g., `Meeting` and `EnhancedMeeting`). This is not idiomatic and creates confusion. The database has one `meetings` table, so there should only be one corresponding Go struct.
+    *   **Line 120 (`models.go`): `type Meeting struct { ... }`**: This struct is missing dozens of fields from the new schema (e.g., `meeting_type`, `buffer_start_minutes`, `lock_meeting`, `is_cancelled`).
+    *   **Line 289 (`admin_models.go`): `type EnhancedMeeting struct { Meeting ... }`**: This struct embeds the old `Meeting` struct, which is an incorrect way to model a flat database table.
+    *   **Recommendation:** **Refactor immediately.** Delete the outdated structs from `models.go`. Move the "Enhanced" structs from `admin_models.go` into `models.go` and rename them to be the primary models (e.g., `EnhancedMeeting` -> `Meeting`).
+
+*   **File: `internal/services/notification.go` vs. `internal/services/notification_service.go`**
+    *   **Analysis:** The project contains two separate and conflicting notification service implementations. `notification.go` appears to be a more recent attempt with concepts like `PersistentNotification` and a queue, aligning better with the docs. `notification_service.go` is a different implementation. `services.go` initializes and uses `notification.go` (`NewNotificationService`).
+    *   **Recommendation:** The file `notification_service.go` is **unnecessary** and should be deleted to eliminate confusion.
+
+---
+
+### **Part 2: Detailed Frontend Analysis (`@frontend/`)**
+
+#### **2.1. Application State and Stores**
+
+*   **File: `src/stores/userStore.js`**
+    *   **Lines 27-29: `bookmarkedMoments`, `savedRecordings`, `sharedResources`**
+        *   **Analysis:** The store initializes state for features related to the "Recordings & Resources" page. The documentation (`pending-status.md`) confirms this page is part of the incomplete User Dashboard. The actions to fetch or manage this data are likely missing or point to unimplemented backend endpoints.
+        *   **Conclusion:** This state is for an **incomplete feature**. It is correctly anticipated but currently unused.
+
+*   **File: `src/stores/meetingStore.js`**
+    *   **Lines 35-41: `permissions` state**
+        ```javascript
+        permissions: {
+          audio: 'granted',
+          video: 'granted',
+          screenShare: 'pending'
+        },
+        ```
+        *   **Analysis:** The store hardcodes default permissions. The `design.md` specifies that default permissions should come from the backend (`client_features` table). The frontend should not assume default permissions; it should receive them from the backend upon joining a meeting.
+        *   **Recommendation:** Remove hardcoded defaults. The state should be populated from data received from the backend upon a successful meeting join.
+
+#### **2.2. Components and UI**
+
+*   **File: `src/components/auth/AuthWrapper.jsx`**
+    *   **Lines 70-72 & 120-126: Legacy Mode**
+        *   **Analysis:** This component contains a button and state logic (`showLegacyMode`) to switch to a version of the app that does not require login. This is a remnant of the old, simple application and directly contradicts the new enterprise, role-based architecture.
+        *   **Recommendation:** This is **unnecessary legacy code** and should be removed entirely to avoid maintaining two application flows.
+
+*   **File: `src/components/admin/SystemSettings.jsx`**
+    *   **Analysis:** This component is a clear example of UI being built far ahead of backend functionality. It contains numerous settings that have no corresponding backend implementation.
+    *   **Lines 200-213:** Renders toggles for `slack_integration`, `sso_enabled`, and `ldap_enabled`. These features are not mentioned as implemented in any documentation.
+    *   **Lines 110-121:** Renders toggles for `enable_virtual_backgrounds` and `enable_beauty_filter`. These are advanced features not specified in the core requirements.
+    *   **Conclusion:** This component is filled with UI for **unnecessary and unimplemented features**. It should be simplified to only show settings that can actually be configured on the backend.
+
+---
+
+### **Part 3: API & WebSocket Integration Analysis**
+
+#### **3.1. API Request/Response Mismatch**
+
+*   **Workflow: User Invitation**
+    *   **Frontend: `src/components/admin/UserInvitationForm.jsx` (Line 100)**
+        The frontend prepares a request with fields like `role`, `department`, `permissions`, and `groups`.
+        ```javascript
+        const result = await userInvitationService.createUserInvitation({
+          // ...email, firstName, lastName
+          role: singleForm.role,
+          department: singleForm.department || null,
+          // ...
+          permissions: singleForm.permissions,
+          groups: singleForm.groups
+        });
+        ```
+    *   **Backend: `backend/internal/api/handlers/admin.go` (Line 60)**
+        The backend handler `CreateUserInvitation` decodes the request into `services.UserInvitationRequest`.
+        ```go
+        type UserInvitationRequest struct {
+            ClientID  int    `json:"client_id"`
+            Email     string `json:"email"`
+            FirstName string `json:"first_name"`
+            LastName  string `json:"last_name"`
+            Message   string `json:"message,omitempty"`
+        }
+        ```
+    *   **Analysis:** There is a **major mismatch**. The frontend is sending `role`, `department`, `permissions`, and `groups`, but the backend handler is not structured to receive any of these fields. They will be ignored upon JSON decoding.
+    *   **Recommendation:** The backend `UserInvitationRequest` struct and the corresponding service logic must be updated to accept and process all the fields the frontend is sending.
+
+#### **3.2. WebSocket Protocol Mismatch**
+
+*   **The integration is fundamentally broken.**
+    *   **Frontend: `src/components/meeting/VideoConference.jsx`** sends numerous advanced messages:
+        *   `raiseHand`
+        *   `lowerHand`
+        *   `admitParticipant`
+        *   `permissionRequest`
+        *   `meetingControl` (with sub-actions like `toggleLock`, `muteAll`)
+
+    *   **Backend: `backend/internal/api/handlers/simple_websocket.go`** is the registered handler and it can only process:
+        *   `join`
+        *   `getParticipants`
+        *   `offer` / `answer` / `iceCandidate` (basic WebRTC signaling)
+        *   `terminateMeeting` / `endMeeting`
+
+    *   **Conclusion:** None of the interactive features (permissions, raise hand, admin controls) can work. The backend will receive these messages and discard them. This is the most critical issue preventing the application from functioning as designed.
+    *   **Immediate Recommendation:** The top priority for the backend team must be to replace `simple_websocket.go` with a new handler that correctly implements the full, documented WebSocket protocol.
+
+
+My analysis confirms that the Go models are significantly out of sync with the database schema. The models appear to be based on an older
+  version of the schema, leading to numerous missing fields, naming inconsistencies, and incorrect data types.
+
+  Here is the detailed, robust analysis. I will save this entire report to analysis.txt as requested.
+
+  Schema vs. Code Mismatch Analysis
+
+  This analysis compares the database columns from database_schema.txt with the Go struct fields from internal/models/models.go for critical
+  tables.
+
+  ---
+
+  Table: `users`
+
+   * Go Struct: models.User in internal/models/models.go
+   * Analysis: The User struct is critically outdated and missing most of the new security and invitation-related fields.
+
+
+  ┌───────────────────────────┬─────────────────────┬──────────┬────────────────────────────────────────────────────────────────────────┐
+  │ DB Column (`database_s... │ Go Field (`model... │ Status   │ Recommendation                                                         │
+  ├───────────────────────────┼─────────────────────┼──────────┼────────────────────────────────────────────────────────────────────────┤
+  │ id                        │ ID                  │ ✅ Match │ -                                                                      │
+  │ email                     │ Email               │ ✅ Match │ -                                                                      │
+  │ password_hash             │ PasswordHash        │ ✅ Match │ -                                                                      │
+  │ first_name                │ FirstName           │ ✅ Match │ -                                                                      │
+  │ last_name                 │ LastName            │ ✅ Match │ -                                                                      │
+  │ role                      │ Role                │ ✅ Match │ -                                                                      │
+  │ status                    │ Status              │ ✅ Match │ -                                                                      │
+  │ client_id                 │ ClientID            │ ✅ Match │ -                                                                      │
+  │ created_by                │ CreatedBy           │ ✅ Match │ -                                                                      │
+  │ invitation_token          │ InvitationToken     │ ⚠️ **Mi... │ Field exists but is a pointer (*string) which can be simplified to ... │
+  │ is_invited                │ IsInvited           │ ✅ Match │ -                                                                      │
+  │ password_created          │ PasswordCreated     │ ✅ Match │ -                                                                      │
+  │ two_factor_enabled          │ TwoFactorEnabled    │ ✅ Match │ -                                                                      │
+  │ two_factor_secret           │ TwoFactorSecret     │ ✅ Match │ -                                                                      │
+  │ login_attempts            │ LoginAttempts       │ ✅ Match │ -                                                                      │
+  │ locked_until              │ LockedUntil         │ ✅ Match │ -                                                                      │
+  │ password_reset_token        │ PasswordResetToken  │ ✅ Match │ -                                                                      │
+  │ password_reset_expires      │ `PasswordResetEx... │ ✅ Match │ -                                                                      │
+  │ last_password_change        │ LastPasswordChange  │ ✅ Match │ -                                                                      │
+  │ force_password_change       │ ForcePasswordChange │ ✅ Match │ -                                                                      │
+  │ email_verified            │ EmailVerified       │ ✅ Match │ -                                                                      │
+  │ email_verification_token    │ `EmailVerificati... │ ✅ Match │ -                                                                      │
+  │ timezone                  │ Timezone            │ ✅ Match │ -                                                                      │
+  │ language                  │ Language            │ ✅ Match │ -                                                                      │
+  │ notification_preferences  │ `NotificationPre... │ ⚠️ **Mi... │ DB type is jsonb, Go type is *string. Should be JSONB or *string with... │
+  └───────────────────────────┴─────────────────────┴──────────┴────────────────────────────────────────────────────────────────────────┘
+
+
+  Conclusion for `users` table: The User struct in models.go is surprisingly more up-to-date than other models, but it still has an incorrect
+  type for notification_preferences. The main issue is that other parts of the code might not be using these newer fields yet.
+
+  ---
+
+  Table: `meetings`
+
+   * Go Struct: models.Meeting in internal/models/models.go
+   * Analysis: This struct is severely outdated and incorrect. It is missing the vast majority of columns from the database and has naming
+     inconsistencies.
+
+
+  ┌────────────────────────────────┬───────────────────────┬────────────┬───────────────────────────────────────────────────────────────┐
+  │ DB Column (`database_schema... │ Go Field (models.go)  │ Status     │ Recommendation                                                │
+  ├────────────────────────────────┼───────────────────────┼────────────┼───────────────────────────────────────────────────────────────┤
+  │ title                          │ Title                 │ ✅ Match   │ -                                                             │
+  │ description                    │ Description           │ ✅ Match   │ -                                                             │
+  │ host_id                        │ HostID                │ ✅ Match   │ -                                                             │
+  │ meeting_id                     │ MeetingID             │ ✅ Match   │ -                                                             │
+  │ scheduled_start                │ ScheduledStart        │ ✅ Match   │ -                                                             │
+  │ scheduled_end                  │ ScheduledEnd          │ ✅ Match   │ -                                                             │
+  │ actual_start                   │ ActualStart           │ ✅ Match   │ -                                                             │
+  │ actual_end                     │ ActualEnd             │ ✅ Match   │ -                                                             │
+  │ status                         │ Status                │ ✅ Match   │ -                                                             │
+  │ password                       │ Password              │ ✅ Match   │ -                                                             │
+  │ created_by                     │ CreatedBy             │ ✅ Match   │ -                                                             │
+  │ meeting_type                   │ MeetingType           │ ❌ Missing │ Add MeetingType string \db:"meeting_type"\``                    │
+  │ buffer_start_minutes             │ BufferStartMinutes    │ ❌ Missing │ Add BufferStartMinutes int \db:"buffer_start_minutes"\``          │
+  │ buffer_end_minutes               │ BufferEndMinutes      │ ❌ Missing │ Add BufferEndMinutes int \db:"buffer_end_minutes"\``              │
+  │ is_active                      │ Active                │ ⚠️ **Mism... │ Rename Active to IsActive to match DB.                        │
+  │ admin_only_controls              │ AdminOnlyControls     │ ❌ Missing │ Add AdminOnlyControls bool \db:"admin_only_controls"\``           │
+  │ waiting_room_enabled             │ WaitingRoomEnabled    │ ⚠️ **Mism... │ Rename EnableWaitingRoom to WaitingRoomEnabled.               │
+  │ lock_meeting                   │ LockMeeting           │ ❌ Missing │ Add LockMeeting bool \db:"lock_meeting"\``                      │
+  │ mute_participants_on_join        │ `MuteParticipantsO... │ ❌ Missing │ Add MuteParticipantsOnJoin bool \db:"mute_participants_on_jo... │
+  │ allow_screen_sharing             │ AllowScreenSharing    │ ⚠️ **Mism... │ Rename EnableScreenSharing to AllowScreenSharing.             │
+  │ chat_enabled                   │ ChatEnabled           │ ⚠️ **Mism... │ Rename EnableChat to ChatEnabled.                             │
+  │ recording_auto_start             │ RecordingAutoStart    │ ❌ Missing │ Add RecordingAutoStart bool \db:"recording_auto_start"\``         │
+  │ ...and 15+ more                │ ...                   │ ❌ Missing │ The struct is missing over 15 other columns.                  │
+  └────────────────────────────────┴───────────────────────┴────────────┴───────────────────────────────────────────────────────────────┘
+
+
+  Conclusion for `meetings` table: The models.Meeting struct is unusable in its current state. It must be completely replaced with a new struct
+  that accurately reflects all columns in the meetings table from database_schema.txt.
+
+  ---
+
+  Table: `client_features`
+
+   * Go Struct: models.ClientFeatures in internal/models/models.go
+   * Analysis: Similar to the meetings table, this model is missing most of the new, granular permission fields.
+
+
+  ┌─────────────────────────────────┬────────────────────────┬────────────┬───────────────────────────────────────────────────────────────┐
+  │ DB Column (database_schema.txt) │ Go Field (models.go)   │ Status     │ Recommendation                                                │
+  ├─────────────────────────────────┼────────────────────────┼────────────┼───────────────────────────────────────────────────────────────┤
+  │ chat_enabled                    │ ChatEnabled            │ ✅ Match   │ -                                                             │
+  │ recording_enabled               │ RecordingEnabled       │ ✅ Match   │ -                                                             │
+  │ max_participants                │ MaxParticipants        │ ✅ Match   │ -                                                             │
+  │ admin_approval_required           │ AdminApprovalRequired  │ ❌ Missing │ Add AdminApprovalRequired bool \db:"admin_approval_required"\``
+  │
+  │ default_video_permission          │ DefaultVideoPermission │ ❌ Missing │ Add DefaultVideoPermission bool \db:"default_video_permission"\``
+  │
+  │ allow_user_video_request          │ AllowUserVideoRequest  │ ❌ Missing │ Add AllowUserVideoRequest bool \db:"allow_user_video_request"\``
+  │
+  │ ...and 20+ more                 │ ...                    │ ❌ Missing │ The struct is missing over 20 other columns.                  │
+  └─────────────────────────────────┴────────────────────────┴────────────┴───────────────────────────────────────────────────────────────┘
+
+
+  Conclusion for `client_features` table: This model is incomplete and needs to be updated to include all the granular feature and permission
+  flags defined in the database schema.
+
+  ---
+
+  Generated SQL Migration & Go Model Recommendations
+
+  Based on this analysis, here is a set of recommendations to bring the code and schema into alignment

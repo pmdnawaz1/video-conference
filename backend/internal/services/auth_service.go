@@ -91,7 +91,6 @@ func (s *authService) Login(ctx context.Context, email, password string) (*model
 			FirstName:      user.FirstName,
 			LastName:       user.LastName,
 			Role:           user.Role,
-			ProfilePicture: user.ProfilePicture,
 			ClientID:       user.ClientID,
 		},
 	}, nil
@@ -144,7 +143,6 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*m
 			FirstName:      user.FirstName,
 			LastName:       user.LastName,
 			Role:           user.Role,
-			ProfilePicture: user.ProfilePicture,
 			ClientID:       user.ClientID,
 		},
 	}, nil

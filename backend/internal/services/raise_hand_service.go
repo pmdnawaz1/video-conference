@@ -14,26 +14,26 @@ type RaiseHandService interface {
 	RaiseHand(ctx context.Context, meetingID int, userID int, message string) (*models.RaiseHand, error)
 	LowerHand(ctx context.Context, meetingID int, userID int) error
 	AcknowledgeHand(ctx context.Context, meetingID int, userID int, adminID int, response string) error
-	
+
 	// Queue Management
 	GetRaisedHandsQueue(ctx context.Context, meetingID int) ([]*RaiseHandQueueItem, error)
 	GetRaisedHandsCount(ctx context.Context, meetingID int) (int, error)
 	GetUserHandStatus(ctx context.Context, meetingID int, userID int) (*UserHandStatus, error)
-	
+
 	// Admin Controls
 	ClearAllHands(ctx context.Context, meetingID int, adminID int) error
 	ClearUserHand(ctx context.Context, meetingID int, userID int, adminID int, reason string) error
 	ReorderHandsQueue(ctx context.Context, meetingID int, adminID int, newOrder []int) error
-	
+
 	// Hand History and Analytics
 	GetHandHistory(ctx context.Context, meetingID int, limit int) ([]*HandHistoryItem, error)
 	GetUserHandHistory(ctx context.Context, meetingID int, userID int) ([]*HandHistoryItem, error)
 	GetHandAnalytics(ctx context.Context, meetingID int) (*HandAnalytics, error)
-	
+
 	// Real-time Updates
 	BroadcastHandUpdate(ctx context.Context, update *HandUpdate) error
 	GetHandUpdates(ctx context.Context, meetingID int, since time.Time) ([]*HandUpdate, error)
-	
+
 	// Auto-lowering Configuration
 	SetAutoLowerConfig(ctx context.Context, meetingID int, config *AutoLowerConfig) error
 	GetAutoLowerConfig(ctx context.Context, meetingID int) (*AutoLowerConfig, error)
@@ -53,46 +53,46 @@ type RaiseHandQueueItem struct {
 }
 
 type UserHandStatus struct {
-	UserID          int        `json:"user_id"`
-	MeetingID       int        `json:"meeting_id"`
-	IsRaised        bool       `json:"is_raised"`
-	RaisedAt        *time.Time `json:"raised_at,omitempty"`
-	Message         string     `json:"message,omitempty"`
-	QueuePosition   int        `json:"queue_position"`
-	WaitingTime     int        `json:"waiting_time_minutes"`
-	AcknowledgedAt  *time.Time `json:"acknowledged_at,omitempty"`
-	AcknowledgedBy  *int       `json:"acknowledged_by,omitempty"`
-	AdminResponse   string     `json:"admin_response,omitempty"`
+	UserID         int        `json:"user_id"`
+	MeetingID      int        `json:"meeting_id"`
+	IsRaised       bool       `json:"is_raised"`
+	RaisedAt       *time.Time `json:"raised_at,omitempty"`
+	Message        string     `json:"message,omitempty"`
+	QueuePosition  int        `json:"queue_position"`
+	WaitingTime    int        `json:"waiting_time_minutes"`
+	AcknowledgedAt *time.Time `json:"acknowledged_at,omitempty"`
+	AcknowledgedBy *int       `json:"acknowledged_by,omitempty"`
+	AdminResponse  string     `json:"admin_response,omitempty"`
 }
 
 type HandHistoryItem struct {
-	ID              int        `json:"id"`
-	UserID          int        `json:"user_id"`
-	UserName        string     `json:"user_name"`
-	Action          string     `json:"action"` // raised, lowered, acknowledged, cleared
-	RaisedAt        time.Time  `json:"raised_at"`
-	LoweredAt       *time.Time `json:"lowered_at,omitempty"`
-	AcknowledgedAt  *time.Time `json:"acknowledged_at,omitempty"`
-	AcknowledgedBy  *int       `json:"acknowledged_by,omitempty"`
-	AdminName       string     `json:"admin_name,omitempty"`
-	Duration        int        `json:"duration_minutes"`
-	Message         string     `json:"message,omitempty"`
-	AdminResponse   string     `json:"admin_response,omitempty"`
-	WasAutoLowered  bool       `json:"was_auto_lowered"`
+	ID             int        `json:"id"`
+	UserID         int        `json:"user_id"`
+	UserName       string     `json:"user_name"`
+	Action         string     `json:"action"` // raised, lowered, acknowledged, cleared
+	RaisedAt       time.Time  `json:"raised_at"`
+	LoweredAt      *time.Time `json:"lowered_at,omitempty"`
+	AcknowledgedAt *time.Time `json:"acknowledged_at,omitempty"`
+	AcknowledgedBy *int       `json:"acknowledged_by,omitempty"`
+	AdminName      string     `json:"admin_name,omitempty"`
+	Duration       int        `json:"duration_minutes"`
+	Message        string     `json:"message,omitempty"`
+	AdminResponse  string     `json:"admin_response,omitempty"`
+	WasAutoLowered bool       `json:"was_auto_lowered"`
 }
 
 type HandAnalytics struct {
-	MeetingID             int     `json:"meeting_id"`
-	TotalHandsRaised      int     `json:"total_hands_raised"`
-	CurrentlyRaised       int     `json:"currently_raised"`
-	AverageWaitTime       float64 `json:"average_wait_time_minutes"`
-	MedianWaitTime        float64 `json:"median_wait_time_minutes"`
-	LongestWaitTime       int     `json:"longest_wait_time_minutes"`
-	TotalAcknowledged     int     `json:"total_acknowledged"`
-	AcknowledgmentRate    float64 `json:"acknowledgment_rate"`
-	AutoLoweredCount      int     `json:"auto_lowered_count"`
-	MostActiveUsers       []*UserHandActivitySummary `json:"most_active_users"`
-	HandsByTimeOfDay      map[string]int             `json:"hands_by_time_of_day"`
+	MeetingID          int                        `json:"meeting_id"`
+	TotalHandsRaised   int                        `json:"total_hands_raised"`
+	CurrentlyRaised    int                        `json:"currently_raised"`
+	AverageWaitTime    float64                    `json:"average_wait_time_minutes"`
+	MedianWaitTime     float64                    `json:"median_wait_time_minutes"`
+	LongestWaitTime    int                        `json:"longest_wait_time_minutes"`
+	TotalAcknowledged  int                        `json:"total_acknowledged"`
+	AcknowledgmentRate float64                    `json:"acknowledgment_rate"`
+	AutoLoweredCount   int                        `json:"auto_lowered_count"`
+	MostActiveUsers    []*UserHandActivitySummary `json:"most_active_users"`
+	HandsByTimeOfDay   map[string]int             `json:"hands_by_time_of_day"`
 }
 
 type UserHandActivitySummary struct {
@@ -116,13 +116,13 @@ type HandUpdate struct {
 }
 
 type AutoLowerConfig struct {
-	MeetingID                int  `json:"meeting_id"`
+	MeetingID                    int  `json:"meeting_id"`
 	AutoLowerAfterAcknowledgment bool `json:"auto_lower_after_acknowledgment"`
-	AutoLowerTimeoutMinutes  int  `json:"auto_lower_timeout_minutes"`
-	AutoLowerAfterSpeaking   bool `json:"auto_lower_after_speaking"`
-	MaxQueueSize             int  `json:"max_queue_size"`
-	NotifyOnLongWait         bool `json:"notify_on_long_wait"`
-	LongWaitThresholdMinutes int  `json:"long_wait_threshold_minutes"`
+	AutoLowerTimeoutMinutes      int  `json:"auto_lower_timeout_minutes"`
+	AutoLowerAfterSpeaking       bool `json:"auto_lower_after_speaking"`
+	MaxQueueSize                 int  `json:"max_queue_size"`
+	NotifyOnLongWait             bool `json:"notify_on_long_wait"`
+	LongWaitThresholdMinutes     int  `json:"long_wait_threshold_minutes"`
 }
 
 type raiseHandService struct {
@@ -159,10 +159,10 @@ func (s *raiseHandService) RaiseHand(ctx context.Context, meetingID int, userID 
 
 	// Create new raised hand record
 	raiseHand := &models.RaiseHand{
-		MeetingID:     meetingID,
-		UserID:        userID,
-		RaisedAt:      time.Now(),
-		AutoLowered:   false,
+		MeetingID:   models.IntPtr(meetingID),
+		UserID:      models.IntPtr(userID),
+		RaisedAt:    time.Now(),
+		AutoLowered: false,
 	}
 
 	query := `
@@ -186,7 +186,7 @@ func (s *raiseHandService) RaiseHand(ctx context.Context, meetingID int, userID 
 		Message:   message,
 		Timestamp: raiseHand.RaisedAt,
 	}
-	
+
 	// Get queue position
 	position, err := s.getHandQueuePosition(ctx, meetingID, userID)
 	if err == nil {
@@ -200,7 +200,7 @@ func (s *raiseHandService) RaiseHand(ctx context.Context, meetingID int, userID 
 
 func (s *raiseHandService) LowerHand(ctx context.Context, meetingID int, userID int) error {
 	now := time.Now()
-	
+
 	query := `
 		UPDATE raise_hands 
 		SET is_raised = false, lowered_at = $1, updated_at = CURRENT_TIMESTAMP
@@ -227,7 +227,7 @@ func (s *raiseHandService) LowerHand(ctx context.Context, meetingID int, userID 
 		Action:    "lowered",
 		Timestamp: now,
 	}
-	
+
 	s.BroadcastHandUpdate(ctx, update)
 
 	return nil
@@ -235,7 +235,7 @@ func (s *raiseHandService) LowerHand(ctx context.Context, meetingID int, userID 
 
 func (s *raiseHandService) AcknowledgeHand(ctx context.Context, meetingID int, userID int, adminID int, response string) error {
 	now := time.Now()
-	
+
 	query := `
 		UPDATE raise_hands 
 		SET acknowledged_at = $1, acknowledged_by = $2, admin_response = $3, updated_at = CURRENT_TIMESTAMP
@@ -270,7 +270,7 @@ func (s *raiseHandService) AcknowledgeHand(ctx context.Context, meetingID int, u
 		AdminID:   &adminID,
 		Timestamp: now,
 	}
-	
+
 	s.BroadcastHandUpdate(ctx, update)
 
 	return nil
@@ -282,7 +282,7 @@ func (s *raiseHandService) AcknowledgeHand(ctx context.Context, meetingID int, u
 
 func (s *raiseHandService) GetRaisedHandsQueue(ctx context.Context, meetingID int) ([]*RaiseHandQueueItem, error) {
 	var queue []*RaiseHandQueueItem
-	
+
 	query := `
 		SELECT 
 			rh.id, rh.user_id, rh.raised_at, COALESCE(rh.message, '') as message,
@@ -312,7 +312,7 @@ func (s *raiseHandService) GetRaisedHandsQueue(ctx context.Context, meetingID in
 func (s *raiseHandService) GetRaisedHandsCount(ctx context.Context, meetingID int) (int, error) {
 	var count int
 	query := `SELECT COUNT(*) FROM raise_hands WHERE meeting_id = $1 AND is_raised = true`
-	
+
 	err := s.db.GetContext(ctx, &count, query, meetingID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get raised hands count: %w", err)
@@ -343,7 +343,7 @@ func (s *raiseHandService) GetUserHandStatus(ctx context.Context, meetingID int,
 
 	err := s.db.QueryRowContext(ctx, query, meetingID, userID).Scan(
 		&raisedAt, &message, &acknowledgedAt, &acknowledgedBy, &adminResponse, &waitingTime)
-	
+
 	if err != nil {
 		// No raised hand found - return default status
 		return status, nil
@@ -353,7 +353,7 @@ func (s *raiseHandService) GetUserHandStatus(ctx context.Context, meetingID int,
 	status.IsRaised = true
 	status.RaisedAt = &raisedAt
 	status.WaitingTime = int(waitingTime)
-	
+
 	if message.Valid {
 		status.Message = message.String
 	}
@@ -404,7 +404,7 @@ func (s *raiseHandService) getHandQueuePosition(ctx context.Context, meetingID i
 
 func (s *raiseHandService) ClearAllHands(ctx context.Context, meetingID int, adminID int) error {
 	now := time.Now()
-	
+
 	query := `
 		UPDATE raise_hands 
 		SET is_raised = false, lowered_at = $1, 
@@ -428,16 +428,16 @@ func (s *raiseHandService) ClearAllHands(ctx context.Context, meetingID int, adm
 		AdminID:   &adminID,
 		Timestamp: now,
 	}
-	
+
 	s.BroadcastHandUpdate(ctx, update)
 
-	fmt.Printf("Cleared %d raised hands by admin %d\n", rowsAffected, adminID)
+	fmt.Printf("Cleared %d raised hands by admin %d", rowsAffected, adminID)
 	return nil
 }
 
 func (s *raiseHandService) ClearUserHand(ctx context.Context, meetingID int, userID int, adminID int, reason string) error {
 	now := time.Now()
-	
+
 	query := `
 		UPDATE raise_hands 
 		SET is_raised = false, lowered_at = $1, admin_response = $2, updated_at = CURRENT_TIMESTAMP
@@ -465,7 +465,7 @@ func (s *raiseHandService) ClearUserHand(ctx context.Context, meetingID int, use
 		AdminID:   &adminID,
 		Timestamp: now,
 	}
-	
+
 	s.BroadcastHandUpdate(ctx, update)
 
 	return nil
@@ -487,7 +487,7 @@ func (s *raiseHandService) GetHandHistory(ctx context.Context, meetingID int, li
 	}
 
 	var history []*HandHistoryItem
-	
+
 	query := `
 		SELECT 
 			rh.id, rh.user_id, rh.raised_at, rh.lowered_at, rh.acknowledged_at,
@@ -520,7 +520,7 @@ func (s *raiseHandService) GetHandHistory(ctx context.Context, meetingID int, li
 
 func (s *raiseHandService) GetUserHandHistory(ctx context.Context, meetingID int, userID int) ([]*HandHistoryItem, error) {
 	var history []*HandHistoryItem
-	
+
 	query := `
 		SELECT 
 			rh.id, rh.user_id, rh.raised_at, rh.lowered_at, rh.acknowledged_at,
@@ -570,13 +570,13 @@ func (s *raiseHandService) GetHandAnalytics(ctx context.Context, meetingID int) 
 	err := s.db.QueryRowContext(ctx, statsQuery, meetingID).Scan(
 		&analytics.TotalHandsRaised, &analytics.CurrentlyRaised, &totalAcknowledged,
 		&analytics.AverageWaitTime, &analytics.LongestWaitTime)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get hand analytics: %w", err)
 	}
 
 	analytics.TotalAcknowledged = totalAcknowledged
-	
+
 	// Calculate acknowledgment rate
 	if analytics.TotalHandsRaised > 0 {
 		analytics.AcknowledgmentRate = float64(analytics.TotalAcknowledged) / float64(analytics.TotalHandsRaised) * 100
@@ -614,7 +614,7 @@ func (s *raiseHandService) GetHandAnalytics(ctx context.Context, meetingID int) 
 func (s *raiseHandService) BroadcastHandUpdate(ctx context.Context, update *HandUpdate) error {
 	// This would integrate with WebSocket system to broadcast updates
 	// For now, just log the update
-	fmt.Printf("Broadcasting hand update: %+v\n", update)
+	fmt.Printf("Broadcasting hand update: %+v", update)
 	return nil
 }
 
@@ -640,11 +640,11 @@ func (s *raiseHandService) GetAutoLowerConfig(ctx context.Context, meetingID int
 	config := &AutoLowerConfig{
 		MeetingID:                    meetingID,
 		AutoLowerAfterAcknowledgment: true,
-		AutoLowerTimeoutMinutes:     15,
-		AutoLowerAfterSpeaking:      false,
-		MaxQueueSize:                20,
-		NotifyOnLongWait:            true,
-		LongWaitThresholdMinutes:    10,
+		AutoLowerTimeoutMinutes:      15,
+		AutoLowerAfterSpeaking:       false,
+		MaxQueueSize:                 20,
+		NotifyOnLongWait:             true,
+		LongWaitThresholdMinutes:     10,
 	}
 
 	return config, nil

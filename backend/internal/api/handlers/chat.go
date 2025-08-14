@@ -3,6 +3,7 @@ package handlers
 import (
 	"video-conference-backend/internal/utils"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -80,7 +81,8 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
+		log.Printf("Error parsing chat request body: %v", err)
+		utils.WriteError(w, http.StatusBadRequest, "Invalid request body: "+err.Error())
 		return
 	}
 

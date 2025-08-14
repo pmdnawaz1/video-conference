@@ -12,12 +12,16 @@ import (
 // UserHandler handles user endpoints
 type UserHandler struct {
 	userService services.UserService
+	userAnalyticsService services.UserAnalyticsService
+	userPreferenceService services.UserPreferenceService
 }
 
 // NewUserHandler creates a new user handler
-func NewUserHandler(userService services.UserService) *UserHandler {
+func NewUserHandler(userService services.UserService, userAnalyticsService services.UserAnalyticsService, userPreferenceService services.UserPreferenceService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
+		userAnalyticsService: userAnalyticsService,
+		userPreferenceService: userPreferenceService,
 	}
 }
 
@@ -42,7 +46,6 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		FirstName:      user.FirstName,
 		LastName:       user.LastName,
 		Role:           user.Role,
-		ProfilePicture: user.ProfilePicture,
 		ClientID:       user.ClientID,
 	}
 
@@ -58,9 +61,8 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var updateReq struct {
-		FirstName      string  `json:"first_name"`
-		LastName       string  `json:"last_name"`
-		ProfilePicture *string `json:"profile_picture"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
@@ -82,9 +84,6 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if updateReq.LastName != "" {
 		user.LastName = updateReq.LastName
 	}
-	if updateReq.ProfilePicture != nil {
-		user.ProfilePicture = updateReq.ProfilePicture
-	}
 
 	// Save updates
 	err = h.userService.UpdateUser(r.Context(), user)
@@ -100,7 +99,6 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		FirstName:      user.FirstName,
 		LastName:       user.LastName,
 		Role:           user.Role,
-		ProfilePicture: user.ProfilePicture,
 		ClientID:       user.ClientID,
 	}
 
@@ -135,6 +133,63 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	utils.WriteSuccess(w, map[string]string{"message": "Password changed successfully"})
 }
 
+// GetUserAnalytics returns the current user's analytics data
+func (h *UserHandler) GetUserAnalytics(w http.ResponseWriter, r *http.Request) {
+	userID := utils.GetUserIDFromContext(r)
+	if userID == 0 {
+		utils.WriteError(w, http.StatusUnauthorized, "User ID not found")
+		return
+	}
+
+	analytics, err := h.userAnalyticsService.GetUserAnalytics(r.Context(), userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to get user analytics")
+		return
+	}
+
+	utils.WriteSuccess(w, analytics)
+}
+
+// GetUserPreferences returns the current user's preferences
+func (h *UserHandler) GetUserPreferences(w http.ResponseWriter, r *http.Request) {
+	userID := utils.GetUserIDFromContext(r)
+	if userID == 0 {
+		utils.WriteError(w, http.StatusUnauthorized, "User ID not found")
+		return
+	}
+
+	preferences, err := h.userPreferenceService.GetUserPreferences(r.Context(), userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to get user preferences")
+		return
+	}
+
+	utils.WriteSuccess(w, preferences)
+}
+
+// UpdateUserPreferences updates the current user's preferences
+func (h *UserHandler) UpdateUserPreferences(w http.ResponseWriter, r *http.Request) {
+	userID := utils.GetUserIDFromContext(r)
+	if userID == 0 {
+		utils.WriteError(w, http.StatusUnauthorized, "User ID not found")
+		return
+	}
+
+	var req models.UserPreference
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	updatedPreferences, err := h.userPreferenceService.UpdateUserPreferences(r.Context(), userID, &req)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to update user preferences")
+		return
+	}
+
+	utils.WriteSuccess(w, updatedPreferences)
+}
+
 // ListUsers lists users (admin only)
 func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	clientID := utils.GetClientIDFromContext(r)
@@ -162,8 +217,7 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 			FirstName:      user.FirstName,
 			LastName:       user.LastName,
 			Role:           user.Role,
-			ProfilePicture: user.ProfilePicture,
-			ClientID:       user.ClientID,
+				ClientID:       user.ClientID,
 		}
 		profiles = append(profiles, profile)
 	}

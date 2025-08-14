@@ -13,15 +13,15 @@ type TimeValidationService interface {
 	ValidateMeetingAccess(ctx context.Context, meetingID int, userID int) (*MeetingAccessResult, error)
 	CheckMeetingTimeWindow(ctx context.Context, meeting *models.Meeting) (*TimeWindowStatus, error)
 	GetMeetingTimeInfo(ctx context.Context, meetingID int) (*MeetingTimeInfo, error)
-	
+
 	// Buffer time configuration
 	UpdateMeetingBufferTime(ctx context.Context, meetingID int, bufferStartMinutes, bufferEndMinutes int) error
 	GetMeetingBufferSettings(ctx context.Context, meetingID int) (*BufferSettings, error)
-	
+
 	// Admin override functionality
 	GrantAdminOverride(ctx context.Context, meetingID int, adminID int, userID int, reason string) error
 	CheckAdminOverride(ctx context.Context, meetingID int, userID int) (*AdminOverride, error)
-	
+
 	// Meeting status validation
 	ValidateMeetingStatus(ctx context.Context, meetingID int, expectedStatus string) error
 	UpdateMeetingStatus(ctx context.Context, meetingID int, status string, adminID *int) error
@@ -29,42 +29,42 @@ type TimeValidationService interface {
 
 // Result types for time validation operations
 type MeetingAccessResult struct {
-	CanJoin         bool                    `json:"can_join"`
-	Status          string                  `json:"status"` // allowed, too_early, too_late, meeting_ended, meeting_cancelled
-	Reason          string                  `json:"reason"`
-	TimeUntilStart  *time.Duration          `json:"time_until_start,omitempty"`
-	TimeUntilEnd    *time.Duration          `json:"time_until_end,omitempty"`
-	AdminOverride   *AdminOverride          `json:"admin_override,omitempty"`
-	BufferSettings  *BufferSettings         `json:"buffer_settings"`
-	MeetingInfo     *MeetingTimeInfo        `json:"meeting_info"`
+	CanJoin        bool             `json:"can_join"`
+	Status         string           `json:"status"` // allowed, too_early, too_late, meeting_ended, meeting_cancelled
+	Reason         string           `json:"reason"`
+	TimeUntilStart *time.Duration   `json:"time_until_start,omitempty"`
+	TimeUntilEnd   *time.Duration   `json:"time_until_end,omitempty"`
+	AdminOverride  *AdminOverride   `json:"admin_override,omitempty"`
+	BufferSettings *BufferSettings  `json:"buffer_settings"`
+	MeetingInfo    *MeetingTimeInfo `json:"meeting_info"`
 }
 
 type TimeWindowStatus struct {
-	IsOpen              bool           `json:"is_open"`
-	Status              string         `json:"status"` // not_started, active, ended, cancelled
-	CanJoinEarly        bool           `json:"can_join_early"`
-	CanJoinLate         bool           `json:"can_join_late"`
-	MinutesUntilStart   int            `json:"minutes_until_start"`
-	MinutesUntilEnd     int            `json:"minutes_until_end"`
-	MinutesSinceStart   int            `json:"minutes_since_start"`
-	MinutesSinceEnd     int            `json:"minutes_since_end"`
-	BufferStartActive   bool           `json:"buffer_start_active"`
-	BufferEndActive     bool           `json:"buffer_end_active"`
+	IsOpen            bool   `json:"is_open"`
+	Status            string `json:"status"` // not_started, active, ended, cancelled
+	CanJoinEarly      bool   `json:"can_join_early"`
+	CanJoinLate       bool   `json:"can_join_late"`
+	MinutesUntilStart int    `json:"minutes_until_start"`
+	MinutesUntilEnd   int    `json:"minutes_until_end"`
+	MinutesSinceStart int    `json:"minutes_since_start"`
+	MinutesSinceEnd   int    `json:"minutes_since_end"`
+	BufferStartActive bool   `json:"buffer_start_active"`
+	BufferEndActive   bool   `json:"buffer_end_active"`
 }
 
 type MeetingTimeInfo struct {
-	MeetingID          int             `json:"meeting_id"`
-	Title              string          `json:"title"`
-	ScheduledStart     time.Time       `json:"scheduled_start"`
-	ScheduledEnd       time.Time       `json:"scheduled_end"`
-	ActualStart        *time.Time      `json:"actual_start,omitempty"`
-	ActualEnd          *time.Time      `json:"actual_end,omitempty"`
-	Status             string          `json:"status"`
-	BufferStartMinutes int             `json:"buffer_start_minutes"`
-	BufferEndMinutes   int             `json:"buffer_end_minutes"`
-	TimeZone           string          `json:"timezone"`
-	Duration           int             `json:"duration_minutes"`
-	IsRecurring        bool            `json:"is_recurring"`
+	MeetingID          int        `json:"meeting_id"`
+	Title              string     `json:"title"`
+	ScheduledStart     time.Time  `json:"scheduled_start"`
+	ScheduledEnd       time.Time  `json:"scheduled_end"`
+	ActualStart        *time.Time `json:"actual_start,omitempty"`
+	ActualEnd          *time.Time `json:"actual_end,omitempty"`
+	Status             string     `json:"status"`
+	BufferStartMinutes int        `json:"buffer_start_minutes"`
+	BufferEndMinutes   int        `json:"buffer_end_minutes"`
+	TimeZone           string     `json:"timezone"`
+	Duration           int        `json:"duration_minutes"`
+	IsRecurring        bool       `json:"is_recurring"`
 }
 
 type BufferSettings struct {
@@ -78,15 +78,15 @@ type BufferSettings struct {
 }
 
 type AdminOverride struct {
-	ID          int       `json:"id"`
-	MeetingID   int       `json:"meeting_id"`
-	UserID      int       `json:"user_id"`
-	AdminID     int       `json:"admin_id"`
-	Reason      string    `json:"reason"`
-	IsActive    bool      `json:"is_active"`
-	ExpiresAt   time.Time `json:"expires_at"`
-	CreatedAt   time.Time `json:"created_at"`
-	AdminName   string    `json:"admin_name,omitempty"`
+	ID        int       `json:"id"`
+	MeetingID int       `json:"meeting_id"`
+	UserID    int       `json:"user_id"`
+	AdminID   int       `json:"admin_id"`
+	Reason    string    `json:"reason"`
+	IsActive  bool      `json:"is_active"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+	AdminName string    `json:"admin_name,omitempty"`
 }
 
 type timeValidationService struct {
@@ -109,7 +109,7 @@ func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meeti
 	query := `SELECT id, title, scheduled_start, scheduled_end, actual_start, actual_end, status,
 			         buffer_start_minutes, buffer_end_minutes
 			  FROM meetings WHERE id = $1`
-	
+
 	err := s.db.GetContext(ctx, meeting, query, meetingID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meeting: %w", err)
@@ -117,15 +117,15 @@ func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meeti
 
 	result := &MeetingAccessResult{
 		MeetingInfo: &MeetingTimeInfo{
-			MeetingID:          meeting.ID,
-			Title:              meeting.Title,
-			ScheduledStart:     meeting.ScheduledStart,
-			ScheduledEnd:       meeting.ScheduledEnd,
-			ActualStart:        meeting.ActualStart,
-			ActualEnd:          meeting.ActualEnd,
-			Status:             meeting.Status,
-			Duration:           int(meeting.ScheduledEnd.Sub(meeting.ScheduledStart).Minutes()),
-			TimeZone:           "UTC", // Default timezone
+			MeetingID:      meeting.ID,
+			Title:          meeting.Title,
+			ScheduledStart: meeting.ScheduledStart,
+			ScheduledEnd:   meeting.ScheduledEnd,
+			ActualStart:    meeting.ActualStart,
+			ActualEnd:      meeting.ActualEnd,
+			Status:         meeting.Status,
+			Duration:       int(meeting.ScheduledEnd.Sub(meeting.ScheduledStart).Minutes()),
+			TimeZone:       "UTC", // Default timezone
 		},
 	}
 
@@ -172,11 +172,11 @@ func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meeti
 	}
 
 	now := time.Now()
-	
+
 	// Calculate time windows with buffer
 	earlyJoinTime := meeting.ScheduledStart.Add(time.Duration(-result.BufferSettings.BufferStartMinutes) * time.Minute)
 	lateJoinTime := meeting.ScheduledEnd.Add(time.Duration(result.BufferSettings.BufferEndMinutes) * time.Minute)
-	
+
 	// Check if too early (before buffer)
 	if now.Before(earlyJoinTime) {
 		timeUntilStart := earlyJoinTime.Sub(now)
@@ -197,7 +197,7 @@ func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meeti
 	if meeting.Status == "active" || (now.After(earlyJoinTime) && now.Before(lateJoinTime)) {
 		result.CanJoin = true
 		result.Status = "allowed"
-		
+
 		if now.Before(meeting.ScheduledStart) {
 			result.Reason = "Joining early (within buffer time)"
 		} else if now.After(meeting.ScheduledEnd) {
@@ -205,7 +205,7 @@ func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meeti
 		} else {
 			result.Reason = "Meeting is active"
 		}
-		
+
 		// Set time information
 		if now.Before(meeting.ScheduledEnd) {
 			timeUntilEnd := meeting.ScheduledEnd.Sub(now)
@@ -218,16 +218,16 @@ func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meeti
 
 func (s *timeValidationService) CheckMeetingTimeWindow(ctx context.Context, meeting *models.Meeting) (*TimeWindowStatus, error) {
 	now := time.Now()
-	
+
 	status := &TimeWindowStatus{
 		Status: meeting.Status,
 	}
 
 	// Get buffer settings
 	bufferSettings, err := s.GetMeetingBufferSettings(ctx, meeting.ID)
-	bufferStartMinutes := 5  // default
-	bufferEndMinutes := 10   // default
-	
+	bufferStartMinutes := 5 // default
+	bufferEndMinutes := 10  // default
+
 	if err == nil && bufferSettings != nil {
 		bufferStartMinutes = bufferSettings.BufferStartMinutes
 		bufferEndMinutes = bufferSettings.BufferEndMinutes
@@ -285,7 +285,7 @@ func (s *timeValidationService) CheckMeetingTimeWindow(ctx context.Context, meet
 
 func (s *timeValidationService) GetMeetingTimeInfo(ctx context.Context, meetingID int) (*MeetingTimeInfo, error) {
 	info := &MeetingTimeInfo{}
-	
+
 	query := `
 		SELECT m.id, m.title, m.scheduled_start, m.scheduled_end, m.actual_start, m.actual_end,
 			   m.status, m.is_recurring,
@@ -326,7 +326,7 @@ func (s *timeValidationService) UpdateMeetingBufferTime(ctx context.Context, mee
 
 func (s *timeValidationService) GetMeetingBufferSettings(ctx context.Context, meetingID int) (*BufferSettings, error) {
 	settings := &BufferSettings{}
-	
+
 	query := `
 		SELECT id as meeting_id, 
 			   COALESCE(buffer_start_minutes, 5) as buffer_start_minutes,
@@ -374,7 +374,7 @@ func (s *timeValidationService) GrantAdminOverride(ctx context.Context, meetingI
 
 func (s *timeValidationService) CheckAdminOverride(ctx context.Context, meetingID int, userID int) (*AdminOverride, error) {
 	override := &AdminOverride{}
-	
+
 	query := `
 		SELECT o.id, o.meeting_id, o.user_id, o.admin_id, o.reason, o.is_active, 
 			   o.expires_at, o.created_at,
@@ -398,7 +398,7 @@ func (s *timeValidationService) CheckAdminOverride(ctx context.Context, meetingI
 func (s *timeValidationService) ValidateMeetingStatus(ctx context.Context, meetingID int, expectedStatus string) error {
 	var currentStatus string
 	query := `SELECT status FROM meetings WHERE id = $1`
-	
+
 	err := s.db.GetContext(ctx, &currentStatus, query, meetingID)
 	if err != nil {
 		return fmt.Errorf("failed to get meeting status: %w", err)
@@ -413,11 +413,11 @@ func (s *timeValidationService) ValidateMeetingStatus(ctx context.Context, meeti
 
 func (s *timeValidationService) UpdateMeetingStatus(ctx context.Context, meetingID int, status string, adminID *int) error {
 	now := time.Now()
-	
+
 	// Build update query based on status
 	var query string
 	var args []interface{}
-	
+
 	switch status {
 	case "active":
 		query = `UPDATE meetings SET status = $1, actual_start = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`
@@ -442,11 +442,11 @@ func (s *timeValidationService) UpdateMeetingStatus(ctx context.Context, meeting
 			SELECT $1, 
 				   (SELECT status FROM meetings WHERE id = $1), 
 				   $2, $3, CURRENT_TIMESTAMP`
-		
+
 		_, err = s.db.ExecContext(ctx, logQuery, meetingID, status, *adminID)
 		// Log error but don't fail the status update
 		if err != nil {
-			fmt.Printf("Warning: failed to log meeting status change: %v\n", err)
+			fmt.Printf("Warning: failed to log meeting status change: %v", err)
 		}
 	}
 

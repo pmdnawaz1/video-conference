@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -121,6 +123,10 @@ func (c *SimpleClient) handleMessage(msg SimpleMessage) {
 		c.forwardToTarget(msg)
 	case "iceCandidate":
 		c.forwardToTarget(msg)
+	case "terminateMeeting":
+		c.handleTerminateMeeting(msg.Payload)
+	case "endMeeting":
+		c.handleEndMeeting(msg.Payload)
 	default:
 		log.Printf("Unknown simple message type: %s", msg.Type)
 	}
@@ -326,6 +332,164 @@ func (c *SimpleClient) broadcastToRoom(msg SimpleMessage, excludeUserID string) 
 		case client.Send <- msg:
 		default:
 			log.Printf("Failed to broadcast to client, channel full")
+		}
+	}
+}
+
+func (c *SimpleClient) handleTerminateMeeting(payload interface{}) {
+	data, ok := payload.(map[string]interface{})
+	if !ok {
+		log.Printf("Invalid terminate meeting payload")
+		return
+	}
+
+	roomID, _ := data["roomId"].(string)
+	reason, _ := data["reason"].(string)
+	countdownSeconds, _ := data["countdownSeconds"].(float64)
+
+	if roomID == "" {
+		log.Printf("Missing roomId in terminate meeting request")
+		return
+	}
+
+	if reason == "" {
+		reason = "Meeting terminated by host"
+	}
+
+	if countdownSeconds <= 0 {
+		countdownSeconds = 10 // Default 10 seconds countdown
+	}
+
+	log.Printf("Meeting termination initiated by %s for room %s with reason: %s", c.UserID, roomID, reason)
+
+	// Broadcast termination warning to all clients in the room
+	terminationMessage := SimpleMessage{
+		Type: "meetingTerminationWarning",
+		Payload: map[string]interface{}{
+			"roomId":           roomID,
+			"reason":          reason,
+			"countdownSeconds": int(countdownSeconds),
+			"terminatedBy":    c.UserID,
+			"message":         fmt.Sprintf("Meeting will end in %d seconds: %s", int(countdownSeconds), reason),
+		},
+	}
+
+	c.broadcastToRoomIncludingSelf(terminationMessage)
+
+	// Schedule actual termination after countdown
+	go func() {
+		time.Sleep(time.Duration(countdownSeconds) * time.Second)
+		c.executeRoomTermination(roomID, reason)
+	}()
+}
+
+func (c *SimpleClient) handleEndMeeting(payload interface{}) {
+	data, ok := payload.(map[string]interface{})
+	if !ok {
+		log.Printf("Invalid end meeting payload")
+		return
+	}
+
+	roomID, _ := data["roomId"].(string)
+	reason, _ := data["reason"].(string)
+
+	if roomID == "" {
+		log.Printf("Missing roomId in end meeting request")
+		return
+	}
+
+	if reason == "" {
+		reason = "Meeting ended by host"
+	}
+
+	log.Printf("Meeting immediately ended by %s for room %s with reason: %s", c.UserID, roomID, reason)
+
+	// Execute immediate termination
+	c.executeRoomTermination(roomID, reason)
+}
+
+func (c *SimpleClient) executeRoomTermination(roomID, reason string) {
+	simpleHub.mutex.Lock()
+	room, exists := simpleHub.Rooms[roomID]
+	if !exists {
+		simpleHub.mutex.Unlock()
+		log.Printf("Room %s not found for termination", roomID)
+		return
+	}
+
+	// Get all clients in the room before termination
+	room.mutex.RLock()
+	clients := make([]*SimpleClient, 0, len(room.Clients))
+	for _, client := range room.Clients {
+		clients = append(clients, client)
+	}
+	room.mutex.RUnlock()
+
+	// Remove room from hub
+	delete(simpleHub.Rooms, roomID)
+	simpleHub.mutex.Unlock()
+
+	log.Printf("Executing termination for room %s with %d clients", roomID, len(clients))
+
+	// Send final termination message to all clients
+	terminationMessage := SimpleMessage{
+		Type: "meetingTerminated",
+		Payload: map[string]interface{}{
+			"roomId":    roomID,
+			"reason":    reason,
+			"timestamp": time.Now().Unix(),
+			"message":   fmt.Sprintf("Meeting has been terminated: %s", reason),
+		},
+	}
+
+	// Send termination message to all clients
+	for _, client := range clients {
+		select {
+		case client.Send <- terminationMessage:
+			log.Printf("Sent termination message to user %s", client.UserID)
+		default:
+			log.Printf("Failed to send termination message to user %s, channel full", client.UserID)
+		}
+
+		// Close client connections after a short delay to allow message delivery
+		go func(client *SimpleClient) {
+			time.Sleep(2 * time.Second)
+			client.Conn.Close()
+			log.Printf("Closed connection for user %s due to meeting termination", client.UserID)
+		}(client)
+	}
+
+	log.Printf("Meeting termination completed for room %s. %d clients disconnected.", roomID, len(clients))
+}
+
+func (c *SimpleClient) broadcastToRoomIncludingSelf(msg SimpleMessage) {
+	if c.RoomID == "" {
+		log.Printf("Client not in room, cannot broadcast message")
+		return
+	}
+
+	simpleHub.mutex.RLock()
+	room, exists := simpleHub.Rooms[c.RoomID]
+	simpleHub.mutex.RUnlock()
+
+	if !exists {
+		return
+	}
+
+	room.mutex.RLock()
+	clients := make([]*SimpleClient, 0, len(room.Clients))
+	for _, client := range room.Clients {
+		clients = append(clients, client)
+	}
+	room.mutex.RUnlock()
+
+	log.Printf("Broadcasting %s to %d clients (including self) in room %s", msg.Type, len(clients), c.RoomID)
+
+	for _, client := range clients {
+		select {
+		case client.Send <- msg:
+		default:
+			log.Printf("Failed to broadcast to client %s, channel full", client.UserID)
 		}
 	}
 }

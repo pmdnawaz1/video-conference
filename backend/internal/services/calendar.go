@@ -22,13 +22,13 @@ func NewCalendarService() *CalendarService {
 
 // GoogleCalendarEvent represents a Google Calendar event
 type GoogleCalendarEvent struct {
-	Summary     string                  `json:"summary"`
-	Description string                  `json:"description"`
-	Start       GoogleCalendarDateTime  `json:"start"`
-	End         GoogleCalendarDateTime  `json:"end"`
-	Location    string                  `json:"location,omitempty"`
-	Attendees   []GoogleCalendarAttendee `json:"attendees,omitempty"`
-	ConferenceData GoogleConferenceData `json:"conferenceData,omitempty"`
+	Summary        string                   `json:"summary"`
+	Description    string                   `json:"description"`
+	Start          GoogleCalendarDateTime   `json:"start"`
+	End            GoogleCalendarDateTime   `json:"end"`
+	Location       string                   `json:"location,omitempty"`
+	Attendees      []GoogleCalendarAttendee `json:"attendees,omitempty"`
+	ConferenceData GoogleConferenceData     `json:"conferenceData,omitempty"`
 }
 
 // GoogleCalendarDateTime represents date/time for Google Calendar
@@ -60,7 +60,7 @@ func (s *CalendarService) CreateCalendarEvent(meeting *models.Meeting, inviterEm
 	// Create Google Calendar event structure
 	event := &GoogleCalendarEvent{
 		Summary:     meeting.Title,
-		Description: fmt.Sprintf("%s\n\nJoin meeting: %s", meeting.Description, meetingLink),
+		Description: fmt.Sprintf("%sJoin meeting: %s", meeting.Description, meetingLink),
 		Start: GoogleCalendarDateTime{
 			DateTime: meeting.ScheduledStart.Format(time.RFC3339),
 			TimeZone: "UTC", // You can make this configurable
@@ -107,7 +107,7 @@ UID:meeting-%s@videoconference.platform
 DTSTART:%s
 DTEND:%s
 SUMMARY:%s
-DESCRIPTION:%s\n\nJoin meeting: %s
+DESCRIPTION:%sJoin meeting: %s
 LOCATION:Video Conference Platform
 STATUS:CONFIRMED
 SEQUENCE:0
@@ -142,7 +142,7 @@ type GoogleCalendarWebhook struct {
 func (s *CalendarService) SendToGoogleCalendar(event *GoogleCalendarEvent, accessToken, calendarID string) error {
 	// This is a simplified approach for demonstration
 	// In production, you would use the Google Calendar API
-	
+
 	webhook := GoogleCalendarWebhook{
 		Event:       *event,
 		AccessToken: accessToken,
@@ -156,20 +156,20 @@ func (s *CalendarService) SendToGoogleCalendar(event *GoogleCalendarEvent, acces
 
 	// For now, just log the event data
 	// In production, you'd send this to Google Calendar API
-	log.Printf("📅 Google Calendar event data (would be sent to API):\n%s", string(jsonData))
-	
+	log.Printf("📅 Google Calendar event data (would be sent to API):%s", string(jsonData))
+
 	return nil
 }
 
 // OutlookCalendarEvent represents a Microsoft Outlook calendar event
 type OutlookCalendarEvent struct {
-	Subject      string                     `json:"subject"`
-	Body         OutlookEventBody          `json:"body"`
-	Start        OutlookDateTime           `json:"start"`
-	End          OutlookDateTime           `json:"end"`
-	Location     OutlookLocation           `json:"location"`
-	Attendees    []OutlookAttendee         `json:"attendees"`
-	OnlineMeeting OutlookOnlineMeeting     `json:"onlineMeeting,omitempty"`
+	Subject       string               `json:"subject"`
+	Body          OutlookEventBody     `json:"body"`
+	Start         OutlookDateTime      `json:"start"`
+	End           OutlookDateTime      `json:"end"`
+	Location      OutlookLocation      `json:"location"`
+	Attendees     []OutlookAttendee    `json:"attendees"`
+	OnlineMeeting OutlookOnlineMeeting `json:"onlineMeeting,omitempty"`
 }
 
 type OutlookEventBody struct {

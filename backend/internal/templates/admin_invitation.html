@@ -1,0 +1,18 @@
+{{ define "body" }}
+    <p>Hi {{ .FirstName }} {{ .LastName }},</p>
+    <p>You've been invited to join Video Conference Platform as an Administrator!</p>
+    <p>As an admin, you'll be able to:</p>
+    <ul>
+        <li>Manage organization settings</li>
+        <li>Invite and manage users</li>
+        <li>Create and monitor meetings</li>
+        <li>Access analytics and reports</li>
+        <li>Configure platform features</li>
+    </ul>
+    <p>To complete your registration, click the button below and create your password:</p>
+    <a href="{{ .InvitationURL }}" class="invitation-button">Accept Invitation & Set Password</a>
+    <div class="warning">
+        <strong>⚠️ Important:</strong> This invitation will expire on {{ .ExpiresAt }}. Please complete your registration before then.
+    </div>
+    <p>If you have any questions or need assistance, please contact our support team.</p>
+{{ end }}

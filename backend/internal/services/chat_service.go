@@ -73,14 +73,14 @@ func NewChatService(db *database.DB) ChatService {
 func (s *chatService) SendMessage(ctx context.Context, message *models.ChatMessage) error {
 	query := `
 		INSERT INTO chat_messages (client_id, meeting_id, sender_id, sender_email, sender_name, 
-		                          message, message_type, metadata, reply_to_id, attachments)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		                          message, message_type, metadata, reply_to_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at, updated_at`
 	
 	err := s.db.GetContext(ctx, message, query,
 		message.ClientID, message.MeetingID, message.SenderID, message.SenderEmail,
 		message.SenderName, message.Message, message.MessageType, message.Metadata,
-		message.ReplyToID, message.Attachments)
+		message.ReplyToID)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
 	}
@@ -106,7 +106,7 @@ func (s *chatService) UpdateMessage(ctx context.Context, message *models.ChatMes
 		SET message = $2, metadata = $3, attachments = $4, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1`
 	
-	_, err := s.db.ExecContext(ctx, query, message.ID, message.Message, message.Metadata, message.Attachments)
+	_, err := s.db.ExecContext(ctx, query, message.ID, message.Message, message.Metadata, message.Metadata)
 	if err != nil {
 		return fmt.Errorf("failed to update message: %w", err)
 	}
@@ -312,7 +312,7 @@ func (s *chatService) AddAttachment(ctx context.Context, messageID int, attachme
 		return fmt.Errorf("failed to get message: %w", err)
 	}
 
-	attachments := message.Attachments
+	attachments := message.Metadata
 	if attachments == nil {
 		attachments = models.JSONB{}
 	}
@@ -342,7 +342,7 @@ func (s *chatService) RemoveAttachment(ctx context.Context, messageID int, attac
 		return fmt.Errorf("failed to get message: %w", err)
 	}
 
-	attachments := message.Attachments
+	attachments := message.Metadata
 	if attachments == nil {
 		return fmt.Errorf("no attachments found")
 	}
@@ -364,11 +364,11 @@ func (s *chatService) GetMessageAttachments(ctx context.Context, messageID int) 
 		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
 
-	if message.Attachments == nil {
+	if message.Metadata == nil {
 		return []map[string]interface{}{}, nil
 	}
 
-	if files, ok := message.Attachments["files"].([]interface{}); ok {
+	if files, ok := message.Metadata["files"].([]interface{}); ok {
 		var attachments []map[string]interface{}
 		for _, file := range files {
 			if attachment, ok := file.(map[string]interface{}); ok {

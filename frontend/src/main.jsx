@@ -4,10 +4,12 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import VideoConference from './components/meeting/VideoConference.jsx'
-import MeetingDashboard from './components/meetings/MeetingDashboard.jsx'
+
 import AuthWrapper from './components/auth/AuthWrapper.jsx'
 import useAuthStore from './stores/authStore'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+
+import UserDashboard from './pages/UserDashboard.jsx';
 
 // Protected Route wrapper
 function ProtectedRoute({ children }) {
@@ -31,7 +33,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/join" element={<AuthWrapper />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            <MeetingDashboard />
+            <UserDashboard />
           </ProtectedRoute>
         } />
         <Route path="/meeting/:meetingId" element={

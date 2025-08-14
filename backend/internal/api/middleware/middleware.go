@@ -16,7 +16,7 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			
+
 			// Check if origin is allowed
 			allowed := false
 			for _, allowedOrigin := range allowedOrigins {
@@ -59,10 +59,10 @@ func Logging() func(http.Handler) http.Handler {
 
 			// Log the request
 			duration := time.Since(start)
-			log.Printf("%s %s %d %v %s", 
-				r.Method, 
-				r.URL.Path, 
-				wrapped.statusCode, 
+			log.Printf("%s %s %d %v %s",
+				r.Method,
+				r.URL.Path,
+				wrapped.statusCode,
 				duration,
 				r.RemoteAddr,
 			)
@@ -76,7 +76,7 @@ func Recovery() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Printf("Panic recovered: %v\n%s", err, debug.Stack())
+					log.Printf("Panic recovered: %v%s", err, debug.Stack())
 					http.Error(w, "Internal server error", http.StatusInternalServerError)
 				}
 			}()
@@ -145,12 +145,12 @@ func SecureHeaders() func(http.Handler) http.Handler {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("X-Frame-Options", "DENY")
 			w.Header().Set("X-XSS-Protection", "1; mode=block")
-			
+
 			// Only add HSTS for HTTPS
 			if r.TLS != nil {
 				w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 			}
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}

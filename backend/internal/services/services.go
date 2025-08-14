@@ -20,9 +20,14 @@ type Services struct {
 	Invitation        *InvitationService
 	Email             *EmailService
 	Calendar          *CalendarService
+	EnhancedCalendar  EnhancedCalendarService
 	Chat              ChatService
 	Recording         RecordingService
 	Group             GroupService
+	Notification      NotificationService
+	UserInvitation    UserInvitationService
+	UserAnalytics     UserAnalyticsService
+	UserPreference    UserPreferenceService
 }
 
 // NewServices creates a new services instance
@@ -42,8 +47,13 @@ func NewServices(db *database.DB, cfg *config.Config) *Services {
 	adminDashboardService := AdminDashboardService(db, userService, meetingService, groupService)
 	invitationService := NewInvitationService(db, cfg.Auth.JWTSecret)
 	calendarService := NewCalendarService()
+	enhancedCalendarService := NewEnhancedCalendarService(db, "", "", "")
 	chatService := NewChatService(db)
 	recordingService := NewRecordingService(db, &cfg.Storage)
+	notificationService := NewNotificationService(db)
+	userInvitationService := NewUserInvitationService(db, cfg.Auth.JWTSecret, emailService)
+	userAnalyticsService := NewUserAnalyticsService(db)
+	userPreferenceService := NewUserPreferenceService(db)
 
 	return &Services{
 		Client:         clientService,
@@ -59,8 +69,13 @@ func NewServices(db *database.DB, cfg *config.Config) *Services {
 		Invitation:     invitationService,
 		Email:          emailService,
 		Calendar:       calendarService,
+		EnhancedCalendar: enhancedCalendarService,
 		Chat:           chatService,
 		Recording:      recordingService,
 		Group:          groupService,
+		Notification:   notificationService,
+		UserInvitation: userInvitationService,
+		UserAnalytics:  userAnalyticsService,
+		UserPreference: userPreferenceService,
 	}
 }

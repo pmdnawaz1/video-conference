@@ -1,8 +1,10 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"log"
 	"net/smtp"
 	"strings"
@@ -13,13 +15,28 @@ import (
 
 // EmailService handles email operations
 type EmailService struct {
-	config *config.EmailConfig
+	config    *config.EmailConfig
+	templates *template.Template
 }
 
 // NewEmailService creates a new email service
 func NewEmailService(cfg *config.EmailConfig) *EmailService {
+	// Parse email templates
+	tmpl, err := template.ParseFiles(
+		"internal/templates/layout.html",
+		"internal/templates/welcome.html",
+		"internal/templates/password_reset.html",
+		"internal/templates/admin_invitation.html",
+		"internal/templates/meeting_invitation.html",
+		"internal/templates/user_invitation.html",
+	)
+	if err != nil {
+		log.Fatalf("Failed to parse email templates: %v", err)
+	}
+
 	return &EmailService{
-		config: cfg,
+		config:    cfg,
+		templates: tmpl,
 	}
 }
 
@@ -33,37 +50,32 @@ type EmailMessage struct {
 
 // SendEmail sends an email message
 func (s *EmailService) SendEmail(msg EmailMessage) error {
-	if s.config.SMTPHost == "" {
+	if s.config.Host == "" {
 		log.Printf("📧 Email sending disabled (no SMTP host) - would send to %v: %s", msg.To, msg.Subject)
 		return nil
 	}
 
 	// Prepare the email headers and body
 	header := make(map[string]string)
-	header["From"] = fmt.Sprintf("%s <%s>", s.config.FromName, s.config.FromEmail)
+	header["From"] = fmt.Sprintf("%s <%s>", s.config.FromName, s.config.From)
 	header["To"] = strings.Join(msg.To, ",")
 	header["Subject"] = msg.Subject
 	header["MIME-Version"] = "1.0"
-	
-	if msg.IsHTML {
-		header["Content-Type"] = "text/html; charset=UTF-8"
-	} else {
-		header["Content-Type"] = "text/plain; charset=UTF-8"
-	}
+	header["Content-Type"] = "text/html; charset=UTF-8"
 
 	// Construct the message
 	message := ""
 	for key, value := range header {
-		message += fmt.Sprintf("%s: %s\r\n", key, value)
+		message += fmt.Sprintf("%s: %s\r", key, value)
 	}
-	message += "\r\n" + msg.Body
+	message += "\r" + msg.Body
 
 	// Configure SMTP authentication
-	auth := smtp.PlainAuth("", s.config.SMTPUsername, s.config.SMTPPassword, s.config.SMTPHost)
+	auth := smtp.PlainAuth("", s.config.Username, s.config.Password, s.config.Host)
 
 	// Send the email
-	smtpAddr := fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort)
-	err := smtp.SendMail(smtpAddr, auth, s.config.FromEmail, msg.To, []byte(message))
+	smtpAddr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
+	err := smtp.SendMail(smtpAddr, auth, s.config.From, msg.To, []byte(message))
 	if err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
@@ -72,62 +84,46 @@ func (s *EmailService) SendEmail(msg EmailMessage) error {
 	return nil
 }
 
+func (s *EmailService) executeTemplate(templateName string, data interface{}) (string, error) {
+	var body bytes.Buffer
+	if err := s.templates.ExecuteTemplate(&body, templateName, data); err != nil {
+		return "", fmt.Errorf("failed to execute template %s: %w", templateName, err)
+	}
+	return body.String(), nil
+}
+
 // SendInvitationEmail sends a meeting invitation email
 func (s *EmailService) SendInvitationEmail(to []string, emailContent EmailContent) error {
-	msg := EmailMessage{
-		To:      to,
-		Subject: emailContent.Subject,
-		Body:    emailContent.HTMLBody,
-		IsHTML:  true,
-	}
-
-	return s.SendEmail(msg)
+	// This function is deprecated. Use SendMeetingInvitationEmail instead.
+	log.Printf("Warning: SendInvitationEmail is deprecated. Use SendMeetingInvitationEmail instead.")
+	return nil
 }
 
 // SendWelcomeEmail sends a welcome email to new users
 func (s *EmailService) SendWelcomeEmail(to, name string) error {
-	subject := "Welcome to Video Conference Platform"
-	
-	htmlBody := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #f9f9f9; }
-        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>Welcome to Video Conference Platform</h2>
-        </div>
-        <div class="content">
-            <p>Hi %s,</p>
-            <p>Welcome to our Enterprise Video Conference Platform! Your account has been successfully created.</p>
-            <p>You can now:</p>
-            <ul>
-                <li>Schedule and join video meetings</li>
-                <li>Invite colleagues to meetings</li>
-                <li>Use advanced features like screen sharing and recording</li>
-                <li>Manage your meeting preferences</li>
-            </ul>
-            <p>Get started by logging into your account and exploring the platform.</p>
-        </div>
-        <div class="footer">
-            <p>Best regards,<br>Video Conference Platform Team</p>
-        </div>
-    </div>
-</body>
-</html>
-`, name)
+	data := struct {
+		Subject string
+		Body    template.HTML
+		Name    string
+	}{
+		Subject: "Welcome to Video Conference Platform",
+		Name:    name,
+	}
+
+	bodyContent, err := s.executeTemplate("welcome.html", data)
+	if err != nil {
+		return err
+	}
+	data.Body = template.HTML(bodyContent)
+
+	htmlBody, err := s.executeTemplate("layout.html", data)
+	if err != nil {
+		return err
+	}
 
 	msg := EmailMessage{
 		To:      []string{to},
-		Subject: subject,
+		Subject: data.Subject,
 		Body:    htmlBody,
 		IsHTML:  true,
 	}
@@ -136,46 +132,32 @@ func (s *EmailService) SendWelcomeEmail(to, name string) error {
 }
 
 // SendPasswordResetEmail sends a password reset email
-func (s *EmailService) SendPasswordResetEmail(to, resetLink string) error {
-	subject := "Reset Your Password"
-	
-	htmlBody := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #f9f9f9; }
-        .reset-button { display: inline-block; background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>Password Reset Request</h2>
-        </div>
-        <div class="content">
-            <p>Hi,</p>
-            <p>You requested to reset your password for your Video Conference Platform account.</p>
-            <p>Click the button below to reset your password:</p>
-            <a href="%s" class="reset-button">Reset Password</a>
-            <p>If you didn't request this password reset, please ignore this email.</p>
-            <p>This link will expire in 1 hour for security reasons.</p>
-        </div>
-        <div class="footer">
-            <p>Video Conference Platform Team</p>
-        </div>
-    </div>
-</body>
-</html>
-`, resetLink)
+func (s *EmailService) SendPasswordResetEmail(to, resetLink string, expiryHours int) error {
+	data := struct {
+		Subject     string
+		Body        template.HTML
+		ResetLink   string
+		ExpiryHours int
+	}{
+		Subject:     "Reset Your Password",
+		ResetLink:   resetLink,
+		ExpiryHours: expiryHours,
+	}
+
+	bodyContent, err := s.executeTemplate("password_reset.html", data)
+	if err != nil {
+		return err
+	}
+	data.Body = template.HTML(bodyContent)
+
+	htmlBody, err := s.executeTemplate("layout.html", data)
+	if err != nil {
+		return err
+	}
 
 	msg := EmailMessage{
 		To:      []string{to},
-		Subject: subject,
+		Subject: data.Subject,
 		Body:    htmlBody,
 		IsHTML:  true,
 	}
@@ -189,57 +171,114 @@ func (s *EmailService) SendAdminInvitation(ctx context.Context, to string, data 
 	lastName := data["last_name"].(string)
 	invitationURL := data["invitation_url"].(string)
 	expiresAt := data["expires_at"].(time.Time)
-	
-	subject := "Admin Invitation - Video Conference Platform"
-	
-	htmlBody := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #f9f9f9; }
-        .invitation-button { display: inline-block; background-color: #10B981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-        .warning { background-color: #FEF3C7; border: 1px solid #F59E0B; padding: 15px; border-radius: 5px; margin: 15px 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>🎉 You're Invited as an Admin!</h2>
-        </div>
-        <div class="content">
-            <p>Hi %s %s,</p>
-            <p>You've been invited to join Video Conference Platform as an Administrator!</p>
-            <p>As an admin, you'll be able to:</p>
-            <ul>
-                <li>Manage organization settings</li>
-                <li>Invite and manage users</li>
-                <li>Create and monitor meetings</li>
-                <li>Access analytics and reports</li>
-                <li>Configure platform features</li>
-            </ul>
-            <p>To complete your registration, click the button below and create your password:</p>
-            <a href="%s" class="invitation-button">Accept Invitation & Set Password</a>
-            <div class="warning">
-                <strong>⚠️ Important:</strong> This invitation will expire on %s. Please complete your registration before then.
-            </div>
-            <p>If you have any questions or need assistance, please contact our support team.</p>
-        </div>
-        <div class="footer">
-            <p>Welcome to the team!<br><strong>Video Conference Platform</strong></p>
-        </div>
-    </div>
-</body>
-</html>
-`, firstName, lastName, invitationURL, expiresAt.Format("January 2, 2006 at 3:04 PM"))
+
+	templateData := struct {
+		Subject       string
+		Body          template.HTML
+		FirstName     string
+		LastName      string
+		InvitationURL string
+		ExpiresAt     string
+	}{
+		Subject:       "Admin Invitation - Video Conference Platform",
+		FirstName:     firstName,
+		LastName:      lastName,
+		InvitationURL: invitationURL,
+		ExpiresAt:     expiresAt.Format("January 2, 2006 at 3:04 PM"),
+	}
+
+	bodyContent, err := s.executeTemplate("admin_invitation.html", templateData)
+	if err != nil {
+		return err
+	}
+	templateData.Body = template.HTML(bodyContent)
+
+	htmlBody, err := s.executeTemplate("layout.html", templateData)
+	if err != nil {
+		return err
+	}
 
 	msg := EmailMessage{
 		To:      []string{to},
-		Subject: subject,
+		Subject: templateData.Subject,
+		Body:    htmlBody,
+		IsHTML:  true,
+	}
+
+	return s.SendEmail(msg)
+}
+
+// SendMeetingInvitationEmail sends a meeting invitation email
+func (s *EmailService) SendMeetingInvitationEmail(to []string, meetingTitle, meetingDescription, meetingLink string, scheduledStart, scheduledEnd time.Time) error {
+	data := struct {
+		Subject            string
+		Body               template.HTML
+		MeetingTitle       string
+		MeetingDescription string
+		MeetingLink        string
+		ScheduledStart     string
+		ScheduledEnd       string
+	}{
+		Subject:            fmt.Sprintf("Meeting Invitation: %s", meetingTitle),
+		MeetingTitle:       meetingTitle,
+		MeetingDescription: meetingDescription,
+		MeetingLink:        meetingLink,
+		ScheduledStart:     scheduledStart.Format("January 2, 2006 3:04 PM MST"),
+		ScheduledEnd:       scheduledEnd.Format("January 2, 2006 3:04 PM MST"),
+	}
+
+	bodyContent, err := s.executeTemplate("meeting_invitation.html", data)
+	if err != nil {
+		return err
+	}
+	data.Body = template.HTML(bodyContent)
+
+	htmlBody, err := s.executeTemplate("layout.html", data)
+	if err != nil {
+		return err
+	}
+
+	msg := EmailMessage{
+		To:      to,
+		Subject: data.Subject,
+		Body:    htmlBody,
+		IsHTML:  true,
+	}
+
+	return s.SendEmail(msg)
+}
+
+// SendUserInvitationEmail sends a user invitation email
+func (s *EmailService) SendUserInvitationEmail(to, firstName, inviterName, invitationLink string, expiresAt time.Time) error {
+	data := struct {
+		Subject        string
+		Body           template.HTML
+		FirstName      string
+		InviterName    string
+		InvitationLink string
+		ExpiresAt      string
+	}{
+		Subject:        "You're Invited to Video Conference Platform!",
+		FirstName:      firstName,
+		InviterName:    inviterName,
+		InvitationLink: invitationLink,
+		ExpiresAt:      expiresAt.Format("January 2, 2006 at 3:04 PM"),
+	}
+
+	bodyContent, err := s.executeTemplate("user_invitation.html", data)
+	if err != nil {
+		return err
+	}
+	data.Body = template.HTML(bodyContent)
+
+	htmlBody, err := s.executeTemplate("layout.html", data)
+	if err != nil {
+		return err
+	}
+
+	msg := EmailMessage{
+		To:      []string{to},
+		Subject: data.Subject,
 		Body:    htmlBody,
 		IsHTML:  true,
 	}
@@ -253,4 +292,15 @@ type EmailContent struct {
 	Body        string
 	HTMLBody    string
 	MeetingLink string
+}
+
+// SendLater schedules an email to be sent after a delay
+func (s *EmailService) SendLater(delay time.Duration, msg EmailMessage) {
+	go func() {
+		time.Sleep(delay)
+		err := s.SendEmail(msg)
+		if err != nil {
+			log.Printf("Failed to send scheduled email after %s: %v", delay, err)
+		}
+	}()
 }

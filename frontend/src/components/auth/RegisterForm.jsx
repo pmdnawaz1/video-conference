@@ -58,11 +58,12 @@ const RegisterForm = ({ onSuccess, onSwitchToLogin }) => {
     }
     
     const userData = {
+      client_id: 1, // Default to client ID 1 for demo organization
       email: formData.email,
       password: formData.password,
       first_name: formData.firstName,
       last_name: formData.lastName,
-      organization: formData.organization || null
+      role: "user" // Default role for new registrations
     };
     
     const result = await register(userData);

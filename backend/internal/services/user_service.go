@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"time"
 	"video-conference-backend/internal/database"
 	"video-conference-backend/internal/models"
 	"golang.org/x/crypto/bcrypt"
@@ -79,12 +78,11 @@ func (s *userService) GetUserByEmail(ctx context.Context, email string) (*models
 func (s *userService) UpdateUser(ctx context.Context, user *models.User) error {
 	query := `
 		UPDATE users 
-		SET first_name = $2, last_name = $3, role = $4, status = $5, 
-		    profile_picture = $6, updated_at = CURRENT_TIMESTAMP
+		SET first_name = $2, last_name = $3, role = $4, status = $5, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1`
 	
 	_, err := s.db.ExecContext(ctx, query,
-		user.ID, user.FirstName, user.LastName, user.Role, user.Status, user.ProfilePicture)
+		user.ID, user.FirstName, user.LastName, user.Role, user.Status)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
@@ -144,9 +142,7 @@ func (s *userService) VerifyUserPassword(ctx context.Context, email, password st
 		return nil, fmt.Errorf("invalid password")
 	}
 
-	// Update last login time
-	query := `UPDATE users SET last_login = $1 WHERE id = $2`
-	s.db.ExecContext(ctx, query, time.Now(), user.ID)
+	// Note: last_login column not available in current schema
 
 	return user, nil
 }
