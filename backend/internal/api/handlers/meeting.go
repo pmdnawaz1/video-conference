@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
 	"video-conference-backend/internal/services"
 	"video-conference-backend/internal/utils"
 )
@@ -91,7 +91,7 @@ func (h *MeetingHandler) CreateMeeting(w http.ResponseWriter, r *http.Request) {
 	// Default duration is set to 60 minutes
 
 	// Create meeting
-	meeting := &models.Meeting{
+	meeting := &*db.Meeting{
 		ClientID:            clientID,
 		Title:               req.Title,
 		Description:         req.Description,
@@ -99,7 +99,7 @@ func (h *MeetingHandler) CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		Password:              req.Password,
 		ScheduledStart:        req.ScheduledStart,
 		ScheduledEnd:          req.ScheduledEnd,
-		Status:                models.MeetingStatusScheduled,
+		Status:                *db.MeetingStatusScheduled,
 		WaitingRoomEnabled:    false,
 		MeetingSettings:       nil,
 	}

@@ -6,18 +6,18 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 // InvitationService handles meeting invitations
 type InvitationService struct {
-	db        *database.DB
+	db        *db.DB
 	jwtSecret string
 }
 
 // NewInvitationService creates a new invitation service
-func NewInvitationService(db *database.DB, jwtSecret string) *InvitationService {
+func NewInvitationService(db *db.DB, jwtSecret string) *InvitationService {
 	return &InvitationService{
 		db:        db,
 		jwtSecret: jwtSecret,
@@ -41,7 +41,7 @@ type InvitationRequest struct {
 }
 
 // CreateInvitation creates a new invitation with JWT token
-func (s *InvitationService) CreateInvitation(userID int, req InvitationRequest) (*models.Invitation, string, error) {
+func (s *InvitationService) CreateInvitation(userID int, req InvitationRequest) (*db.Invitation, string, error) {
 	// Get meeting details
 	meeting, err := s.getMeetingByID(req.MeetingID)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *InvitationService) CreateInvitation(userID int, req InvitationRequest) 
 	}
 
 	// Create invitation record
-	invitation := &models.Invitation{
+	invitation := &*db.Invitation{
 		ID:             0, // Will be set by database
 		MeetingID:      req.MeetingID,
 		InvitationType: "email",
@@ -118,7 +118,7 @@ func (s *InvitationService) CreateInvitation(userID int, req InvitationRequest) 
 }
 
 // generateInvitationToken creates a JWT token for the invitation
-func (s *InvitationService) generateInvitationToken(invitation *models.Invitation, meeting *models.Meeting) (string, error) {
+func (s *InvitationService) generateInvitationToken(invitation *db.Invitation, meeting *db.Meeting) (string, error) {
 	// Create invitation link
 	meetingLink := fmt.Sprintf("/meeting/%s?invitation=%s", meeting.MeetingID, "%TOKEN%")
 
@@ -189,7 +189,7 @@ func (s *InvitationService) AcceptInvitation(tokenString string) error {
 }
 
 // GetMeetingByInvitation retrieves meeting details using invitation token
-func (s *InvitationService) GetMeetingByInvitation(tokenString string) (*models.Meeting, error) {
+func (s *InvitationService) GetMeetingByInvitation(tokenString string) (*db.Meeting, error) {
 	claims, err := s.ValidateInvitationToken(tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("invalid invitation: %w", err)
@@ -204,8 +204,8 @@ func (s *InvitationService) GetMeetingByInvitation(tokenString string) (*models.
 }
 
 // Helper function to get meeting by ID
-func (s *InvitationService) getMeetingByID(meetingID int) (*models.Meeting, error) {
-	var meeting models.Meeting
+func (s *InvitationService) getMeetingByID(meetingID int) (*db.Meeting, error) {
+	var meeting *db.Meeting
 	query := `
 		SELECT id, client_id, created_by_user_id, title, description, 
 		       scheduled_start, scheduled_end, max_participants, 
@@ -228,7 +228,7 @@ func (s *InvitationService) GenerateInvitationLink(baseURL, token string) string
 
 
 // GenerateEmailContent creates email content for invitation
-func (s *InvitationService) GenerateEmailContent(meeting *models.Meeting, inviterName, invitationLink string) EmailContent {
+func (s *InvitationService) GenerateEmailContent(meeting *db.Meeting, inviterName, invitationLink string) EmailContent {
 	subject := fmt.Sprintf("You're invited to join: %s", meeting.Title)
 	
 	body := fmt.Sprintf(`

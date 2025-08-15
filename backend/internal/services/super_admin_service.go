@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type SuperAdmin interface {
 	// Organization Management
-	CreateOrganization(ctx context.Context, req *CreateOrganizationRequest) (*models.Client, error)
+	CreateOrganization(ctx context.Context, req *CreateOrganizationRequest) (*db.Client, error)
 	GetAllOrganizations(ctx context.Context) ([]*OrganizationSummary, error)
 	GetOrganizationDetails(ctx context.Context, clientID int) (*OrganizationDetails, error)
 	UpdateOrganization(ctx context.Context, clientID int, req *UpdateOrganizationRequest) error
@@ -23,7 +23,7 @@ type SuperAdmin interface {
 	SuspendAdmin(ctx context.Context, adminID int, reason string) error
 	UnsuspendAdmin(ctx context.Context, adminID int) error
 	DeleteAdmin(ctx context.Context, adminID int) error
-	BulkInviteAdmins(ctx context.Context, invitations []*AdminInvitationRequest) ([]*models.AdminInvitation, error)
+	BulkInviteAdmins(ctx context.Context, invitations []*AdminInvitationRequest) ([]*db.AdminInvitation, error)
 
 	// System Analytics and Health
 	GetSystemMetrics(ctx context.Context, timeframe string) (*SystemMetrics, error)
@@ -69,7 +69,7 @@ type OrganizationSummary struct {
 }
 
 type OrganizationDetails struct {
-	*models.Client
+	*db.Client
 	AdminCount     int             `json:"admin_count"`
 	UserCount      int             `json:"user_count"`
 	ActiveMeetings int             `json:"active_meetings"`
@@ -112,7 +112,7 @@ type AdminSummary struct {
 }
 
 type AdminDetails struct {
-	*models.User
+	*db.User
 	OrganizationName string         `json:"organization_name"`
 	MeetingsCreated  int            `json:"meetings_created"`
 	UsersInvited     int            `json:"users_invited"`
@@ -190,13 +190,13 @@ type ActivityLog struct {
 }
 
 type superAdminService struct {
-	db        *database.DB
+	db        *db.DB
 	adminSvc  Admin
 	userSvc   UserService
 	clientSvc ClientService
 }
 
-func SuperAdminService(db *database.DB, adminSvc Admin, userSvc UserService, clientSvc ClientService) SuperAdmin {
+func SuperAdminService(db *db.DB, adminSvc Admin, userSvc UserService, clientSvc ClientService) SuperAdmin {
 	return &superAdminService{
 		db:        db,
 		adminSvc:  adminSvc,
@@ -209,7 +209,7 @@ func SuperAdminService(db *database.DB, adminSvc Admin, userSvc UserService, cli
 // ORGANIZATION MANAGEMENT IMPLEMENTATION
 // ============================================================================
 
-func (s *superAdminService) CreateOrganization(ctx context.Context, req *CreateOrganizationRequest) (*models.Client, error) {
+func (s *superAdminService) CreateOrganization(ctx context.Context, req *CreateOrganizationRequest) (*db.Client, error) {
 	// Start transaction
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -218,7 +218,7 @@ func (s *superAdminService) CreateOrganization(ctx context.Context, req *CreateO
 	defer tx.Rollback()
 
 	// Create organization
-	client := &models.Client{
+	client := &db.Client{
 		Email:        req.AdminEmail,
 		AppName:      req.OrganizationName,
 		Theme:        "default",
@@ -499,7 +499,7 @@ func (s *superAdminService) GetAdminDetails(ctx context.Context, adminID int) (*
 		return nil, fmt.Errorf("failed to get admin: %w", err)
 	}
 
-	if user.Role != models.RoleAdmin {
+	if user.Role != db.RoleAdmin {
 		return nil, fmt.Errorf("user is not an admin")
 	}
 
@@ -595,8 +595,8 @@ func (s *superAdminService) DeleteAdmin(ctx context.Context, adminID int) error 
 	return nil
 }
 
-func (s *superAdminService) BulkInviteAdmins(ctx context.Context, invitations []*AdminInvitationRequest) ([]*models.AdminInvitation, error) {
-	var results []*models.AdminInvitation
+func (s *superAdminService) BulkInviteAdmins(ctx context.Context, invitations []*AdminInvitationRequest) ([]*db.AdminInvitation, error) {
+	var results []*db.AdminInvitation
 
 	for _, req := range invitations {
 		invitation, err := s.adminSvc.CreateAdminInvitation(ctx, req)

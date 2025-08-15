@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type MeetingService interface {
-	CreateMeeting(ctx context.Context, meeting *models.Meeting) error
-	GetMeetingByID(ctx context.Context, id int) (*models.Meeting, error)
-	GetMeetingByMeetingID(ctx context.Context, meetingID string) (*models.Meeting, error)
-	UpdateMeeting(ctx context.Context, meeting *models.Meeting) error
+	CreateMeeting(ctx context.Context, meeting *db.Meeting) error
+	GetMeetingByID(ctx context.Context, id int) (*db.Meeting, error)
+	GetMeetingByMeetingID(ctx context.Context, meetingID string) (*db.Meeting, error)
+	UpdateMeeting(ctx context.Context, meeting *db.Meeting) error
 	DeleteMeeting(ctx context.Context, id int) error
 	CancelMeeting(ctx context.Context, id int) error
 	
@@ -21,35 +21,35 @@ type MeetingService interface {
 	EndMeeting(ctx context.Context, meetingID string) error
 	
 	// Meeting queries
-	ListMeetingsByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.Meeting, error)
-	ListMeetingsByHost(ctx context.Context, hostID int, limit, offset int) ([]*models.Meeting, error)
-	GetUpcomingMeetings(ctx context.Context, clientID int, limit int) ([]*models.Meeting, error)
-	GetMeetingsByDateRange(ctx context.Context, clientID int, start, end time.Time) ([]*models.Meeting, error)
+	ListMeetingsByClient(ctx context.Context, clientID int, limit, offset int) (*db.Meeting, error)
+	ListMeetingsByHost(ctx context.Context, hostID int, limit, offset int) (*db.Meeting, error)
+	GetUpcomingMeetings(ctx context.Context, clientID int, limit int) (*db.Meeting, error)
+	GetMeetingsByDateRange(ctx context.Context, clientID int, start, end time.Time) (*db.Meeting, error)
 	
 	// Participants
-	AddParticipant(ctx context.Context, participant *models.MeetingParticipant) error
+	AddParticipant(ctx context.Context, participant *db.MeetingParticipant) error
 	RemoveParticipant(ctx context.Context, meetingID int, userID *int, email *string) error
-	GetMeetingParticipants(ctx context.Context, meetingID int) ([]*models.MeetingParticipant, error)
+	GetMeetingParticipants(ctx context.Context, meetingID int) (*db.MeetingParticipant, error)
 	UpdateParticipantStatus(ctx context.Context, meetingID int, userID *int, email *string, status string) error
 	UpdateParticipantRole(ctx context.Context, meetingID int, userID *int, email *string, role string) error
 	
 	// Recurrence
-	CreateRecurringMeetings(ctx context.Context, parentMeeting *models.Meeting) ([]*models.Meeting, error)
-	GetRecurringMeetingInstances(ctx context.Context, parentMeetingID int) ([]*models.Meeting, error)
+	CreateRecurringMeetings(ctx context.Context, parentMeeting *db.Meeting) (*db.Meeting, error)
+	GetRecurringMeetingInstances(ctx context.Context, parentMeetingID int) (*db.Meeting, error)
 }
 
 type meetingService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewMeetingService(db *database.DB) MeetingService {
+func NewMeetingService(db *db.DB) MeetingService {
 	return &meetingService{db: db}
 }
 
-func (s *meetingService) CreateMeeting(ctx context.Context, meeting *models.Meeting) error {
+func (s *meetingService) CreateMeeting(ctx context.Context, meeting *db.Meeting) error {
 	// Generate unique meeting ID if not provided
 	if meeting.MeetingID == "" {
-		meeting.MeetingID = models.GenerateMeetingID()
+		meeting.MeetingID = *db.GenerateMeetingID()
 	}
 
 	query := `
@@ -73,8 +73,8 @@ func (s *meetingService) CreateMeeting(ctx context.Context, meeting *models.Meet
 	return nil
 }
 
-func (s *meetingService) GetMeetingByID(ctx context.Context, id int) (*models.Meeting, error) {
-	meeting := &models.Meeting{}
+func (s *meetingService) GetMeetingByID(ctx context.Context, id int) (*db.Meeting, error) {
+	meeting := &*db.Meeting{}
 	query := `SELECT * FROM meetings WHERE id = $1`
 	
 	err := s.db.GetContext(ctx, meeting, query, id)
@@ -85,8 +85,8 @@ func (s *meetingService) GetMeetingByID(ctx context.Context, id int) (*models.Me
 	return meeting, nil
 }
 
-func (s *meetingService) GetMeetingByMeetingID(ctx context.Context, meetingID string) (*models.Meeting, error) {
-	meeting := &models.Meeting{}
+func (s *meetingService) GetMeetingByMeetingID(ctx context.Context, meetingID string) (*db.Meeting, error) {
+	meeting := &*db.Meeting{}
 	query := `SELECT * FROM meetings WHERE meeting_id = $1`
 	
 	err := s.db.GetContext(ctx, meeting, query, meetingID)
@@ -97,7 +97,7 @@ func (s *meetingService) GetMeetingByMeetingID(ctx context.Context, meetingID st
 	return meeting, nil
 }
 
-func (s *meetingService) UpdateMeeting(ctx context.Context, meeting *models.Meeting) error {
+func (s *meetingService) UpdateMeeting(ctx context.Context, meeting *db.Meeting) error {
 	query := `
 		UPDATE meetings 
 		SET title = $2, description = $3, scheduled_start = $4, scheduled_end = $5, 
@@ -131,7 +131,7 @@ func (s *meetingService) CancelMeeting(ctx context.Context, id int) error {
 		SET status = $2, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1`
 	
-	_, err := s.db.ExecContext(ctx, query, id, models.MeetingStatusCancelled)
+	_, err := s.db.ExecContext(ctx, query, id, *db.MeetingStatusCancelled)
 	if err != nil {
 		return fmt.Errorf("failed to cancel meeting: %w", err)
 	}
@@ -145,7 +145,7 @@ func (s *meetingService) StartMeeting(ctx context.Context, meetingID string, hos
 		SET status = $2, actual_start = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
 		WHERE meeting_id = $1 AND created_by_user_id = $3`
 	
-	result, err := s.db.ExecContext(ctx, query, meetingID, models.MeetingStatusActive, hostID)
+	result, err := s.db.ExecContext(ctx, query, meetingID, *db.MeetingStatusActive, hostID)
 	if err != nil {
 		return fmt.Errorf("failed to start meeting: %w", err)
 	}
@@ -164,7 +164,7 @@ func (s *meetingService) EndMeeting(ctx context.Context, meetingID string) error
 		SET status = $2, actual_end = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
 		WHERE meeting_id = $1 AND status = $3`
 	
-	_, err := s.db.ExecContext(ctx, query, meetingID, models.MeetingStatusEnded, models.MeetingStatusActive)
+	_, err := s.db.ExecContext(ctx, query, meetingID, *db.MeetingStatusEnded, *db.MeetingStatusActive)
 	if err != nil {
 		return fmt.Errorf("failed to end meeting: %w", err)
 	}
@@ -172,8 +172,8 @@ func (s *meetingService) EndMeeting(ctx context.Context, meetingID string) error
 	return nil
 }
 
-func (s *meetingService) ListMeetingsByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.Meeting, error) {
-	meetings := []*models.Meeting{}
+func (s *meetingService) ListMeetingsByClient(ctx context.Context, clientID int, limit, offset int) (*db.Meeting, error) {
+	meetings := *db.Meeting{}
 	query := `
 		SELECT * FROM meetings 
 		WHERE client_id = $1 
@@ -188,8 +188,8 @@ func (s *meetingService) ListMeetingsByClient(ctx context.Context, clientID int,
 	return meetings, nil
 }
 
-func (s *meetingService) ListMeetingsByHost(ctx context.Context, hostID int, limit, offset int) ([]*models.Meeting, error) {
-	meetings := []*models.Meeting{}
+func (s *meetingService) ListMeetingsByHost(ctx context.Context, hostID int, limit, offset int) (*db.Meeting, error) {
+	meetings := *db.Meeting{}
 	query := `
 		SELECT * FROM meetings 
 		WHERE created_by_user_id = $1 
@@ -204,8 +204,8 @@ func (s *meetingService) ListMeetingsByHost(ctx context.Context, hostID int, lim
 	return meetings, nil
 }
 
-func (s *meetingService) GetUpcomingMeetings(ctx context.Context, clientID int, limit int) ([]*models.Meeting, error) {
-	meetings := []*models.Meeting{}
+func (s *meetingService) GetUpcomingMeetings(ctx context.Context, clientID int, limit int) (*db.Meeting, error) {
+	meetings := *db.Meeting{}
 	query := `
 		SELECT * FROM meetings 
 		WHERE client_id = $1 AND scheduled_start > CURRENT_TIMESTAMP 
@@ -214,7 +214,7 @@ func (s *meetingService) GetUpcomingMeetings(ctx context.Context, clientID int, 
 		LIMIT $4`
 	
 	err := s.db.SelectContext(ctx, &meetings, query, clientID, 
-		models.MeetingStatusScheduled, models.MeetingStatusActive, limit)
+		*db.MeetingStatusScheduled, *db.MeetingStatusActive, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get upcoming meetings: %w", err)
 	}
@@ -222,8 +222,8 @@ func (s *meetingService) GetUpcomingMeetings(ctx context.Context, clientID int, 
 	return meetings, nil
 }
 
-func (s *meetingService) GetMeetingsByDateRange(ctx context.Context, clientID int, start, end time.Time) ([]*models.Meeting, error) {
-	meetings := []*models.Meeting{}
+func (s *meetingService) GetMeetingsByDateRange(ctx context.Context, clientID int, start, end time.Time) (*db.Meeting, error) {
+	meetings := *db.Meeting{}
 	query := `
 		SELECT * FROM meetings 
 		WHERE client_id = $1 AND scheduled_start >= $2 AND scheduled_start <= $3
@@ -237,7 +237,7 @@ func (s *meetingService) GetMeetingsByDateRange(ctx context.Context, clientID in
 	return meetings, nil
 }
 
-func (s *meetingService) AddParticipant(ctx context.Context, participant *models.MeetingParticipant) error {
+func (s *meetingService) AddParticipant(ctx context.Context, participant *db.MeetingParticipant) error {
 	query := `
 		INSERT INTO meeting_participants (meeting_id, user_id, email, guest_name, role, status, invited_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -275,8 +275,8 @@ func (s *meetingService) RemoveParticipant(ctx context.Context, meetingID int, u
 	return nil
 }
 
-func (s *meetingService) GetMeetingParticipants(ctx context.Context, meetingID int) ([]*models.MeetingParticipant, error) {
-	participants := []*models.MeetingParticipant{}
+func (s *meetingService) GetMeetingParticipants(ctx context.Context, meetingID int) (*db.MeetingParticipant, error) {
+	participants := *db.MeetingParticipant{}
 	query := `
 		SELECT * FROM meeting_participants 
 		WHERE meeting_id = $1 
@@ -334,12 +334,12 @@ func (s *meetingService) UpdateParticipantRole(ctx context.Context, meetingID in
 	return nil
 }
 
-func (s *meetingService) CreateRecurringMeetings(ctx context.Context, parentMeeting *models.Meeting) ([]*models.Meeting, error) {
+func (s *meetingService) CreateRecurringMeetings(ctx context.Context, parentMeeting *db.Meeting) (*db.Meeting, error) {
 	// Recurring meetings not implemented yet - return empty slice
-	return []*models.Meeting{}, nil
+	return *db.Meeting{}, nil
 }
 
-func (s *meetingService) GetRecurringMeetingInstances(ctx context.Context, parentMeetingID int) ([]*models.Meeting, error) {
+func (s *meetingService) GetRecurringMeetingInstances(ctx context.Context, parentMeetingID int) (*db.Meeting, error) {
 	// Recurring meetings not implemented yet - return empty slice
-	return []*models.Meeting{}, nil
+	return *db.Meeting{}, nil
 }

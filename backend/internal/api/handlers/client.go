@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
 	"video-conference-backend/internal/services"
 )
 
@@ -39,7 +39,7 @@ func (h *ClientHandler) ListClients(w http.ResponseWriter, r *http.Request) {
 
 // CreateClient creates a new client (super admin only)
 func (h *ClientHandler) CreateClient(w http.ResponseWriter, r *http.Request) {
-	var client models.Client
+	var client *db.Client
 	if err := json.NewDecoder(r.Body).Decode(&client); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -168,7 +168,7 @@ func (h *ClientHandler) UpdateClientFeatures(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var features models.ClientFeatures
+	var features *db.ClientFeatures
 	if err := json.NewDecoder(r.Body).Decode(&features); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return

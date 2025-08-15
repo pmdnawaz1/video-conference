@@ -11,7 +11,7 @@ import (
 
 	"video-conference-backend/internal/api"
 	"video-conference-backend/internal/config"
-	"video-conference-backend/internal/database"
+	"video-conference-backend/prisma/db"
 	"video-conference-backend/internal/services"
 )
 
@@ -23,7 +23,7 @@ func main() {
 	}
 
 	// Initialize database connection
-	db, err := database.NewConnection(cfg.Database)
+	db, err := db.NewConnection(cfg.Database)
 	if err != nil {
 		log.Fatalf("❌ Failed to initialize database: %v", err)
 	}
@@ -32,7 +32,7 @@ func main() {
 	// Run migrations if enabled
 	if cfg.Development.AutoMigrate {
 		log.Printf("🔄 Running database migrations...")
-		if err := database.RunMigrations(db); err != nil {
+		if err := db.RunMigrations(db); err != nil {
 			log.Fatalf("❌ Migration failed: %v", err)
 		}
 		log.Printf("✅ Database migrations completed")

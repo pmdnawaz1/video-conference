@@ -10,19 +10,19 @@ import (
 	"net/url"
 	"time"
 	"video-conference-backend/internal/config"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthService interface {
-	Login(ctx context.Context, email, password string) (*models.AuthResponse, error)
-	RefreshToken(ctx context.Context, refreshToken string) (*models.AuthResponse, error)
-	ValidateToken(ctx context.Context, tokenString string) (*models.JWTClaims, error)
+	Login(ctx context.Context, email, password string) (*db.AuthResponse, error)
+	RefreshToken(ctx context.Context, refreshToken string) (*db.AuthResponse, error)
+	ValidateToken(ctx context.Context, tokenString string) (*db.JWTClaims, error)
 	Logout(ctx context.Context, userID int, refreshToken string) error
-	RegisterUser(ctx context.Context, req *models.RegisterRequest) (*models.User, error)
+	RegisterUser(ctx context.Context, req *db.RegisterRequest) (*db.User, error)
 	ResetPassword(ctx context.Context, email string) error
-	ChangePassword(ctx context.Context, userID int, req *models.ChangePasswordRequest) error
+	ChangePassword(ctx context.Context, userID int, req *db.ChangePasswordRequest) error
 	
 	// MFA Methods
 	EnableMFA(ctx context.Context, userID int) (*MFASetupResponse, error)
@@ -38,12 +38,12 @@ type AuthService interface {
 }
 
 type authService struct {
-	db      *database.DB
+	db      *db.DB
 	userSvc UserService
 	config  *config.AuthConfig
 }
 
-func NewAuthService(db *database.DB, cfg *config.AuthConfig) AuthService {
+func NewAuthService(db *db.DB, cfg *config.AuthConfig) AuthService {
 	return &authService{
 		db:      db,
 		userSvc: NewUserService(db),
@@ -51,7 +51,7 @@ func NewAuthService(db *database.DB, cfg *config.AuthConfig) AuthService {
 	}
 }
 
-func (s *authService) Login(ctx context.Context, email, password string) (*models.AuthResponse, error) {
+func (s *authService) Login(ctx context.Context, email, password string) (*db.AuthResponse, error) {
 	// Verify user credentials
 	user, err := s.userSvc.VerifyUserPassword(ctx, email, password)
 	if err != nil {
@@ -80,12 +80,12 @@ func (s *authService) Login(ctx context.Context, email, password string) (*model
 		return nil, fmt.Errorf("failed to store refresh token: %w", err)
 	}
 
-	return &models.AuthResponse{
+	return &db.AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
 		ExpiresIn:    int(s.config.AccessTokenExpiry.Seconds()),
-		User: &models.UserProfile{
+		User: &db.UserProfile{
 			ID:             user.ID,
 			Email:          user.Email,
 			FirstName:      user.FirstName,
@@ -96,7 +96,7 @@ func (s *authService) Login(ctx context.Context, email, password string) (*model
 	}, nil
 }
 
-func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*models.AuthResponse, error) {
+func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*db.AuthResponse, error) {
 	// Validate refresh token
 	claims, err := s.validateRefreshToken(refreshToken)
 	if err != nil {
@@ -132,12 +132,12 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*m
 		return nil, fmt.Errorf("failed to update refresh token: %w", err)
 	}
 
-	return &models.AuthResponse{
+	return &db.AuthResponse{
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
 		TokenType:    "Bearer",
 		ExpiresIn:    int(s.config.AccessTokenExpiry.Seconds()),
-		User: &models.UserProfile{
+		User: &db.UserProfile{
 			ID:             user.ID,
 			Email:          user.Email,
 			FirstName:      user.FirstName,
@@ -148,8 +148,8 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (*m
 	}, nil
 }
 
-func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*models.JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &models.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*db.JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &db.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -160,7 +160,7 @@ func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*m
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
 
-	if claims, ok := token.Claims.(*models.JWTClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*db.JWTClaims); ok && token.Valid {
 		return claims, nil
 	}
 
@@ -176,8 +176,8 @@ func (s *authService) Logout(ctx context.Context, userID int, refreshToken strin
 	return nil
 }
 
-func (s *authService) RegisterUser(ctx context.Context, req *models.RegisterRequest) (*models.User, error) {
-	user := &models.User{
+func (s *authService) RegisterUser(ctx context.Context, req *db.RegisterRequest) (*db.User, error) {
+	user := &db.User{
 		ClientID:  req.ClientID,
 		Email:     req.Email,
 		Password:  req.Password,
@@ -228,14 +228,14 @@ func (s *authService) ResetPassword(ctx context.Context, email string) error {
 	return nil
 }
 
-func (s *authService) ChangePassword(ctx context.Context, userID int, req *models.ChangePasswordRequest) error {
+func (s *authService) ChangePassword(ctx context.Context, userID int, req *db.ChangePasswordRequest) error {
 	return s.userSvc.ChangeUserPassword(ctx, userID, req.OldPassword, req.NewPassword)
 }
 
 // Helper methods
 
-func (s *authService) generateAccessToken(user *models.User) (string, error) {
-	claims := &models.JWTClaims{
+func (s *authService) generateAccessToken(user *db.User) (string, error) {
+	claims := &db.JWTClaims{
 		UserID:   user.ID,
 		ClientID: user.ClientID,
 		Email:    user.Email,
@@ -252,8 +252,8 @@ func (s *authService) generateAccessToken(user *models.User) (string, error) {
 	return token.SignedString([]byte(s.config.JWTSecret))
 }
 
-func (s *authService) generateRefreshToken(user *models.User) (string, error) {
-	claims := &models.JWTClaims{
+func (s *authService) generateRefreshToken(user *db.User) (string, error) {
+	claims := &db.JWTClaims{
 		UserID:   user.ID,
 		ClientID: user.ClientID,
 		Email:    user.Email,
@@ -270,8 +270,8 @@ func (s *authService) generateRefreshToken(user *models.User) (string, error) {
 	return token.SignedString([]byte(s.config.JWTSecret))
 }
 
-func (s *authService) generatePasswordResetToken(user *models.User) (string, error) {
-	claims := &models.JWTClaims{
+func (s *authService) generatePasswordResetToken(user *db.User) (string, error) {
+	claims := &db.JWTClaims{
 		UserID:   user.ID,
 		Email:    user.Email,
 		TokenType: "password_reset",
@@ -286,8 +286,8 @@ func (s *authService) generatePasswordResetToken(user *models.User) (string, err
 	return token.SignedString([]byte(s.config.JWTSecret))
 }
 
-func (s *authService) validateRefreshToken(tokenString string) (*models.JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &models.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+func (s *authService) validateRefreshToken(tokenString string) (*db.JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &db.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.config.JWTSecret), nil
 	})
 
@@ -295,7 +295,7 @@ func (s *authService) validateRefreshToken(tokenString string) (*models.JWTClaim
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*models.JWTClaims); ok && token.Valid && claims.TokenType == "refresh" {
+	if claims, ok := token.Claims.(*db.JWTClaims); ok && token.Valid && claims.TokenType == "refresh" {
 		return claims, nil
 	}
 

@@ -3,39 +3,39 @@ package services
 import (
 	"context"
 	"fmt"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type GroupService interface {
-	CreateGroup(ctx context.Context, group *models.Group) error
-	GetGroupByID(ctx context.Context, id int) (*models.Group, error)
-	UpdateGroup(ctx context.Context, group *models.Group) error
+	CreateGroup(ctx context.Context, group *db.Group) error
+	GetGroupByID(ctx context.Context, id int) (*db.Group, error)
+	UpdateGroup(ctx context.Context, group *db.Group) error
 	DeleteGroup(ctx context.Context, id int) error
-	ListGroupsByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.Group, error)
+	ListGroupsByClient(ctx context.Context, clientID int, limit, offset int) (*db.Group, error)
 	
 	// Group membership management
 	AddUserToGroup(ctx context.Context, groupID, userID int, addedBy int) error
 	RemoveUserFromGroup(ctx context.Context, groupID, userID int) error
-	GetGroupMembers(ctx context.Context, groupID int) ([]*models.User, error)
-	GetUserGroups(ctx context.Context, userID int) ([]*models.Group, error)
+	GetGroupMembers(ctx context.Context, groupID int) (*db.User, error)
+	GetUserGroups(ctx context.Context, userID int) (*db.Group, error)
 	IsUserInGroup(ctx context.Context, groupID, userID int) (bool, error)
 	
 	// Bulk operations
 	AddMultipleUsersToGroup(ctx context.Context, groupID int, userIDs []int, addedBy int) error
 	RemoveMultipleUsersFromGroup(ctx context.Context, groupID int, userIDs []int) error
-	GetGroupMemberships(ctx context.Context, groupID int) ([]*models.UserGroupMembership, error)
+	GetGroupMemberships(ctx context.Context, groupID int) (*db.UserGroupMembership, error)
 }
 
 type groupService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewGroupService(db *database.DB) GroupService {
+func NewGroupService(db *db.DB) GroupService {
 	return &groupService{db: db}
 }
 
-func (s *groupService) CreateGroup(ctx context.Context, group *models.Group) error {
+func (s *groupService) CreateGroup(ctx context.Context, group *db.Group) error {
 	query := `
 		INSERT INTO groups (client_id, name, description, created_by)
 		VALUES ($1, $2, $3, $4)
@@ -50,8 +50,8 @@ func (s *groupService) CreateGroup(ctx context.Context, group *models.Group) err
 	return nil
 }
 
-func (s *groupService) GetGroupByID(ctx context.Context, id int) (*models.Group, error) {
-	group := &models.Group{}
+func (s *groupService) GetGroupByID(ctx context.Context, id int) (*db.Group, error) {
+	group := &*db.Group{}
 	query := `SELECT * FROM groups WHERE id = $1`
 	
 	err := s.db.GetContext(ctx, group, query, id)
@@ -62,7 +62,7 @@ func (s *groupService) GetGroupByID(ctx context.Context, id int) (*models.Group,
 	return group, nil
 }
 
-func (s *groupService) UpdateGroup(ctx context.Context, group *models.Group) error {
+func (s *groupService) UpdateGroup(ctx context.Context, group *db.Group) error {
 	query := `
 		UPDATE groups 
 		SET name = $2, description = $3, updated_at = CURRENT_TIMESTAMP
@@ -93,8 +93,8 @@ func (s *groupService) DeleteGroup(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *groupService) ListGroupsByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.Group, error) {
-	groups := []*models.Group{}
+func (s *groupService) ListGroupsByClient(ctx context.Context, clientID int, limit, offset int) (*db.Group, error) {
+	groups := *db.Group{}
 	query := `
 		SELECT * FROM groups 
 		WHERE client_id = $1 
@@ -148,8 +148,8 @@ func (s *groupService) RemoveUserFromGroup(ctx context.Context, groupID, userID 
 	return nil
 }
 
-func (s *groupService) GetGroupMembers(ctx context.Context, groupID int) ([]*models.User, error) {
-	users := []*models.User{}
+func (s *groupService) GetGroupMembers(ctx context.Context, groupID int) (*db.User, error) {
+	users := *db.User{}
 	query := `
 		SELECT u.* FROM users u
 		INNER JOIN user_group_memberships ugm ON u.id = ugm.user_id
@@ -164,8 +164,8 @@ func (s *groupService) GetGroupMembers(ctx context.Context, groupID int) ([]*mod
 	return users, nil
 }
 
-func (s *groupService) GetUserGroups(ctx context.Context, userID int) ([]*models.Group, error) {
-	groups := []*models.Group{}
+func (s *groupService) GetUserGroups(ctx context.Context, userID int) (*db.Group, error) {
+	groups := *db.Group{}
 	query := `
 		SELECT g.* FROM groups g
 		INNER JOIN user_group_memberships ugm ON g.id = ugm.group_id
@@ -263,8 +263,8 @@ func (s *groupService) RemoveMultipleUsersFromGroup(ctx context.Context, groupID
 	return nil
 }
 
-func (s *groupService) GetGroupMemberships(ctx context.Context, groupID int) ([]*models.UserGroupMembership, error) {
-	memberships := []*models.UserGroupMembership{}
+func (s *groupService) GetGroupMemberships(ctx context.Context, groupID int) (*db.UserGroupMembership, error) {
+	memberships := *db.UserGroupMembership{}
 	query := `
 		SELECT * FROM user_group_memberships 
 		WHERE group_id = $1 

@@ -7,18 +7,18 @@ import (
 	"time"
 
 	"video-conference-backend/internal/config"
-	"video-conference-backend/internal/database"
+	"video-conference-backend/prisma/db"
 )
 
 // EnhancedEmailService provides advanced email functionality with templates and scheduling
 type EnhancedEmailService struct {
 	config    *config.EmailConfig
-	db        *database.DB
+	db        *db.DB
 	templates map[string]*template.Template
 }
 
 // NewEnhancedEmailService creates a new enhanced email service
-func NewEnhancedEmailService(config *config.EmailConfig, db *database.DB) *EnhancedEmailService {
+func NewEnhancedEmailService(config *config.EmailConfig, db *db.DB) *EnhancedEmailService {
 	service := &EnhancedEmailService{
 		config:    config,
 		db:        db,

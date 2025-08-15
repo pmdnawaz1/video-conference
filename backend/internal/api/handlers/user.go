@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
 	"video-conference-backend/internal/services"
 )
 
@@ -40,7 +40,7 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return user profile (without password)
-	profile := &models.UserProfile{
+	profile := &db.UserProfile{
 		ID:             user.ID,
 		Email:          user.Email,
 		FirstName:      user.FirstName,
@@ -93,7 +93,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return updated profile
-	profile := &models.UserProfile{
+	profile := &db.UserProfile{
 		ID:             user.ID,
 		Email:          user.Email,
 		FirstName:      user.FirstName,
@@ -113,7 +113,7 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.ChangePasswordRequest
+	var req db.ChangePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -175,7 +175,7 @@ func (h *UserHandler) UpdateUserPreferences(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var req models.UserPreference
+	var req db.UserPreference
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return
@@ -209,9 +209,9 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to profiles (without passwords)
-	var profiles []*models.UserProfile
+	var profiles []*db.UserProfile
 	for _, user := range users {
-		profile := &models.UserProfile{
+		profile := &db.UserProfile{
 			ID:             user.ID,
 			Email:          user.Email,
 			FirstName:      user.FirstName,

@@ -2,7 +2,7 @@ package services
 
 import (
 	"video-conference-backend/internal/config"
-	"video-conference-backend/internal/database"
+	"video-conference-backend/prisma/db"
 )
 
 // Services holds all service dependencies
@@ -31,7 +31,7 @@ type Services struct {
 }
 
 // NewServices creates a new services instance
-func NewServices(db *database.DB, cfg *config.Config) *Services {
+func NewServices(db *db.DB, cfg *config.Config) *Services {
 	// Initialize individual services in proper order to avoid circular dependencies
 	clientService := NewClientService(db)
 	userService := NewUserService(db)

@@ -3,34 +3,34 @@ package services
 import (
 	"context"
 	"fmt"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, user *models.User) error
-	GetUserByID(ctx context.Context, id int) (*models.User, error)
-	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
-	UpdateUser(ctx context.Context, user *models.User) error
+	CreateUser(ctx context.Context, user *db.User) error
+	GetUserByID(ctx context.Context, id int) (*db.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*db.User, error)
+	UpdateUser(ctx context.Context, user *db.User) error
 	DeleteUser(ctx context.Context, id int) error
-	ListUsersByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.User, error)
+	ListUsersByClient(ctx context.Context, clientID int, limit, offset int) (*db.User, error)
 	UpdateUserStatus(ctx context.Context, userID int, status string) error
-	VerifyUserPassword(ctx context.Context, email, password string) (*models.User, error)
+	VerifyUserPassword(ctx context.Context, email, password string) (*db.User, error)
 	ChangeUserPassword(ctx context.Context, userID int, oldPassword, newPassword string) error
-	GetUsersByRole(ctx context.Context, clientID int, role string) ([]*models.User, error)
+	GetUsersByRole(ctx context.Context, clientID int, role string) (*db.User, error)
 	UpdateUserRole(ctx context.Context, userID int, role string) error
 }
 
 type userService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewUserService(db *database.DB) UserService {
+func NewUserService(db *db.DB) UserService {
 	return &userService{db: db}
 }
 
-func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
+func (s *userService) CreateUser(ctx context.Context, user *db.User) error {
 	// Hash password before storing
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -51,8 +51,8 @@ func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-func (s *userService) GetUserByID(ctx context.Context, id int) (*models.User, error) {
-	user := &models.User{}
+func (s *userService) GetUserByID(ctx context.Context, id int) (*db.User, error) {
+	user := &*db.User{}
 	query := `SELECT * FROM users WHERE id = $1`
 	
 	err := s.db.GetContext(ctx, user, query, id)
@@ -63,8 +63,8 @@ func (s *userService) GetUserByID(ctx context.Context, id int) (*models.User, er
 	return user, nil
 }
 
-func (s *userService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	user := &models.User{}
+func (s *userService) GetUserByEmail(ctx context.Context, email string) (*db.User, error) {
+	user := &*db.User{}
 	query := `SELECT * FROM users WHERE email = $1`
 	
 	err := s.db.GetContext(ctx, user, query, email)
@@ -75,7 +75,7 @@ func (s *userService) GetUserByEmail(ctx context.Context, email string) (*models
 	return user, nil
 }
 
-func (s *userService) UpdateUser(ctx context.Context, user *models.User) error {
+func (s *userService) UpdateUser(ctx context.Context, user *db.User) error {
 	query := `
 		UPDATE users 
 		SET first_name = $2, last_name = $3, role = $4, status = $5, updated_at = CURRENT_TIMESTAMP
@@ -101,8 +101,8 @@ func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *userService) ListUsersByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.User, error) {
-	users := []*models.User{}
+func (s *userService) ListUsersByClient(ctx context.Context, clientID int, limit, offset int) (*db.User, error) {
+	users := *db.User{}
 	query := `
 		SELECT * FROM users 
 		WHERE client_id = $1 
@@ -131,7 +131,7 @@ func (s *userService) UpdateUserStatus(ctx context.Context, userID int, status s
 	return nil
 }
 
-func (s *userService) VerifyUserPassword(ctx context.Context, email, password string) (*models.User, error) {
+func (s *userService) VerifyUserPassword(ctx context.Context, email, password string) (*db.User, error) {
 	user, err := s.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -180,8 +180,8 @@ func (s *userService) ChangeUserPassword(ctx context.Context, userID int, oldPas
 	return nil
 }
 
-func (s *userService) GetUsersByRole(ctx context.Context, clientID int, role string) ([]*models.User, error) {
-	users := []*models.User{}
+func (s *userService) GetUsersByRole(ctx context.Context, clientID int, role string) (*db.User, error) {
+	users := *db.User{}
 	query := `
 		SELECT * FROM users 
 		WHERE client_id = $1 AND role = $2 

@@ -3,31 +3,31 @@ package services
 import (
 	"context"
 	"fmt"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type ChatService interface {
-	SendMessage(ctx context.Context, message *models.ChatMessage) error
-	GetMessageByID(ctx context.Context, id int) (*models.ChatMessage, error)
-	UpdateMessage(ctx context.Context, message *models.ChatMessage) error
+	SendMessage(ctx context.Context, message *db.ChatMessage) error
+	GetMessageByID(ctx context.Context, id int) (*db.ChatMessage, error)
+	UpdateMessage(ctx context.Context, message *db.ChatMessage) error
 	DeleteMessage(ctx context.Context, id int, userID int) error
 	
 	// Message queries
-	GetMessagesByMeeting(ctx context.Context, meetingID int, limit, offset int) ([]*models.ChatMessage, error)
-	GetMessagesBySender(ctx context.Context, senderID int, limit, offset int) ([]*models.ChatMessage, error)
-	GetRecentMessages(ctx context.Context, meetingID int, limit int) ([]*models.ChatMessage, error)
-	GetMessagesByType(ctx context.Context, meetingID int, messageType string, limit, offset int) ([]*models.ChatMessage, error)
-	SearchMessages(ctx context.Context, meetingID int, query string, limit, offset int) ([]*models.ChatMessage, error)
+	GetMessagesByMeeting(ctx context.Context, meetingID int, limit, offset int) ([]*db.ChatMessage, error)
+	GetMessagesBySender(ctx context.Context, senderID int, limit, offset int) ([]*db.ChatMessage, error)
+	GetRecentMessages(ctx context.Context, meetingID int, limit int) ([]*db.ChatMessage, error)
+	GetMessagesByType(ctx context.Context, meetingID int, messageType string, limit, offset int) ([]*db.ChatMessage, error)
+	SearchMessages(ctx context.Context, meetingID int, query string, limit, offset int) ([]*db.ChatMessage, error)
 	
 	// Message moderation
 	ModerateMessage(ctx context.Context, messageID, moderatorID int) error
 	UnmoderateMessage(ctx context.Context, messageID int) error
-	GetModeratedMessages(ctx context.Context, meetingID int, limit, offset int) ([]*models.ChatMessage, error)
+	GetModeratedMessages(ctx context.Context, meetingID int, limit, offset int) ([]*db.ChatMessage, error)
 	
 	// Message threads (replies)
-	GetMessageReplies(ctx context.Context, parentMessageID int, limit, offset int) ([]*models.ChatMessage, error)
-	GetMessageThread(ctx context.Context, rootMessageID int) ([]*models.ChatMessage, error)
+	GetMessageReplies(ctx context.Context, parentMessageID int, limit, offset int) ([]*db.ChatMessage, error)
+	GetMessageThread(ctx context.Context, rootMessageID int) ([]*db.ChatMessage, error)
 	
 	// File attachments
 	AddAttachment(ctx context.Context, messageID int, attachment map[string]interface{}) error
@@ -63,14 +63,14 @@ type UserMessageCount struct {
 }
 
 type chatService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewChatService(db *database.DB) ChatService {
+func NewChatService(db *db.DB) ChatService {
 	return &chatService{db: db}
 }
 
-func (s *chatService) SendMessage(ctx context.Context, message *models.ChatMessage) error {
+func (s *chatService) SendMessage(ctx context.Context, message *db.ChatMessage) error {
 	query := `
 		INSERT INTO chat_messages (client_id, meeting_id, sender_id, sender_email, sender_name, 
 		                          message, message_type, metadata, reply_to_id)
@@ -88,8 +88,8 @@ func (s *chatService) SendMessage(ctx context.Context, message *models.ChatMessa
 	return nil
 }
 
-func (s *chatService) GetMessageByID(ctx context.Context, id int) (*models.ChatMessage, error) {
-	message := &models.ChatMessage{}
+func (s *chatService) GetMessageByID(ctx context.Context, id int) (*db.ChatMessage, error) {
+	message := &db.ChatMessage{}
 	query := `SELECT * FROM chat_messages WHERE id = $1`
 	
 	err := s.db.GetContext(ctx, message, query, id)
@@ -100,7 +100,7 @@ func (s *chatService) GetMessageByID(ctx context.Context, id int) (*models.ChatM
 	return message, nil
 }
 
-func (s *chatService) UpdateMessage(ctx context.Context, message *models.ChatMessage) error {
+func (s *chatService) UpdateMessage(ctx context.Context, message *db.ChatMessage) error {
 	query := `
 		UPDATE chat_messages 
 		SET message = $2, metadata = $3, attachments = $4, updated_at = CURRENT_TIMESTAMP
@@ -131,8 +131,8 @@ func (s *chatService) DeleteMessage(ctx context.Context, id int, userID int) err
 	return nil
 }
 
-func (s *chatService) GetMessagesByMeeting(ctx context.Context, meetingID int, limit, offset int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) GetMessagesByMeeting(ctx context.Context, meetingID int, limit, offset int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	query := `
 		SELECT * FROM chat_messages 
 		WHERE meeting_id = $1 AND is_moderated = false
@@ -147,8 +147,8 @@ func (s *chatService) GetMessagesByMeeting(ctx context.Context, meetingID int, l
 	return messages, nil
 }
 
-func (s *chatService) GetMessagesBySender(ctx context.Context, senderID int, limit, offset int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) GetMessagesBySender(ctx context.Context, senderID int, limit, offset int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	query := `
 		SELECT * FROM chat_messages 
 		WHERE sender_id = $1 
@@ -163,8 +163,8 @@ func (s *chatService) GetMessagesBySender(ctx context.Context, senderID int, lim
 	return messages, nil
 }
 
-func (s *chatService) GetRecentMessages(ctx context.Context, meetingID int, limit int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) GetRecentMessages(ctx context.Context, meetingID int, limit int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	query := `
 		SELECT * FROM chat_messages 
 		WHERE meeting_id = $1 AND is_moderated = false
@@ -185,8 +185,8 @@ func (s *chatService) GetRecentMessages(ctx context.Context, meetingID int, limi
 	return messages, nil
 }
 
-func (s *chatService) GetMessagesByType(ctx context.Context, meetingID int, messageType string, limit, offset int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) GetMessagesByType(ctx context.Context, meetingID int, messageType string, limit, offset int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	query := `
 		SELECT * FROM chat_messages 
 		WHERE meeting_id = $1 AND message_type = $2 AND is_moderated = false
@@ -201,8 +201,8 @@ func (s *chatService) GetMessagesByType(ctx context.Context, meetingID int, mess
 	return messages, nil
 }
 
-func (s *chatService) SearchMessages(ctx context.Context, meetingID int, query string, limit, offset int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) SearchMessages(ctx context.Context, meetingID int, query string, limit, offset int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	searchQuery := `
 		SELECT * FROM chat_messages 
 		WHERE meeting_id = $1 AND is_moderated = false 
@@ -249,8 +249,8 @@ func (s *chatService) UnmoderateMessage(ctx context.Context, messageID int) erro
 	return nil
 }
 
-func (s *chatService) GetModeratedMessages(ctx context.Context, meetingID int, limit, offset int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) GetModeratedMessages(ctx context.Context, meetingID int, limit, offset int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	query := `
 		SELECT * FROM chat_messages 
 		WHERE meeting_id = $1 AND is_moderated = true
@@ -265,8 +265,8 @@ func (s *chatService) GetModeratedMessages(ctx context.Context, meetingID int, l
 	return messages, nil
 }
 
-func (s *chatService) GetMessageReplies(ctx context.Context, parentMessageID int, limit, offset int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) GetMessageReplies(ctx context.Context, parentMessageID int, limit, offset int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	query := `
 		SELECT * FROM chat_messages 
 		WHERE reply_to_id = $1 AND is_moderated = false
@@ -281,8 +281,8 @@ func (s *chatService) GetMessageReplies(ctx context.Context, parentMessageID int
 	return messages, nil
 }
 
-func (s *chatService) GetMessageThread(ctx context.Context, rootMessageID int) ([]*models.ChatMessage, error) {
-	messages := []*models.ChatMessage{}
+func (s *chatService) GetMessageThread(ctx context.Context, rootMessageID int) ([]*db.ChatMessage, error) {
+	messages := []*db.ChatMessage{}
 	
 	// Use recursive CTE to get the full thread
 	query := `
@@ -314,7 +314,7 @@ func (s *chatService) AddAttachment(ctx context.Context, messageID int, attachme
 
 	attachments := message.Metadata
 	if attachments == nil {
-		attachments = models.JSONB{}
+		attachments = db.JSONB{}
 	}
 
 	// Add new attachment (this is a simplified implementation)

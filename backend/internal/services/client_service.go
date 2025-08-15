@@ -3,30 +3,30 @@ package services
 import (
 	"context"
 	"fmt"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type ClientService interface {
-	CreateClient(ctx context.Context, client *models.Client) error
-	GetClientByID(ctx context.Context, id int) (*models.Client, error)
-	GetClientByEmail(ctx context.Context, email string) (*models.Client, error)
-	UpdateClient(ctx context.Context, client *models.Client) error
+	CreateClient(ctx context.Context, client *db.Client) error
+	GetClientByID(ctx context.Context, id int) (*db.Client, error)
+	GetClientByEmail(ctx context.Context, email string) (*db.Client, error)
+	UpdateClient(ctx context.Context, client *db.Client) error
 	DeleteClient(ctx context.Context, id int) error
-	ListClients(ctx context.Context, limit, offset int) ([]*models.Client, error)
-	GetClientFeatures(ctx context.Context, clientID int) (*models.ClientFeatures, error)
-	UpdateClientFeatures(ctx context.Context, features *models.ClientFeatures) error
+	ListClients(ctx context.Context, limit, offset int) ([]*db.Client, error)
+	GetClientFeatures(ctx context.Context, clientID int) (*db.ClientFeatures, error)
+	UpdateClientFeatures(ctx context.Context, features *db.ClientFeatures) error
 }
 
 type clientService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewClientService(db *database.DB) ClientService {
+func NewClientService(db *db.DB) ClientService {
 	return &clientService{db: db}
 }
 
-func (s *clientService) CreateClient(ctx context.Context, client *models.Client) error {
+func (s *clientService) CreateClient(ctx context.Context, client *db.Client) error {
 	query := `
 		INSERT INTO clients (email, app_name, logo_url, theme, primary_color)
 		VALUES ($1, $2, $3, $4, $5)
@@ -39,7 +39,7 @@ func (s *clientService) CreateClient(ctx context.Context, client *models.Client)
 	}
 
 	// Create default client features
-	features := &models.ClientFeatures{
+	features := &db.ClientFeatures{
 		ClientID:              client.ID,
 		ChatEnabled:           true,
 		ReactionsEnabled:      true,
@@ -53,8 +53,8 @@ func (s *clientService) CreateClient(ctx context.Context, client *models.Client)
 	return s.createDefaultClientFeatures(ctx, features)
 }
 
-func (s *clientService) GetClientByID(ctx context.Context, id int) (*models.Client, error) {
-	client := &models.Client{}
+func (s *clientService) GetClientByID(ctx context.Context, id int) (*db.Client, error) {
+	client := &db.Client{}
 	query := `SELECT * FROM clients WHERE id = $1`
 	
 	err := s.db.GetContext(ctx, client, query, id)
@@ -65,8 +65,8 @@ func (s *clientService) GetClientByID(ctx context.Context, id int) (*models.Clie
 	return client, nil
 }
 
-func (s *clientService) GetClientByEmail(ctx context.Context, email string) (*models.Client, error) {
-	client := &models.Client{}
+func (s *clientService) GetClientByEmail(ctx context.Context, email string) (*db.Client, error) {
+	client := &db.Client{}
 	query := `SELECT * FROM clients WHERE email = $1`
 	
 	err := s.db.GetContext(ctx, client, query, email)
@@ -77,7 +77,7 @@ func (s *clientService) GetClientByEmail(ctx context.Context, email string) (*mo
 	return client, nil
 }
 
-func (s *clientService) UpdateClient(ctx context.Context, client *models.Client) error {
+func (s *clientService) UpdateClient(ctx context.Context, client *db.Client) error {
 	query := `
 		UPDATE clients 
 		SET email = $2, app_name = $3, logo_url = $4, theme = $5, primary_color = $6
@@ -103,8 +103,8 @@ func (s *clientService) DeleteClient(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *clientService) ListClients(ctx context.Context, limit, offset int) ([]*models.Client, error) {
-	clients := []*models.Client{}
+func (s *clientService) ListClients(ctx context.Context, limit, offset int) ([]*db.Client, error) {
+	clients := []*db.Client{}
 	query := `
 		SELECT * FROM clients 
 		ORDER BY created_at DESC 
@@ -118,8 +118,8 @@ func (s *clientService) ListClients(ctx context.Context, limit, offset int) ([]*
 	return clients, nil
 }
 
-func (s *clientService) GetClientFeatures(ctx context.Context, clientID int) (*models.ClientFeatures, error) {
-	features := &models.ClientFeatures{}
+func (s *clientService) GetClientFeatures(ctx context.Context, clientID int) (*db.ClientFeatures, error) {
+	features := &db.ClientFeatures{}
 	query := `SELECT * FROM client_features WHERE client_id = $1`
 	
 	err := s.db.GetContext(ctx, features, query, clientID)
@@ -130,7 +130,7 @@ func (s *clientService) GetClientFeatures(ctx context.Context, clientID int) (*m
 	return features, nil
 }
 
-func (s *clientService) UpdateClientFeatures(ctx context.Context, features *models.ClientFeatures) error {
+func (s *clientService) UpdateClientFeatures(ctx context.Context, features *db.ClientFeatures) error {
 	query := `
 		UPDATE client_features 
 		SET chat_enabled = $2, reactions_enabled = $3, screen_sharing_enabled = $4, 
@@ -149,7 +149,7 @@ func (s *clientService) UpdateClientFeatures(ctx context.Context, features *mode
 	return nil
 }
 
-func (s *clientService) createDefaultClientFeatures(ctx context.Context, features *models.ClientFeatures) error {
+func (s *clientService) createDefaultClientFeatures(ctx context.Context, features *db.ClientFeatures) error {
 	query := `
 		INSERT INTO client_features 
 		(client_id, chat_enabled, reactions_enabled, screen_sharing_enabled, 

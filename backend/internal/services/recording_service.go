@@ -7,23 +7,23 @@ import (
 	"path/filepath"
 	"time"
 	"video-conference-backend/internal/config"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type RecordingService interface {
-	StartRecording(ctx context.Context, recording *models.Recording) error
+	StartRecording(ctx context.Context, recording *db.Recording) error
 	StopRecording(ctx context.Context, recordingID int, stoppedBy int) error
-	GetRecordingByID(ctx context.Context, id int) (*models.Recording, error)
-	UpdateRecording(ctx context.Context, recording *models.Recording) error
+	GetRecordingByID(ctx context.Context, id int) (*db.Recording, error)
+	UpdateRecording(ctx context.Context, recording *db.Recording) error
 	DeleteRecording(ctx context.Context, id int) error
 
 	// Recording queries
-	GetRecordingsByMeeting(ctx context.Context, meetingID int) ([]*models.Recording, error)
-	GetRecordingsByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.Recording, error)
-	GetPublicRecordings(ctx context.Context, clientID int, limit, offset int) ([]*models.Recording, error)
-	GetRecordingsByStatus(ctx context.Context, status string, limit, offset int) ([]*models.Recording, error)
-	GetRecordingsByDateRange(ctx context.Context, clientID int, start, end time.Time) ([]*models.Recording, error)
+	GetRecordingsByMeeting(ctx context.Context, meetingID int) (*db.Recording, error)
+	GetRecordingsByClient(ctx context.Context, clientID int, limit, offset int) (*db.Recording, error)
+	GetPublicRecordings(ctx context.Context, clientID int, limit, offset int) (*db.Recording, error)
+	GetRecordingsByStatus(ctx context.Context, status string, limit, offset int) (*db.Recording, error)
+	GetRecordingsByDateRange(ctx context.Context, clientID int, start, end time.Time) (*db.Recording, error)
 
 	// Recording processing
 	ProcessRecording(ctx context.Context, recordingID int) error
@@ -76,18 +76,18 @@ type MonthlyRecordings struct {
 }
 
 type recordingService struct {
-	db     *database.DB
+	db     *db.DB
 	config *config.StorageConfig
 }
 
-func NewRecordingService(db *database.DB, cfg *config.StorageConfig) RecordingService {
+func NewRecordingService(db *db.DB, cfg *config.StorageConfig) RecordingService {
 	return &recordingService{
 		db:     db,
 		config: cfg,
 	}
 }
 
-func (s *recordingService) StartRecording(ctx context.Context, recording *models.Recording) error {
+func (s *recordingService) StartRecording(ctx context.Context, recording *db.Recording) error {
 	// Set initial status and start time
 	recording.Status = "recording"
 	now := time.Now()
@@ -153,8 +153,8 @@ func (s *recordingService) StopRecording(ctx context.Context, recordingID int, s
 	return nil
 }
 
-func (s *recordingService) GetRecordingByID(ctx context.Context, id int) (*models.Recording, error) {
-	recording := &models.Recording{}
+func (s *recordingService) GetRecordingByID(ctx context.Context, id int) (*db.Recording, error) {
+	recording := &*db.Recording{}
 	query := `SELECT * FROM recordings WHERE id = $1`
 
 	err := s.db.GetContext(ctx, recording, query, id)
@@ -165,7 +165,7 @@ func (s *recordingService) GetRecordingByID(ctx context.Context, id int) (*model
 	return recording, nil
 }
 
-func (s *recordingService) UpdateRecording(ctx context.Context, recording *models.Recording) error {
+func (s *recordingService) UpdateRecording(ctx context.Context, recording *db.Recording) error {
 	query := `
 		UPDATE recordings 
 		SET title = $2, description = $3, is_public = $4, password = $5, 
@@ -207,8 +207,8 @@ func (s *recordingService) DeleteRecording(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *recordingService) GetRecordingsByMeeting(ctx context.Context, meetingID int) ([]*models.Recording, error) {
-	recordings := []*models.Recording{}
+func (s *recordingService) GetRecordingsByMeeting(ctx context.Context, meetingID int) (*db.Recording, error) {
+	recordings := *db.Recording{}
 	query := `
 		SELECT * FROM recordings 
 		WHERE meeting_id = $1 
@@ -222,8 +222,8 @@ func (s *recordingService) GetRecordingsByMeeting(ctx context.Context, meetingID
 	return recordings, nil
 }
 
-func (s *recordingService) GetRecordingsByClient(ctx context.Context, clientID int, limit, offset int) ([]*models.Recording, error) {
-	recordings := []*models.Recording{}
+func (s *recordingService) GetRecordingsByClient(ctx context.Context, clientID int, limit, offset int) (*db.Recording, error) {
+	recordings := *db.Recording{}
 	query := `
 		SELECT * FROM recordings 
 		WHERE client_id = $1 
@@ -238,8 +238,8 @@ func (s *recordingService) GetRecordingsByClient(ctx context.Context, clientID i
 	return recordings, nil
 }
 
-func (s *recordingService) GetPublicRecordings(ctx context.Context, clientID int, limit, offset int) ([]*models.Recording, error) {
-	recordings := []*models.Recording{}
+func (s *recordingService) GetPublicRecordings(ctx context.Context, clientID int, limit, offset int) (*db.Recording, error) {
+	recordings := *db.Recording{}
 	query := `
 		SELECT * FROM recordings 
 		WHERE client_id = $1 AND is_public = true AND status = 'completed'
@@ -254,8 +254,8 @@ func (s *recordingService) GetPublicRecordings(ctx context.Context, clientID int
 	return recordings, nil
 }
 
-func (s *recordingService) GetRecordingsByStatus(ctx context.Context, status string, limit, offset int) ([]*models.Recording, error) {
-	recordings := []*models.Recording{}
+func (s *recordingService) GetRecordingsByStatus(ctx context.Context, status string, limit, offset int) (*db.Recording, error) {
+	recordings := *db.Recording{}
 	query := `
 		SELECT * FROM recordings 
 		WHERE status = $1 
@@ -270,8 +270,8 @@ func (s *recordingService) GetRecordingsByStatus(ctx context.Context, status str
 	return recordings, nil
 }
 
-func (s *recordingService) GetRecordingsByDateRange(ctx context.Context, clientID int, start, end time.Time) ([]*models.Recording, error) {
-	recordings := []*models.Recording{}
+func (s *recordingService) GetRecordingsByDateRange(ctx context.Context, clientID int, start, end time.Time) (*db.Recording, error) {
+	recordings := *db.Recording{}
 	query := `
 		SELECT * FROM recordings 
 		WHERE client_id = $1 AND started_at >= $2 AND started_at <= $3

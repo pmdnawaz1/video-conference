@@ -7,14 +7,14 @@ import (
 	"log"
 	"time"
 
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 // UserAnalyticsService interface defines user engagement and activity tracking methods
 type UserAnalyticsService interface {
 	// Core Analytics Methods
-	GetUserAnalytics(ctx context.Context, userID int) (*models.UserAnalytics, error)
+	GetUserAnalytics(ctx context.Context, userID int) (*db.UserAnalytics, error)
 	RecordMeetingParticipation(ctx context.Context, userID, clientID, durationMinutes int) error
 	UpdateUserEngagementScore(ctx context.Context, userID int) error
 	RecordChatMessage(ctx context.Context, userID int) error
@@ -89,11 +89,11 @@ type UserEngagementSummary struct {
 
 // userAnalyticsService handles user engagement and activity tracking
 type userAnalyticsService struct {
-	db *database.DB
+	db *db.DB
 }
 
 // NewUserAnalyticsService creates a new user analytics service
-func NewUserAnalyticsService(db *database.DB) UserAnalyticsService {
+func NewUserAnalyticsService(db *db.DB) UserAnalyticsService {
 	return &userAnalyticsService{
 		db: db,
 	}
@@ -122,8 +122,8 @@ func (s *userAnalyticsService) RecordMeetingParticipation(ctx context.Context, u
 }
 
 // GetUserAnalytics retrieves analytics data for a specific user
-func (s *userAnalyticsService) GetUserAnalytics(ctx context.Context, userID int) (*models.UserAnalytics, error) {
-	var analytics models.UserAnalytics
+func (s *userAnalyticsService) GetUserAnalytics(ctx context.Context, userID int) (*db.UserAnalytics, error) {
+	var analytics *db.UserAnalytics
 	query := `SELECT * FROM user_analytics WHERE user_id = $1`
 
 	err := s.db.GetContext(ctx, &analytics, query, userID)
@@ -261,7 +261,7 @@ func (s *userAnalyticsService) RecordHandRaise(ctx context.Context, userID int) 
 
 // CalculateEngagementScore calculates a comprehensive engagement score
 func (s *userAnalyticsService) CalculateEngagementScore(ctx context.Context, userID int) (float64, error) {
-	var analytics models.UserAnalytics
+	var analytics *db.UserAnalytics
 	query := `SELECT * FROM user_analytics WHERE user_id = $1`
 	
 	err := s.db.GetContext(ctx, &analytics, query, userID)

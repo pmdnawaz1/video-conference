@@ -6,21 +6,21 @@ import (
 	"encoding/hex"
 	"fmt"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type Admin interface {
 	// Admin invitation methods
-	CreateAdminInvitation(ctx context.Context, req *AdminInvitationRequest) (*models.AdminInvitation, error)
-	ValidateInvitationToken(ctx context.Context, token string) (*models.AdminInvitation, error)
-	CompleteAdminInvitation(ctx context.Context, token, password string) (*models.User, error)
+	CreateAdminInvitation(ctx context.Context, req *AdminInvitationRequest) (*db.AdminInvitation, error)
+	ValidateInvitationToken(ctx context.Context, token string) (*db.AdminInvitation, error)
+	CompleteAdminInvitation(ctx context.Context, token, password string) (*db.User, error)
 	ResendInvitation(ctx context.Context, invitationID int) error
 	CancelInvitation(ctx context.Context, invitationID int) error
 
 	// Admin invitation management
-	GetInvitationsByClient(ctx context.Context, clientID int) ([]*models.AdminInvitation, error)
-	GetInvitationByID(ctx context.Context, invitationID int) (*models.AdminInvitation, error)
+	GetInvitationsByClient(ctx context.Context, clientID int) ([]*db.AdminInvitation, error)
+	GetInvitationByID(ctx context.Context, invitationID int) (*db.AdminInvitation, error)
 	UpdateInvitationStatus(ctx context.Context, invitationID int, status string) error
 	CleanupExpiredInvitations(ctx context.Context) error
 }
@@ -34,12 +34,12 @@ type AdminInvitationRequest struct {
 }
 
 type adminService struct {
-	db       *database.DB
+	db       *db.DB
 	userSvc  UserService
 	emailSvc *EmailService
 }
 
-func AdminService(db *database.DB, userSvc UserService, emailSvc *EmailService) Admin {
+func AdminService(db *db.DB, userSvc UserService, emailSvc *EmailService) Admin {
 	return &adminService{
 		db:       db,
 		userSvc:  userSvc,
@@ -47,7 +47,7 @@ func AdminService(db *database.DB, userSvc UserService, emailSvc *EmailService) 
 	}
 }
 
-func (s *adminService) CreateAdminInvitation(ctx context.Context, req *AdminInvitationRequest) (*models.AdminInvitation, error) {
+func (s *adminService) CreateAdminInvitation(ctx context.Context, req *AdminInvitationRequest) (*db.AdminInvitation, error) {
 	// Check if user already exists
 	existingUser, err := s.userSvc.GetUserByEmail(ctx, req.Email)
 	if err == nil && existingUser != nil {
@@ -55,9 +55,9 @@ func (s *adminService) CreateAdminInvitation(ctx context.Context, req *AdminInvi
 	}
 
 	// Check if there's already a pending invitation
-	var existingInvitation models.AdminInvitation
+	var existingInvitation db.AdminInvitation
 	query := `SELECT id FROM admin_invitations WHERE email = $1 AND status = $2`
-	err = s.db.GetContext(ctx, &existingInvitation, query, req.Email, models.AdminInvitationStatusPending)
+	err = s.db.GetContext(ctx, &existingInvitation, query, req.Email, db.AdminInvitationStatusPending)
 	if err == nil {
 		return nil, fmt.Errorf("pending invitation already exists for email %s", req.Email)
 	}
@@ -69,14 +69,14 @@ func (s *adminService) CreateAdminInvitation(ctx context.Context, req *AdminInvi
 	}
 
 	// Create invitation record
-	invitation := &models.AdminInvitation{
+	invitation := &db.AdminInvitation{
 		ClientID:  &req.ClientID,
 		Email:     req.Email,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 		Token:     token,
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour), // 7 days
-		Status:    models.AdminInvitationStatusPending,
+		Status:    db.AdminInvitationStatusPending,
 		// InvitedBy would be set by the calling handler from JWT context
 		InvitedBy: &[]int{1}[0], // Placeholder - should be from context
 	}
@@ -103,8 +103,8 @@ func (s *adminService) CreateAdminInvitation(ctx context.Context, req *AdminInvi
 	return invitation, nil
 }
 
-func (s *adminService) ValidateInvitationToken(ctx context.Context, token string) (*models.AdminInvitation, error) {
-	var invitation models.AdminInvitation
+func (s *adminService) ValidateInvitationToken(ctx context.Context, token string) (*db.AdminInvitation, error) {
+	var invitation db.AdminInvitation
 	query := `
 		SELECT id, client_id, email, first_name, last_name, token, expires_at, status, 
 		       invited_by, accepted_at, password_created_at, reminder_sent_count, 
@@ -112,7 +112,7 @@ func (s *adminService) ValidateInvitationToken(ctx context.Context, token string
 		FROM admin_invitations 
 		WHERE token = $1 AND status = $2 AND expires_at > CURRENT_TIMESTAMP`
 
-	err := s.db.GetContext(ctx, &invitation, query, token, models.AdminInvitationStatusPending)
+	err := s.db.GetContext(ctx, &invitation, query, token, db.AdminInvitationStatusPending)
 	if err != nil {
 		return nil, fmt.Errorf("invalid or expired invitation token")
 	}
@@ -120,7 +120,7 @@ func (s *adminService) ValidateInvitationToken(ctx context.Context, token string
 	return &invitation, nil
 }
 
-func (s *adminService) CompleteAdminInvitation(ctx context.Context, token, password string) (*models.User, error) {
+func (s *adminService) CompleteAdminInvitation(ctx context.Context, token, password string) (*db.User, error) {
 	// Validate the invitation token
 	invitation, err := s.ValidateInvitationToken(ctx, token)
 	if err != nil {
@@ -135,14 +135,14 @@ func (s *adminService) CompleteAdminInvitation(ctx context.Context, token, passw
 	defer tx.Rollback()
 
 	// Create the admin user
-	user := &models.User{
+	user := &db.User{
 		ClientID:  *invitation.ClientID,
 		Email:     invitation.Email,
 		Password:  password, // This will be hashed by the user service
 		FirstName: invitation.FirstName,
 		LastName:  invitation.LastName,
-		Role:      models.RoleAdmin,
-		Status:    models.UserStatusActive,
+		Role:      db.RoleAdmin,
+		Status:    db.UserStatusActive,
 	}
 
 	err = s.userSvc.CreateUser(ctx, user)
@@ -157,7 +157,7 @@ func (s *adminService) CompleteAdminInvitation(ctx context.Context, token, passw
 		SET status = $2, accepted_at = $3, password_created_at = $4, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1`
 
-	_, err = tx.ExecContext(ctx, updateQuery, invitation.ID, models.AdminInvitationStatusAccepted, now, now)
+	_, err = tx.ExecContext(ctx, updateQuery, invitation.ID, db.AdminInvitationStatusAccepted, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update invitation status: %w", err)
 	}
@@ -177,7 +177,7 @@ func (s *adminService) ResendInvitation(ctx context.Context, invitationID int) e
 		return err
 	}
 
-	if invitation.Status != models.AdminInvitationStatusPending {
+	if invitation.Status != db.AdminInvitationStatusPending {
 		return fmt.Errorf("cannot resend invitation with status: %s", invitation.Status)
 	}
 
@@ -208,11 +208,11 @@ func (s *adminService) ResendInvitation(ctx context.Context, invitationID int) e
 }
 
 func (s *adminService) CancelInvitation(ctx context.Context, invitationID int) error {
-	return s.UpdateInvitationStatus(ctx, invitationID, models.AdminInvitationStatusCancelled)
+	return s.UpdateInvitationStatus(ctx, invitationID, db.AdminInvitationStatusCancelled)
 }
 
-func (s *adminService) GetInvitationsByClient(ctx context.Context, clientID int) ([]*models.AdminInvitation, error) {
-	var invitations []*models.AdminInvitation
+func (s *adminService) GetInvitationsByClient(ctx context.Context, clientID int) ([]*db.AdminInvitation, error) {
+	var invitations []*db.AdminInvitation
 	query := `
 		SELECT id, client_id, email, first_name, last_name, token, expires_at, status, 
 		       invited_by, accepted_at, password_created_at, reminder_sent_count, 
@@ -229,8 +229,8 @@ func (s *adminService) GetInvitationsByClient(ctx context.Context, clientID int)
 	return invitations, nil
 }
 
-func (s *adminService) GetInvitationByID(ctx context.Context, invitationID int) (*models.AdminInvitation, error) {
-	var invitation models.AdminInvitation
+func (s *adminService) GetInvitationByID(ctx context.Context, invitationID int) (*db.AdminInvitation, error) {
+	var invitation db.AdminInvitation
 	query := `
 		SELECT id, client_id, email, first_name, last_name, token, expires_at, status, 
 		       invited_by, accepted_at, password_created_at, reminder_sent_count, 
@@ -267,7 +267,7 @@ func (s *adminService) CleanupExpiredInvitations(ctx context.Context) error {
 		SET status = $1, updated_at = CURRENT_TIMESTAMP
 		WHERE status = $2 AND expires_at < CURRENT_TIMESTAMP`
 
-	_, err := s.db.ExecContext(ctx, query, models.AdminInvitationStatusExpired, models.AdminInvitationStatusPending)
+	_, err := s.db.ExecContext(ctx, query, db.AdminInvitationStatusExpired, db.AdminInvitationStatusPending)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup expired invitations: %w", err)
 	}
@@ -285,7 +285,7 @@ func (s *adminService) generateInvitationToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-func (s *adminService) sendInvitationEmail(ctx context.Context, invitation *models.AdminInvitation) error {
+func (s *adminService) sendInvitationEmail(ctx context.Context, invitation *db.AdminInvitation) error {
 	// Check if email service is available
 	if s.emailSvc == nil {
 		fmt.Printf("⚠️  Email service not available - invitation created but email not sent")

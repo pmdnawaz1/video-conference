@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type TimeValidationService interface {
 	// Meeting time validation
 	ValidateMeetingAccess(ctx context.Context, meetingID int, userID int) (*MeetingAccessResult, error)
-	CheckMeetingTimeWindow(ctx context.Context, meeting *models.Meeting) (*TimeWindowStatus, error)
+	CheckMeetingTimeWindow(ctx context.Context, meeting *db.Meeting) (*TimeWindowStatus, error)
 	GetMeetingTimeInfo(ctx context.Context, meetingID int) (*MeetingTimeInfo, error)
 
 	// Buffer time configuration
@@ -90,10 +90,10 @@ type AdminOverride struct {
 }
 
 type timeValidationService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewTimeValidationService(db *database.DB) TimeValidationService {
+func NewTimeValidationService(db *db.DB) TimeValidationService {
 	return &timeValidationService{
 		db: db,
 	}
@@ -105,7 +105,7 @@ func NewTimeValidationService(db *database.DB) TimeValidationService {
 
 func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meetingID int, userID int) (*MeetingAccessResult, error) {
 	// Get meeting information
-	meeting := &models.Meeting{}
+	meeting := &db.Meeting{}
 	query := `SELECT id, title, scheduled_start, scheduled_end, actual_start, actual_end, status,
 			         buffer_start_minutes, buffer_end_minutes
 			  FROM meetings WHERE id = $1`
@@ -216,7 +216,7 @@ func (s *timeValidationService) ValidateMeetingAccess(ctx context.Context, meeti
 	return result, nil
 }
 
-func (s *timeValidationService) CheckMeetingTimeWindow(ctx context.Context, meeting *models.Meeting) (*TimeWindowStatus, error) {
+func (s *timeValidationService) CheckMeetingTimeWindow(ctx context.Context, meeting *db.Meeting) (*TimeWindowStatus, error) {
 	now := time.Now()
 
 	status := &TimeWindowStatus{

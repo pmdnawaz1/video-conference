@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"time"
 
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 // UserPreferenceService interface defines user preferences and settings methods
 type UserPreferenceService interface {
 	// Core preference management
-	GetUserPreferences(ctx context.Context, userID int) (*models.UserPreference, error)
-	UpdateUserPreferences(ctx context.Context, userID int, updates *models.UserPreference) (*models.UserPreference, error)
+	GetUserPreferences(ctx context.Context, userID int) (*db.UserPreference, error)
+	UpdateUserPreferences(ctx context.Context, userID int, updates *db.UserPreference) (*db.UserPreference, error)
 
 	// Default settings management
-	GetDefaultPreferences(ctx context.Context, organizationID int) (*models.UserPreference, error)
-	SetOrganizationDefaults(ctx context.Context, organizationID int, defaults *models.UserPreference) error
+	GetDefaultPreferences(ctx context.Context, organizationID int) (*db.UserPreference, error)
+	SetOrganizationDefaults(ctx context.Context, organizationID int, defaults *db.UserPreference) error
 
 	// Meeting settings
 	GetDefaultMeetingSettings(ctx context.Context, userID int) (*MeetingSettings, error)
@@ -42,24 +42,24 @@ type UserPreferenceService interface {
 
 // userPreferenceService handles user-specific settings and preferences
 type userPreferenceService struct {
-	db *database.DB
+	db *db.DB
 }
 
 // NewUserPreferenceService creates a new user preference service
-func NewUserPreferenceService(db *database.DB) UserPreferenceService {
+func NewUserPreferenceService(db *db.DB) UserPreferenceService {
 	return &userPreferenceService{
 		db: db,
 	}
 }
 
 // GetUserPreferences retrieves user preferences (interface method)
-func (s *userPreferenceService) GetUserPreferences(ctx context.Context, userID int) (*models.UserPreference, error) {
+func (s *userPreferenceService) GetUserPreferences(ctx context.Context, userID int) (*db.UserPreference, error) {
 	return s.GetUserPreferencesFromDB(ctx, userID)
 }
 
 // GetUserPreferencesFromDB retrieves preferences for a specific user from database
-func (s *userPreferenceService) GetUserPreferencesFromDB(ctx context.Context, userID int) (*models.UserPreference, error) {
-	var prefs models.UserPreference
+func (s *userPreferenceService) GetUserPreferencesFromDB(ctx context.Context, userID int) (*db.UserPreference, error) {
+	var prefs db.UserPreference
 	query := `SELECT * FROM user_preferences WHERE user_id = $1`
 
 	err := s.db.GetContext(ctx, &prefs, query, userID)
@@ -71,7 +71,7 @@ func (s *userPreferenceService) GetUserPreferencesFromDB(ctx context.Context, us
 }
 
 // UpdateUserPreferences updates preferences for a specific user
-func (s *userPreferenceService) UpdateUserPreferences(ctx context.Context, userID int, updates *models.UserPreference) (*models.UserPreference, error) {
+func (s *userPreferenceService) UpdateUserPreferences(ctx context.Context, userID int, updates *db.UserPreference) (*db.UserPreference, error) {
 	// This is a simplified update. In a real app, you'd build a dynamic update query
 	// based on which fields are provided in `updates`.
 	query := `
@@ -228,8 +228,8 @@ type PrivacySettings struct {
 // ============================================================================
 
 // GetDefaultPreferences retrieves organization-wide default preferences
-func (s *userPreferenceService) GetDefaultPreferences(ctx context.Context, organizationID int) (*models.UserPreference, error) {
-	var prefs models.UserPreference
+func (s *userPreferenceService) GetDefaultPreferences(ctx context.Context, organizationID int) (*db.UserPreference, error) {
+	var prefs db.UserPreference
 	query := `
 		SELECT * FROM organization_default_preferences 
 		WHERE organization_id = $1`
@@ -244,7 +244,7 @@ func (s *userPreferenceService) GetDefaultPreferences(ctx context.Context, organ
 }
 
 // SetOrganizationDefaults sets default preferences for an organization
-func (s *userPreferenceService) SetOrganizationDefaults(ctx context.Context, organizationID int, defaults *models.UserPreference) error {
+func (s *userPreferenceService) SetOrganizationDefaults(ctx context.Context, organizationID int, defaults *db.UserPreference) error {
 	query := `
 		INSERT INTO organization_default_preferences (
 			organization_id, default_audio_enabled, default_video_enabled, auto_join_audio, 
@@ -297,8 +297,8 @@ func (s *userPreferenceService) SetOrganizationDefaults(ctx context.Context, org
 	return err
 }
 
-func (s *userPreferenceService) getSystemDefaults() *models.UserPreference {
-	return &models.UserPreference{
+func (s *userPreferenceService) getSystemDefaults() *db.UserPreference {
+	return &db.UserPreference{
 		DefaultAudioEnabled:          true,
 		DefaultVideoEnabled:          false,
 		AutoJoinAudio:                false,

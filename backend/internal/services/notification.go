@@ -7,8 +7,8 @@ import (
 	"log"
 	"sync"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 
 	"github.com/gorilla/websocket"
 )
@@ -49,14 +49,14 @@ type NotificationService interface {
 	NotifySystemAlert(ctx context.Context, userIDs []int, alert *SystemAlertNotification) error
 
 	// Notification Management
-	GetUserNotifications(ctx context.Context, userID int, limit, offset int) ([]*models.Notification, error)
+	GetUserNotifications(ctx context.Context, userID int, limit, offset int) ([]*db.Notification, error)
 	MarkNotificationAsRead(ctx context.Context, userID, notificationID int) error
 	DeleteNotification(ctx context.Context, userID, notificationID int) error
 	GetUnreadCount(ctx context.Context, userID int) (int, error)
 }
 
 type notificationService struct {
-	db         *database.DB
+	db         *db.DB
 	emailSvc   *EmailService           // Email service for email fallback
 	clients    map[int]*websocket.Conn // Map of user ID to WebSocket connection
 	mu         sync.RWMutex
@@ -165,7 +165,7 @@ const (
 	QueueStatusCancelled  = "cancelled"
 )
 
-func NewNotificationService(db *database.DB) NotificationService {
+func NewNotificationService(db *db.DB) NotificationService {
 	svc := &notificationService{
 		db:       db,
 		clients:  make(map[int]*websocket.Conn),
@@ -640,7 +640,7 @@ func (s *notificationService) RetryFailedNotifications(ctx context.Context) erro
 }
 
 // GetUserNotifications retrieves notifications for a user with pagination
-func (s *notificationService) GetUserNotifications(ctx context.Context, userID int, limit, offset int) ([]*models.Notification, error) {
+func (s *notificationService) GetUserNotifications(ctx context.Context, userID int, limit, offset int) ([]*db.Notification, error) {
 	query := `
 		SELECT id, user_id, type, title, message, data, is_read, created_at, read_at
 		FROM notifications 
@@ -654,9 +654,9 @@ func (s *notificationService) GetUserNotifications(ctx context.Context, userID i
 	}
 	defer rows.Close()
 
-	var notifications []*models.Notification
+	var notifications []*db.Notification
 	for rows.Next() {
-		notification := &models.Notification{}
+		notification := &db.Notification{}
 		err := rows.Scan(&notification.ID, &notification.UserID, &notification.Type,
 			&notification.Title, &notification.Message, &notification.Data,
 			&notification.IsRead, &notification.CreatedAt, &notification.ReadAt)

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type AdminDashboard interface {
@@ -17,15 +17,15 @@ type AdminDashboard interface {
 	GetUserGroupsOverview(ctx context.Context, clientID int) (*UserGroupsOverviewData, error)
 	
 	// Quick Meeting Creation
-	CreateInstantMeeting(ctx context.Context, req *InstantMeetingRequest) (*models.Meeting, error)
-	CreateScheduledMeeting(ctx context.Context, req *ScheduledMeetingRequest) (*models.Meeting, error)
-	CreateRecurringMeeting(ctx context.Context, req *RecurringMeetingRequest) ([]*models.Meeting, error)
+	CreateInstantMeeting(ctx context.Context, req *InstantMeetingRequest) (*db.Meeting, error)
+	CreateScheduledMeeting(ctx context.Context, req *ScheduledMeetingRequest) (*db.Meeting, error)
+	CreateRecurringMeeting(ctx context.Context, req *RecurringMeetingRequest) ([]*db.Meeting, error)
 	
 	// User and Group Management
 	GetAllUsers(ctx context.Context, clientID int, filters *UserFilters) ([]*UserSummary, error)
 	GetUserGroups(ctx context.Context, clientID int) ([]*GroupSummary, error)
-	CreateUserGroup(ctx context.Context, req *CreateGroupRequest) (*models.Group, error)
-	InviteUser(ctx context.Context, req *UserInvitationRequest) (*models.UserInvitation, error)
+	CreateUserGroup(ctx context.Context, req *CreateGroupRequest) (*db.Group, error)
+	InviteUser(ctx context.Context, req *UserInvitationRequest) (*db.UserInvitation, error)
 	
 	// Meeting Management
 	GetMeetingDetails(ctx context.Context, meetingID int, adminID int) (*MeetingDetails, error)
@@ -183,7 +183,7 @@ type UserInvitationRequest struct {
 }
 
 type MeetingDetails struct {
-	*models.Meeting
+	*db.Meeting
 	ParticipantCount int                   `json:"participant_count"`
 	ActiveUsers      []*MeetingParticipant `json:"active_users"`
 	ChatMessageCount int                   `json:"chat_message_count"`
@@ -259,13 +259,13 @@ type ParticipantInfo struct {
 }
 
 type adminDashboardService struct {
-	db         *database.DB
+	db         *db.DB
 	userSvc    UserService
 	meetingSvc MeetingService
 	groupSvc   GroupService
 }
 
-func AdminDashboardService(db *database.DB, userSvc UserService, meetingSvc MeetingService, groupSvc GroupService) AdminDashboard {
+func AdminDashboardService(db *db.DB, userSvc UserService, meetingSvc MeetingService, groupSvc GroupService) AdminDashboard {
 	return &adminDashboardService{
 		db:         db,
 		userSvc:    userSvc,
@@ -543,14 +543,14 @@ func (s *adminDashboardService) GetUserGroupsOverview(ctx context.Context, clien
 // QUICK MEETING CREATION IMPLEMENTATION
 // ============================================================================
 
-func (s *adminDashboardService) CreateInstantMeeting(ctx context.Context, req *InstantMeetingRequest) (*models.Meeting, error) {
+func (s *adminDashboardService) CreateInstantMeeting(ctx context.Context, req *InstantMeetingRequest) (*db.Meeting, error) {
 	// Create meeting using existing meeting service
-	meeting := &models.Meeting{
+	meeting := &db.Meeting{
 		ClientID:            req.ClientID,
 		CreatedBy:     &req.AdminID,
 		Title:               req.Title,
 		Description:         &req.Description,
-		MeetingID:           models.GenerateMeetingID(),
+		MeetingID:           db.GenerateMeetingID(),
 		ScheduledStart:      time.Now(),
 		ScheduledEnd:        time.Now().Add(1 * time.Hour), // Default 1 hour
 		Status:              "active",
@@ -577,13 +577,13 @@ func (s *adminDashboardService) CreateInstantMeeting(ctx context.Context, req *I
 	return meeting, nil
 }
 
-func (s *adminDashboardService) CreateScheduledMeeting(ctx context.Context, req *ScheduledMeetingRequest) (*models.Meeting, error) {
-	meeting := &models.Meeting{
+func (s *adminDashboardService) CreateScheduledMeeting(ctx context.Context, req *ScheduledMeetingRequest) (*db.Meeting, error) {
+	meeting := &db.Meeting{
 		ClientID:            req.ClientID,
 		CreatedBy:     &req.AdminID,
 		Title:               req.Title,
 		Description:         &req.Description,
-		MeetingID:           models.GenerateMeetingID(),
+		MeetingID:           db.GenerateMeetingID(),
 		ScheduledStart:      req.ScheduledStart,
 		ScheduledEnd:        req.ScheduledEnd,
 		Status:              "scheduled",
@@ -610,19 +610,19 @@ func (s *adminDashboardService) CreateScheduledMeeting(ctx context.Context, req 
 	return meeting, nil
 }
 
-func (s *adminDashboardService) CreateRecurringMeeting(ctx context.Context, req *RecurringMeetingRequest) ([]*models.Meeting, error) {
-	var meetings []*models.Meeting
+func (s *adminDashboardService) CreateRecurringMeeting(ctx context.Context, req *RecurringMeetingRequest) ([]*db.Meeting, error) {
+	var meetings []*db.Meeting
 	
 	// Generate recurring meeting dates based on pattern
 	dates := s.generateRecurringDates(req.ScheduledStart, req.ScheduledEnd, req.RecurrencePattern, req.RecurrenceInterval, req.EndDate, req.MaxOccurrences)
 	
 	for _, dateRange := range dates {
-		meeting := &models.Meeting{
+		meeting := &db.Meeting{
 			ClientID:            req.ClientID,
 			CreatedBy:     &req.AdminID,
 			Title:               req.Title,
 			Description:         &req.Description,
-			MeetingID:           models.GenerateMeetingID(),
+			MeetingID:           db.GenerateMeetingID(),
 			ScheduledStart:      dateRange.Start,
 			ScheduledEnd:        dateRange.End,
 			Status:              "scheduled",
@@ -831,9 +831,9 @@ func (s *adminDashboardService) GetUserGroups(ctx context.Context, clientID int)
 	return groups, nil
 }
 
-func (s *adminDashboardService) CreateUserGroup(ctx context.Context, req *CreateGroupRequest) (*models.Group, error) {
+func (s *adminDashboardService) CreateUserGroup(ctx context.Context, req *CreateGroupRequest) (*db.Group, error) {
 	// Create group directly in database
-	group := &models.Group{
+	group := &db.Group{
 		ClientID:    req.ClientID,
 		Name:        req.Name,
 		Description: &req.Description,
@@ -864,15 +864,15 @@ func (s *adminDashboardService) CreateUserGroup(ctx context.Context, req *Create
 	return group, nil
 }
 
-func (s *adminDashboardService) InviteUser(ctx context.Context, req *UserInvitationRequest) (*models.UserInvitation, error) {
+func (s *adminDashboardService) InviteUser(ctx context.Context, req *UserInvitationRequest) (*db.UserInvitation, error) {
 	// Create user invitation
-	invitation := &models.UserInvitation{
+	invitation := &db.UserInvitation{
 		ClientID:        &req.ClientID,
 		AdminID:         &req.InvitedBy,
 		Email:           req.Email,
 		FirstName:       req.FirstName,
 		LastName:        req.LastName,
-		Token:           models.GenerateToken(),
+		Token:           db.GenerateToken(),
 		ExpiresAt:       time.Now().Add(7 * 24 * time.Hour), // 7 days
 		Status:          "pending",
 		WelcomeMessage:  &req.Message,

@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
 )
 
 // CalendarService handles calendar integration
@@ -56,7 +56,7 @@ type GoogleConferenceCreateRequest struct {
 }
 
 // CreateCalendarEvent creates a calendar event from a meeting
-func (s *CalendarService) CreateCalendarEvent(meeting *models.Meeting, inviterEmail string, attendeeEmails []string, meetingLink string) (*GoogleCalendarEvent, error) {
+func (s *CalendarService) CreateCalendarEvent(meeting *db.Meeting, inviterEmail string, attendeeEmails []string, meetingLink string) (*GoogleCalendarEvent, error) {
 	// Create Google Calendar event structure
 	event := &GoogleCalendarEvent{
 		Summary:     meeting.Title,
@@ -97,7 +97,7 @@ func (s *CalendarService) CreateCalendarEvent(meeting *models.Meeting, inviterEm
 }
 
 // GenerateICSContent generates ICS (iCalendar) content for email attachments
-func (s *CalendarService) GenerateICSContent(meeting *models.Meeting, meetingLink string) string {
+func (s *CalendarService) GenerateICSContent(meeting *db.Meeting, meetingLink string) string {
 	// Generate a simple ICS file content
 	icsContent := fmt.Sprintf(`BEGIN:VCALENDAR
 VERSION:2.0
@@ -201,7 +201,7 @@ type OutlookOnlineMeeting struct {
 }
 
 // CreateOutlookEvent creates an Outlook calendar event
-func (s *CalendarService) CreateOutlookEvent(meeting *models.Meeting, attendeeEmails []string, meetingLink string) (*OutlookCalendarEvent, error) {
+func (s *CalendarService) CreateOutlookEvent(meeting *db.Meeting, attendeeEmails []string, meetingLink string) (*OutlookCalendarEvent, error) {
 	event := &OutlookCalendarEvent{
 		Subject: meeting.Title,
 		Body: OutlookEventBody{
@@ -248,7 +248,7 @@ type CalendarIntegrationResponse struct {
 }
 
 // CreateCalendarIntegration creates calendar events for multiple platforms
-func (s *CalendarService) CreateCalendarIntegration(meeting *models.Meeting, inviterEmail string, attendeeEmails []string, meetingLink string) *CalendarIntegrationResponse {
+func (s *CalendarService) CreateCalendarIntegration(meeting *db.Meeting, inviterEmail string, attendeeEmails []string, meetingLink string) *CalendarIntegrationResponse {
 	response := &CalendarIntegrationResponse{
 		Success: true,
 		Message: "Calendar events created successfully",

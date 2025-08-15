@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type PermissionService interface {
 	// Permission Requests
-	RequestPermission(ctx context.Context, req *PermissionRequest) (*models.MeetingPermission, error)
-	GetPermissionRequest(ctx context.Context, requestID int) (*models.MeetingPermission, error)
-	GetUserPermissionRequests(ctx context.Context, meetingID int, userID int) ([]*models.MeetingPermission, error)
+	RequestPermission(ctx context.Context, req *PermissionRequest) (*db.MeetingPermission, error)
+	GetPermissionRequest(ctx context.Context, requestID int) (*db.MeetingPermission, error)
+	GetUserPermissionRequests(ctx context.Context, meetingID int, userID int) ([]*db.MeetingPermission, error)
 	GetPendingPermissionRequests(ctx context.Context, meetingID int) ([]*PermissionRequestSummary, error)
 
 	// Permission Management
@@ -61,7 +61,7 @@ type UserPermissionStatus struct {
 	UserID          int                         `json:"user_id"`
 	MeetingID       int                         `json:"meeting_id"`
 	Permissions     map[string]bool             `json:"permissions"`
-	PendingRequests []*models.MeetingPermission `json:"pending_requests"`
+	PendingRequests []*db.MeetingPermission `json:"pending_requests"`
 	LastUpdated     time.Time                   `json:"last_updated"`
 	UpdatedBy       *int                        `json:"updated_by,omitempty"`
 	AdminName       string                      `json:"admin_name,omitempty"`
@@ -109,10 +109,10 @@ type PermissionUpdate struct {
 }
 
 type permissionService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewPermissionService(db *database.DB) PermissionService {
+func NewPermissionService(db *db.DB) PermissionService {
 	return &permissionService{
 		db: db,
 	}
@@ -122,7 +122,7 @@ func NewPermissionService(db *database.DB) PermissionService {
 // PERMISSION REQUESTS IMPLEMENTATION
 // ============================================================================
 
-func (s *permissionService) RequestPermission(ctx context.Context, req *PermissionRequest) (*models.MeetingPermission, error) {
+func (s *permissionService) RequestPermission(ctx context.Context, req *PermissionRequest) (*db.MeetingPermission, error) {
 	// Check if there's already a pending request for this permission type
 	var existingID int
 	checkQuery := `
@@ -136,9 +136,9 @@ func (s *permissionService) RequestPermission(ctx context.Context, req *Permissi
 	}
 
 	// Create new permission request
-	permission := &models.MeetingPermission{
-		MeetingID:      models.IntPtr(req.MeetingID),
-		UserID:         models.IntPtr(req.UserID),
+	permission := &db.MeetingPermission{
+		MeetingID:      db.IntPtr(req.MeetingID),
+		UserID:         db.IntPtr(req.UserID),
 		PermissionType: req.PermissionType,
 		IsGranted:      false,
 		RequestedAt:    &time.Time{},
@@ -181,8 +181,8 @@ func (s *permissionService) RequestPermission(ctx context.Context, req *Permissi
 	return permission, nil
 }
 
-func (s *permissionService) GetPermissionRequest(ctx context.Context, requestID int) (*models.MeetingPermission, error) {
-	permission := &models.MeetingPermission{}
+func (s *permissionService) GetPermissionRequest(ctx context.Context, requestID int) (*db.MeetingPermission, error) {
+	permission := &db.MeetingPermission{}
 
 	query := `
 		SELECT id, meeting_id, user_id, permission_type, is_granted, requested_at,
@@ -199,8 +199,8 @@ func (s *permissionService) GetPermissionRequest(ctx context.Context, requestID 
 	return permission, nil
 }
 
-func (s *permissionService) GetUserPermissionRequests(ctx context.Context, meetingID int, userID int) ([]*models.MeetingPermission, error) {
-	var permissions []*models.MeetingPermission
+func (s *permissionService) GetUserPermissionRequests(ctx context.Context, meetingID int, userID int) ([]*db.MeetingPermission, error) {
+	var permissions []*db.MeetingPermission
 
 	query := `
 		SELECT id, meeting_id, user_id, permission_type, is_granted, requested_at,

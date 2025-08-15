@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -28,8 +28,8 @@ type EnhancedCalendarService interface {
 	DeleteOutlookCalendarEvent(ctx context.Context, eventID string) error
 
 	// ICS File Generation
-	GenerateICSFile(ctx context.Context, meeting *models.Meeting, attendees []string) ([]byte, error)
-	GenerateRecurringICS(ctx context.Context, meetings []*models.Meeting, attendees []string) ([]byte, error)
+	GenerateICSFile(ctx context.Context, meeting *db.Meeting, attendees []string) ([]byte, error)
+	GenerateRecurringICS(ctx context.Context, meetings []*db.Meeting, attendees []string) ([]byte, error)
 
 	// OAuth Management
 	GetGoogleOAuthURL(ctx context.Context, userID int, state string) (string, error)
@@ -43,8 +43,8 @@ type EnhancedCalendarService interface {
 	SyncUserCalendars(ctx context.Context, userID int) ([]*CalendarSyncResult, error)
 
 	// Meeting Integration
-	CreateMeetingCalendarEvents(ctx context.Context, meeting *models.Meeting, attendeeEmails []string) ([]*CalendarEventResponse, error)
-	UpdateMeetingCalendarEvents(ctx context.Context, meeting *models.Meeting, attendeeEmails []string) error
+	CreateMeetingCalendarEvents(ctx context.Context, meeting *db.Meeting, attendeeEmails []string) ([]*CalendarEventResponse, error)
+	UpdateMeetingCalendarEvents(ctx context.Context, meeting *db.Meeting, attendeeEmails []string) error
 	CancelMeetingCalendarEvents(ctx context.Context, meetingID int, reason string) error
 }
 
@@ -115,11 +115,11 @@ type CalendarSyncResult struct {
 }
 
 type enhancedCalendarService struct {
-	db                *database.DB
+	db                *db.DB
 	googleOAuthConfig *oauth2.Config
 }
 
-func NewEnhancedCalendarService(db *database.DB, googleClientID, googleClientSecret, redirectURL string) EnhancedCalendarService {
+func NewEnhancedCalendarService(db *db.DB, googleClientID, googleClientSecret, redirectURL string) EnhancedCalendarService {
 	return &enhancedCalendarService{
 		db: db,
 		googleOAuthConfig: &oauth2.Config{
@@ -526,8 +526,8 @@ func (s *enhancedCalendarService) CreateCalendarTemplate(ctx context.Context, te
 }
 
 // GenerateRecurringMeetings creates multiple meetings based on recurrence pattern
-func (s *enhancedCalendarService) GenerateRecurringMeetings(ctx context.Context, baseMeeting *models.Meeting, pattern *RecurrencePattern) ([]*models.Meeting, error) {
-	var meetings []*models.Meeting
+func (s *enhancedCalendarService) GenerateRecurringMeetings(ctx context.Context, baseMeeting *db.Meeting, pattern *RecurrencePattern) ([]*db.Meeting, error) {
+	var meetings []*db.Meeting
 
 	// Calculate meeting duration
 	duration := baseMeeting.ScheduledEnd.Sub(baseMeeting.ScheduledStart)
@@ -542,7 +542,7 @@ func (s *enhancedCalendarService) GenerateRecurringMeetings(ctx context.Context,
 		}
 
 		// Create new meeting instance
-		meeting := &models.Meeting{
+		meeting := &db.Meeting{
 			Title:           fmt.Sprintf("%s (Occurrence %d)", baseMeeting.Title, i+1),
 			Description:     baseMeeting.Description,
 			ScheduledStart:  startTime,
@@ -698,7 +698,7 @@ func (s *enhancedCalendarService) isExceptionDate(date time.Time, exceptions []t
 	return false
 }
 
-func (s *enhancedCalendarService) createRecurringMeetingInstance(ctx context.Context, meeting *models.Meeting) (int, error) {
+func (s *enhancedCalendarService) createRecurringMeetingInstance(ctx context.Context, meeting *db.Meeting) (int, error) {
 	query := `
 		INSERT INTO meetings (title, description, scheduled_start, scheduled_end, meeting_id, 
 			created_by_user_id, client_id, is_recurring, recurring_id, created_at, updated_at)
@@ -866,7 +866,7 @@ func (s *enhancedCalendarService) sendMeetingReminder(ctx context.Context, title
 	return nil
 }
 
-func (s *enhancedCalendarService) GenerateICSFile(ctx context.Context, meeting *models.Meeting, attendees []string) ([]byte, error) {
+func (s *enhancedCalendarService) GenerateICSFile(ctx context.Context, meeting *db.Meeting, attendees []string) ([]byte, error) {
 	icsContent := fmt.Sprintf(`BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Video Conference//Meeting Invitation//EN
@@ -907,7 +907,7 @@ END:VCALENDAR`
 	return []byte(icsContent), nil
 }
 
-func (s *enhancedCalendarService) GenerateRecurringICS(ctx context.Context, meetings []*models.Meeting, attendees []string) ([]byte, error) {
+func (s *enhancedCalendarService) GenerateRecurringICS(ctx context.Context, meetings []*db.Meeting, attendees []string) ([]byte, error) {
 	if len(meetings) == 0 {
 		return nil, fmt.Errorf("no meetings provided")
 	}
@@ -1063,7 +1063,7 @@ func (s *enhancedCalendarService) ExchangeOutlookOAuthCode(ctx context.Context, 
 // MEETING INTEGRATION IMPLEMENTATION
 // ============================================================================
 
-func (s *enhancedCalendarService) CreateMeetingCalendarEvents(ctx context.Context, meeting *models.Meeting, attendeeEmails []string) ([]*CalendarEventResponse, error) {
+func (s *enhancedCalendarService) CreateMeetingCalendarEvents(ctx context.Context, meeting *db.Meeting, attendeeEmails []string) ([]*CalendarEventResponse, error) {
 	var events []*CalendarEventResponse
 
 	// Create Google Calendar event if any attendee has Google Calendar connected
@@ -1110,7 +1110,7 @@ func (s *enhancedCalendarService) CreateMeetingCalendarEvents(ctx context.Contex
 	return events, nil
 }
 
-func (s *enhancedCalendarService) UpdateMeetingCalendarEvents(ctx context.Context, meeting *models.Meeting, attendeeEmails []string) error {
+func (s *enhancedCalendarService) UpdateMeetingCalendarEvents(ctx context.Context, meeting *db.Meeting, attendeeEmails []string) error {
 	// Get existing calendar events for this meeting
 	var eventIDs []string
 	query := `SELECT event_id FROM calendar_events WHERE meeting_id = $1 AND deleted_at IS NULL`

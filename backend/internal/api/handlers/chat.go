@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
 	"video-conference-backend/internal/services"
 )
 
@@ -97,7 +97,7 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create chat message
-	message := &models.ChatMessage{
+	message := &*db.ChatMessage{
 		ClientID:    clientID,
 		MeetingID:   meetingID,
 		SenderID:    &userID,
@@ -105,7 +105,7 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 		Message:     req.Message,
 		MessageType: req.MessageType,
 		ReplyToID:   req.ReplyToID,
-		Metadata:    models.JSONB(req.Metadata),
+		Metadata:    *db.JSONB(req.Metadata),
 	}
 
 	err = h.chatService.SendMessage(r.Context(), message)

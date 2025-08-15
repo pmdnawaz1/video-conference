@@ -7,34 +7,34 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // UserInvitationService handles user invitations to an organization
 // UserInvitationService interface defines user invitation operations
 type UserInvitationService interface {
-	CreateUserInvitation(ctx context.Context, invitedByUserID int, req *CreateUserInvitationRequest) (*models.UserInvitation, error)
+	CreateUserInvitation(ctx context.Context, invitedByUserID int, req *CreateUserInvitationRequest) (*db.UserInvitation, error)
 	ValidateUserInvitationToken(ctx context.Context, tokenString string) (*UserInvitationClaims, error)
-	CompleteUserRegistration(ctx context.Context, tokenString, password string) (*models.User, error)
+	CompleteUserRegistration(ctx context.Context, tokenString, password string) (*db.User, error)
 	
 	// Additional CRUD operations
-	GetUserInvitation(ctx context.Context, invitationID int) (*models.UserInvitation, error)
-	GetUserInvitationsByClient(ctx context.Context, clientID int) ([]*models.UserInvitation, error)
+	GetUserInvitation(ctx context.Context, invitationID int) (*db.UserInvitation, error)
+	GetUserInvitationsByClient(ctx context.Context, clientID int) (*db.UserInvitation, error)
 	CancelUserInvitation(ctx context.Context, invitationID int) error
 	ResendUserInvitation(ctx context.Context, invitationID int) error
 	CleanupExpiredInvitations(ctx context.Context) error
 }
 
 type userInvitationService struct {
-	db        *database.DB
+	db        *db.DB
 	jwtSecret string
 	emailService *EmailService
 }
 
 // NewUserInvitationService creates a new user invitation service
-func NewUserInvitationService(db *database.DB, jwtSecret string, emailService *EmailService) UserInvitationService {
+func NewUserInvitationService(db *db.DB, jwtSecret string, emailService *EmailService) UserInvitationService {
 	if db == nil {
 		log.Fatal("Database connection is required for UserInvitationService")
 	}
@@ -72,7 +72,7 @@ type CreateUserInvitationRequest struct {
 }
 
 // CreateUserInvitation creates a new user invitation and sends an email with comprehensive validation
-func (s *userInvitationService) CreateUserInvitation(ctx context.Context, invitedByUserID int, req *CreateUserInvitationRequest) (*models.UserInvitation, error) {
+func (s *userInvitationService) CreateUserInvitation(ctx context.Context, invitedByUserID int, req *CreateUserInvitationRequest) (*db.UserInvitation, error) {
 	// Input validation
 	if req == nil {
 		return nil, fmt.Errorf("invitation request cannot be nil")
@@ -88,7 +88,7 @@ func (s *userInvitationService) CreateUserInvitation(ctx context.Context, invite
 	}
 	
 	// Validate inviting user exists and has proper permissions
-	var inviterUser models.User
+	var inviterUser *db.User
 	err := s.db.GetContext(ctx, &inviterUser, 
 		"SELECT id, client_id, role FROM users WHERE id = $1 AND status = 'active' AND deleted_at IS NULL", 
 		invitedByUserID)
@@ -133,9 +133,9 @@ func (s *userInvitationService) CreateUserInvitation(ctx context.Context, invite
 	defer tx.Rollback()
 
 	// Create invitation record
-	invitation := &models.UserInvitation{
-		ClientID:  models.IntPtr(req.ClientID),
-		AdminID:   models.IntPtr(invitedByUserID),
+	invitation := &*db.UserInvitation{
+		ClientID:  *db.IntPtr(req.ClientID),
+		AdminID:   *db.IntPtr(invitedByUserID),
 		Email:     req.Email,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
@@ -234,7 +234,7 @@ func (s *userInvitationService) ValidateUserInvitationToken(ctx context.Context,
 	}
 
 	// Check if invitation exists and is pending
-	var invitation models.UserInvitation
+	var invitation *db.UserInvitation
 	err = s.db.GetContext(ctx, &invitation, "SELECT * FROM user_invitations WHERE id = $1 AND token = $2 AND status = 'pending' AND deleted_at IS NULL", claims.InvitationID, tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("invitation not found or not pending: %w", err)
@@ -251,7 +251,7 @@ func (s *userInvitationService) ValidateUserInvitationToken(ctx context.Context,
 }
 
 // CompleteUserRegistration completes the user registration process
-func (s *userInvitationService) CompleteUserRegistration(ctx context.Context, tokenString, password string) (*models.User, error) {
+func (s *userInvitationService) CompleteUserRegistration(ctx context.Context, tokenString, password string) (*db.User, error) {
 	claims, err := s.ValidateUserInvitationToken(ctx, tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("invalid or expired invitation: %w", err)
@@ -264,7 +264,7 @@ func (s *userInvitationService) CompleteUserRegistration(ctx context.Context, to
 	}
 
 	// Create the user
-	user := &models.User{
+	user := &*db.User{
 		ClientID:    claims.ClientID,
 		Email:       claims.Email,
 		PasswordHash: string(hashedPassword),
@@ -276,7 +276,7 @@ func (s *userInvitationService) CompleteUserRegistration(ctx context.Context, to
 	}
 
 	// Fetch full invitation details to get first/last name if not in claims
-	var invitation models.UserInvitation
+	var invitation *db.UserInvitation
 	err = s.db.GetContext(ctx, &invitation, "SELECT first_name, last_name FROM user_invitations WHERE id = $1", claims.InvitationID)
 	if err == nil {
 		user.FirstName = invitation.FirstName
@@ -315,7 +315,7 @@ func (s *userInvitationService) CompleteUserRegistration(ctx context.Context, to
 }
 
 // generateUserInvitationToken creates a JWT token for the user invitation
-func (s *userInvitationService) generateUserInvitationToken(invitation *models.UserInvitation) (string, error) {
+func (s *userInvitationService) generateUserInvitationToken(invitation *db.UserInvitation) (string, error) {
 	claims := UserInvitationClaims{
 		InvitationID: invitation.ID,
 		Email:        invitation.Email,
@@ -345,12 +345,12 @@ func (s *userInvitationService) generateUserInvitationToken(invitation *models.U
 // ============================================================================
 
 // GetUserInvitation retrieves a user invitation by ID
-func (s *userInvitationService) GetUserInvitation(ctx context.Context, invitationID int) (*models.UserInvitation, error) {
+func (s *userInvitationService) GetUserInvitation(ctx context.Context, invitationID int) (*db.UserInvitation, error) {
 	if invitationID <= 0 {
 		return nil, fmt.Errorf("invalid invitation ID")
 	}
 
-	var invitation models.UserInvitation
+	var invitation *db.UserInvitation
 	query := `
 		SELECT id, client_id, admin_id, email, first_name, last_name, token, expires_at, 
 		       status, welcome_message, accepted_at, password_created_at, reminder_sent_count, 
@@ -367,12 +367,12 @@ func (s *userInvitationService) GetUserInvitation(ctx context.Context, invitatio
 }
 
 // GetUserInvitationsByClient retrieves all user invitations for a client
-func (s *userInvitationService) GetUserInvitationsByClient(ctx context.Context, clientID int) ([]*models.UserInvitation, error) {
+func (s *userInvitationService) GetUserInvitationsByClient(ctx context.Context, clientID int) (*db.UserInvitation, error) {
 	if clientID <= 0 {
 		return nil, fmt.Errorf("invalid client ID")
 	}
 
-	var invitations []*models.UserInvitation
+	var invitations *db.UserInvitation
 	query := `
 		SELECT id, client_id, admin_id, email, first_name, last_name, token, expires_at, 
 		       status, welcome_message, accepted_at, password_created_at, reminder_sent_count, 
@@ -396,7 +396,7 @@ func (s *userInvitationService) CancelUserInvitation(ctx context.Context, invita
 	}
 
 	// Check if invitation exists and is in a cancellable state
-	var invitation models.UserInvitation
+	var invitation *db.UserInvitation
 	err := s.db.GetContext(ctx, &invitation, 
 		"SELECT id, status FROM user_invitations WHERE id = $1 AND deleted_at IS NULL", invitationID)
 	if err != nil {

@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-	"video-conference-backend/internal/database"
-	"video-conference-backend/internal/models"
+	"video-conference-backend/prisma/db"
+	"video-conference-backend/prisma/db"
 )
 
 type RaiseHandService interface {
 	// Hand Management
-	RaiseHand(ctx context.Context, meetingID int, userID int, message string) (*models.RaiseHand, error)
+	RaiseHand(ctx context.Context, meetingID int, userID int, message string) (*db.RaiseHand, error)
 	LowerHand(ctx context.Context, meetingID int, userID int) error
 	AcknowledgeHand(ctx context.Context, meetingID int, userID int, adminID int, response string) error
 
@@ -126,10 +126,10 @@ type AutoLowerConfig struct {
 }
 
 type raiseHandService struct {
-	db *database.DB
+	db *db.DB
 }
 
-func NewRaiseHandService(db *database.DB) RaiseHandService {
+func NewRaiseHandService(db *db.DB) RaiseHandService {
 	return &raiseHandService{
 		db: db,
 	}
@@ -139,7 +139,7 @@ func NewRaiseHandService(db *database.DB) RaiseHandService {
 // HAND MANAGEMENT IMPLEMENTATION
 // ============================================================================
 
-func (s *raiseHandService) RaiseHand(ctx context.Context, meetingID int, userID int, message string) (*models.RaiseHand, error) {
+func (s *raiseHandService) RaiseHand(ctx context.Context, meetingID int, userID int, message string) (*db.RaiseHand, error) {
 	// Check if user already has hand raised
 	var existingID int
 	checkQuery := `SELECT id FROM raise_hands WHERE meeting_id = $1 AND user_id = $2 AND is_raised = true`
@@ -158,9 +158,9 @@ func (s *raiseHandService) RaiseHand(ctx context.Context, meetingID int, userID 
 	}
 
 	// Create new raised hand record
-	raiseHand := &models.RaiseHand{
-		MeetingID:   models.IntPtr(meetingID),
-		UserID:      models.IntPtr(userID),
+	raiseHand := &*db.RaiseHand{
+		MeetingID:   *db.IntPtr(meetingID),
+		UserID:      *db.IntPtr(userID),
 		RaisedAt:    time.Now(),
 		AutoLowered: false,
 	}

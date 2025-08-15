@@ -1,0 +1,789 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator db {
+  provider = "go run github.com/steebchen/prisma-client-go"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id                      Int       @id @default(autoincrement())
+  email                   String    @unique
+  appName                 String    @map("app_name")
+  organizationName        String    @map("organization_name")
+  organizationType        String    @map("organization_type")
+  subscriptionPlan        String    @default("free") @map("subscription_plan")
+  subscriptionExpiresAt   DateTime? @map("subscription_expires_at")
+  maxAdmins               Int       @default(5) @map("max_admins")
+  maxUsers                Int       @default(100) @map("max_users")
+  maxConcurrentMeetings   Int       @default(10) @map("max_concurrent_meetings")
+  storageLimitGb          Int       @default(10) @map("storage_limit_gb")
+  logoUrl                 String?   @map("logo_url")
+  theme                   String    @default("light")
+  primaryColor            String    @default("#2563eb") @map("primary_color")
+  customDomain            String?   @map("custom_domain")
+  brandingConfig          Json      @default("{}") @map("branding_config")
+  ssoEnabled              Boolean   @default(false) @map("sso_enabled")
+  ssoConfig               Json      @default("{}") @map("sso_config")
+  securitySettings        Json      @default("{}") @map("security_settings")
+  billingContactEmail     String?   @map("billing_contact_email")
+  technicalContactEmail   String?   @map("technical_contact_email")
+  timezone                String    @default("UTC")
+  businessHours           Json      @default("{}") @map("business_hours")
+  isActive                Boolean   @default(true) @map("is_active")
+  trialEndsAt             DateTime? @map("trial_ends_at")
+  createdBy               Int?      @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  users         User[]
+  meetings      Meeting[]
+  invitations   Invitation[]
+  chatMessages  ChatMessage[]
+  recordings    Recording[]
+  groups        Group[]
+  emailTemplates EmailTemplate[]
+  clientFeatures ClientFeatures?
+  userAnalytics UserAnalytics[]
+
+  @@map("clients")
+}
+
+model ClientFeatures {
+  id                          Int     @id @default(autoincrement())
+  clientId                    Int     @unique @map("client_id")
+  chatEnabled                 Boolean @default(true) @map("chat_enabled")
+  reactionsEnabled            Boolean @default(true) @map("reactions_enabled")
+  screenSharingEnabled        Boolean @default(true) @map("screen_sharing_enabled")
+  recordingEnabled            Boolean @default(false) @map("recording_enabled")
+  raiseHandEnabled            Boolean @default(true) @map("raise_hand_enabled")
+  waitingRoomEnabled          Boolean @default(false) @map("waiting_room_enabled")
+  maxParticipants             Int     @default(100) @map("max_participants")
+  adminApprovalRequired       Boolean @default(false) @map("admin_approval_required")
+  defaultVideoPermission      Boolean @default(true) @map("default_video_permission")
+  defaultAudioPermission      Boolean @default(true) @map("default_audio_permission")
+  defaultScreenPermission     Boolean @default(false) @map("default_screen_permission")
+  allowUserVideoRequest       Boolean @default(true) @map("allow_user_video_request")
+  allowUserAudioRequest       Boolean @default(true) @map("allow_user_audio_request")
+  allowUserScreenRequest      Boolean @default(true) @map("allow_user_screen_request")
+  autoApproveRequests         Boolean @default(false) @map("auto_approve_requests")
+  meetingLobbyEnabled         Boolean @default(false) @map("meeting_lobby_enabled")
+  participantLimit            Int     @default(100) @map("participant_limit")
+  meetingDurationLimit        Int     @default(480) @map("meeting_duration_limit")
+  fileSharingEnabled          Boolean @default(true) @map("file_sharing_enabled")
+  fileSizeLimitMb             Int     @default(100) @map("file_size_limit_mb")
+  whiteboardEnabled           Boolean @default(false) @map("whiteboard_enabled")
+  pollsEnabled                Boolean @default(false) @map("polls_enabled")
+  qAndAEnabled                Boolean @default(false) @map("q_and_a_enabled")
+  liveStreamingEnabled        Boolean @default(false) @map("live_streaming_enabled")
+  meetingTemplatesEnabled     Boolean @default(false) @map("meeting_templates_enabled")
+  customBackgroundsEnabled    Boolean @default(true) @map("custom_backgrounds_enabled")
+  noiseCancellationEnabled    Boolean @default(true) @map("noise_cancellation_enabled")
+  transcriptionEnabled        Boolean @default(false) @map("transcription_enabled")
+  translationEnabled          Boolean @default(false) @map("translation_enabled")
+  meetingInsightsEnabled      Boolean @default(false) @map("meeting_insights_enabled")
+  apiAccessEnabled            Boolean @default(false) @map("api_access_enabled")
+  webhookNotificationsEnabled Boolean @default(false) @map("webhook_notifications_enabled")
+  ssoRequired                 Boolean @default(false) @map("sso_required")
+  ipRestrictions              Json    @default("[]") @map("ip_restrictions")
+  allowedDomains              Json    @default("[]") @map("allowed_domains")
+  blockedDomains              Json    @default("[]") @map("blocked_domains")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("client_features")
+}
+
+model User {
+  id                      Int       @id @default(autoincrement())
+  clientId                Int       @map("client_id")
+  email                   String    @unique
+  passwordHash            String?   @map("password_hash")
+  firstName               String    @map("first_name")
+  lastName                String    @map("last_name")
+  role                    UserRole
+  status                  UserStatus @default(ACTIVE)
+  createdBy               Int?      @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  invitationToken         String?   @map("invitation_token")
+  invitationExpiresAt     DateTime? @map("invitation_expires_at")
+  isInvited               Boolean   @default(false) @map("is_invited")
+  passwordCreated         Boolean   @default(false) @map("password_created")
+  twoFactorEnabled        Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret         String?   @map("two_factor_secret")
+  loginAttempts           Int       @default(0) @map("login_attempts")
+  lockedUntil             DateTime? @map("locked_until")
+  passwordResetToken      String?   @map("password_reset_token")
+  passwordResetExpires    DateTime? @map("password_reset_expires")
+  lastPasswordChange      DateTime? @map("last_password_change")
+  forcePasswordChange     Boolean   @default(false) @map("force_password_change")
+  emailVerified           Boolean   @default(false) @map("email_verified")
+  emailVerificationToken  String?   @map("email_verification_token")
+  timezone                String    @default("UTC")
+  language                String    @default("en")
+  notificationPreferences Json      @default("{}") @map("notification_preferences")
+
+  // Relations
+  client                      Client                        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdMeetings             Meeting[]                     @relation("MeetingCreatedBy")
+  hostedMeetings              Meeting[]                     @relation("MeetingHost")
+  cancelledMeetings           Meeting[]                     @relation("MeetingCancelledBy")
+  meetingParticipants         MeetingParticipant[]          @relation("MeetingParticipantUser")
+  invitedMeetingParticipants  MeetingParticipant[]          @relation("MeetingParticipantInvitedBy")
+  sentInvitations             Invitation[]                  @relation("InvitationSentBy")
+  receivedInvitations         Invitation[]                  @relation("InvitationReceived")
+  chatMessages                ChatMessage[]
+  chatMessagesEdited          ChatMessage[]                 @relation("ChatMessageEditedBy")
+  chatMessagesModerated       ChatMessage[]                 @relation("ChatMessageModeratedBy")
+  startedRecordings           Recording[]                   @relation("RecordingStartedBy")
+  stoppedRecordings           Recording[]                   @relation("RecordingStoppedBy")
+  refreshTokens               RefreshToken[]
+  passwordResetTokens         PasswordResetToken[]
+  userPreferences             UserPreference?
+  notifications               Notification[]
+  groupMemberships            UserGroupMembership[]         @relation("UserGroupMember")
+  addedGroupMemberships       UserGroupMembership[]         @relation("UserGroupMemberAddedBy")
+  createdGroups               Group[]                       @relation("GroupCreatedBy")
+  adminInvitationsSent        AdminInvitation[]             @relation("AdminInvitationSentBy")
+  userInvitationsSent         UserInvitation[]              @relation("UserInvitationSentBy")
+  meetingPermissions          MeetingPermission[]
+  approvedPermissions         MeetingPermission[]           @relation("PermissionApprovedBy")
+  deniedPermissions           MeetingPermission[]           @relation("PermissionDeniedBy")
+  raiseHands                  RaiseHand[]
+  loweredHands                RaiseHand[]                   @relation("HandLoweredBy")
+  acknowledgedHands           RaiseHand[]                   @relation("HandAcknowledgedBy")
+  speakingActivities          SpeakingActivity[]
+  userAnalytics               UserAnalytics[]
+  meetingBookmarks            UserMeetingBookmark[]
+  emailTemplatesCreated       EmailTemplate[]               @relation("EmailTemplateCreatedBy")
+
+  @@map("users")
+}
+
+model Meeting {
+  id                       Int            @id @default(autoincrement())
+  clientId                 Int            @map("client_id")
+  title                    String
+  description              String?
+  hostId                   Int?           @map("host_id")
+  createdByUserId          Int?           @map("created_by_user_id")
+  meetingId                String         @unique @map("meeting_id")
+  meetingType              String         @default("regular") @map("meeting_type")
+  scheduledStart           DateTime       @map("scheduled_start")
+  scheduledEnd             DateTime       @map("scheduled_end")
+  actualStart              DateTime?      @map("actual_start")
+  actualEnd                DateTime?      @map("actual_end")
+  bufferStartMinutes       Int            @default(15) @map("buffer_start_minutes")
+  bufferEndMinutes         Int            @default(15) @map("buffer_end_minutes")
+  status                   MeetingStatus  @default(SCHEDULED)
+  isActive                 Boolean        @default(false) @map("is_active")
+  adminOnlyControls        Boolean        @default(false) @map("admin_only_controls")
+  waitingRoomEnabled       Boolean        @default(false) @map("waiting_room_enabled")
+  autoAdmitUsers           Boolean        @default(true) @map("auto_admit_users")
+  lockMeeting              Boolean        @default(false) @map("lock_meeting")
+  muteParticipantsOnJoin   Boolean        @default(false) @map("mute_participants_on_join")
+  disableVideoOnJoin       Boolean        @default(false) @map("disable_video_on_join")
+  allowScreenSharing       Boolean        @default(true) @map("allow_screen_sharing")
+  recordingAutoStart       Boolean        @default(false) @map("recording_auto_start")
+  chatEnabled              Boolean        @default(true) @map("chat_enabled")
+  raiseHandEnabled         Boolean        @default(true) @map("raise_hand_enabled")
+  breakoutRoomsEnabled     Boolean        @default(false) @map("breakout_rooms_enabled")
+  maxDurationMinutes       Int            @default(480) @map("max_duration_minutes")
+  maxParticipants          Int            @default(100) @map("max_participants")
+  password                 String?
+  requireMeetingPassword   Boolean        @default(false) @map("require_meeting_password")
+  participantJoinApproval  Boolean        @default(false) @map("participant_join_approval")
+  allowAnonymousUsers      Boolean        @default(true) @map("allow_anonymous_users")
+  meetingSettings          Json           @default("{}") @map("meeting_settings")
+  lobbyMessage             String?        @map("lobby_message")
+  entryExitChime           Boolean        @default(false) @map("entry_exit_chime")
+  calendarEventId          String?        @map("calendar_event_id")
+  recordingConsentRequired Boolean        @default(false) @map("recording_consent_required")
+  dataRetentionDays        Int            @default(90) @map("data_retention_days")
+  meetingNotes             String?        @map("meeting_notes")
+  meetingSummary           Json           @default("{}") @map("meeting_summary")
+  qualityRating            Int?           @map("quality_rating")
+  feedbackComments         String?        @map("feedback_comments")
+  recurringPattern         Json           @default("{}") @map("recurring_pattern")
+  parentMeetingId          Int?           @map("parent_meeting_id")
+  occurrenceDate           DateTime?      @map("occurrence_date")
+  isCancelled              Boolean        @default(false) @map("is_cancelled")
+  cancellationReason       String?        @map("cancellation_reason")
+  cancelledBy              Int?           @map("cancelled_by")
+  cancelledAt              DateTime?      @map("cancelled_at")
+  createdAt                DateTime       @default(now()) @map("created_at")
+  updatedAt                DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  client                    Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  host                      User?                   @relation("MeetingHost", fields: [hostId], references: [id])
+  createdByUser             User?                   @relation("MeetingCreatedBy", fields: [createdByUserId], references: [id])
+  cancelledByUser           User?                   @relation("MeetingCancelledBy", fields: [cancelledBy], references: [id])
+  parentMeeting             Meeting?                @relation("MeetingRecurrence", fields: [parentMeetingId], references: [id])
+  childMeetings             Meeting[]               @relation("MeetingRecurrence")
+  participants              MeetingParticipant[]
+  invitations               Invitation[]
+  chatMessages              ChatMessage[]
+  recordings                Recording[]
+  meetingPermissions        MeetingPermission[]
+  raiseHands                RaiseHand[]
+  meetingAnalytics          MeetingAnalytics?
+  speakingActivities        SpeakingActivity[]
+  meetingBookmarks          UserMeetingBookmark[]
+
+  @@map("meetings")
+}
+
+model MeetingParticipant {
+  id         Int                    @id @default(autoincrement())
+  meetingId  Int                    @map("meeting_id")
+  userId     Int?                   @map("user_id")
+  groupId    Int?                   @map("group_id")
+  email      String?
+  guestName  String?                @map("guest_name")
+  role       ParticipantRole        @default(ATTENDEE)
+  status     ParticipantStatus      @default(INVITED)
+  joinedAt   DateTime?              @map("joined_at")
+  leftAt     DateTime?              @map("left_at")
+  invitedBy  Int?                   @map("invited_by")
+  invitedAt  DateTime               @default(now()) @map("invited_at")
+
+  // Relations
+  meeting               Meeting                      @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user                  User?                        @relation("MeetingParticipantUser", fields: [userId], references: [id])
+  invitedByUser         User?                        @relation("MeetingParticipantInvitedBy", fields: [invitedBy], references: [id])
+  extendedInfo          MeetingParticipantExtended?
+
+  @@map("meeting_participants")
+}
+
+model Invitation {
+  id              Int               @id @default(autoincrement())
+  clientId        Int               @map("client_id")
+  meetingId       Int               @map("meeting_id")
+  invitationType  InvitationType    @map("invitation_type")
+  userId          Int?              @map("user_id")
+  groupId         Int?              @map("group_id")
+  email           String?
+  guestName       String?           @map("guest_name")
+  token           String            @unique
+  status          InvitationStatus  @default(PENDING)
+  role            ParticipantRole   @default(ATTENDEE)
+  message         String?
+  expiresAt       DateTime          @map("expires_at")
+  sentAt          DateTime?         @map("sent_at")
+  respondedAt     DateTime?         @map("responded_at")
+  invitedBy       Int               @map("invited_by")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  client        Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  meeting       Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user          User?   @relation("InvitationReceived", fields: [userId], references: [id])
+  invitedByUser User    @relation("InvitationSentBy", fields: [invitedBy], references: [id])
+
+  @@map("invitations")
+}
+
+model ChatMessage {
+  id                 Int       @id @default(autoincrement())
+  clientId           Int       @map("client_id")
+  meetingId          Int       @map("meeting_id")
+  senderId           Int?      @map("sender_id")
+  senderEmail        String?   @map("sender_email")
+  senderName         String    @map("sender_name")
+  message            String
+  messageType        String    @default("text") @map("message_type")
+  threadId           Int?      @map("thread_id")
+  messageStatus      String    @default("sent") @map("message_status")
+  editedAt           DateTime? @map("edited_at")
+  editedBy           Int?      @map("edited_by")
+  originalMessage    String?   @map("original_message")
+  reactions          Json      @default("{}") 
+  mentions           Json      @default("[]")
+  fileAttachments    Json      @default("[]") @map("file_attachments")
+  messagePriority    String    @default("normal") @map("message_priority")
+  isAnnouncement     Boolean   @default(false) @map("is_announcement")
+  expiresAt          DateTime? @map("expires_at")
+  translationData    Json      @default("{}") @map("translation_data")
+  sentimentScore     Float?    @map("sentiment_score")
+  flaggedContent     Boolean   @default(false) @map("flagged_content")
+  flagReason         String?   @map("flag_reason")
+  metadata           Json      @default("{}")
+  isModerated        Boolean   @default(false) @map("is_moderated")
+  moderatedBy        Int?      @map("moderated_by")
+  moderatedAt        DateTime? @map("moderated_at")
+  replyToId          Int?      @map("reply_to_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  client          Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  meeting         Meeting      @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  sender          User?        @relation(fields: [senderId], references: [id])
+  editedByUser    User?        @relation("ChatMessageEditedBy", fields: [editedBy], references: [id])
+  moderatedByUser User?        @relation("ChatMessageModeratedBy", fields: [moderatedBy], references: [id])
+  replyTo         ChatMessage? @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies         ChatMessage[] @relation("MessageReplies")
+
+  @@map("chat_messages")
+}
+
+model Recording {
+  id           Int           @id @default(autoincrement())
+  clientId     Int           @map("client_id")
+  meetingId    Int           @map("meeting_id")
+  title        String
+  description  String?
+  status       RecordingStatus @default(PENDING)
+  startedAt    DateTime?     @map("started_at")
+  endedAt      DateTime?     @map("ended_at")
+  duration     Int?
+  fileSize     BigInt?       @map("file_size")
+  filePath     String?       @map("file_path")
+  downloadUrl  String?       @map("download_url")
+  streamingUrl String?       @map("streaming_url")
+  metadata     Json          @default("{}")
+  settings     Json          @default("{}")
+  startedBy    Int           @map("started_by")
+  stoppedBy    Int?          @map("stopped_by")
+  isPublic     Boolean       @default(false) @map("is_public")
+  password     String?
+  expiresAt    DateTime?     @map("expires_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  client          Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  meeting         Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  startedByUser   User    @relation("RecordingStartedBy", fields: [startedBy], references: [id])
+  stoppedByUser   User?   @relation("RecordingStoppedBy", fields: [stoppedBy], references: [id])
+
+  @@map("recordings")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model UserPreference {
+  id                           Int      @id @default(autoincrement())
+  userId                       Int      @unique @map("user_id")
+  defaultAudioEnabled          Boolean  @default(true) @map("default_audio_enabled")
+  defaultVideoEnabled          Boolean  @default(true) @map("default_video_enabled")
+  autoJoinAudio                Boolean  @default(true) @map("auto_join_audio")
+  preferredCameraDevice        String?  @map("preferred_camera_device")
+  preferredMicrophoneDevice    String?  @map("preferred_microphone_device")
+  preferredSpeakerDevice       String?  @map("preferred_speaker_device")
+  notificationEmailEnabled     Boolean  @default(true) @map("notification_email_enabled")
+  notificationBrowserEnabled   Boolean  @default(true) @map("notification_browser_enabled")
+  notificationMeetingReminders Boolean  @default(true) @map("notification_meeting_reminders")
+  notificationChatMessages     Boolean  @default(true) @map("notification_chat_messages")
+  notificationMeetingInvites   Boolean  @default(true) @map("notification_meeting_invites")
+  themePreference              String   @default("system") @map("theme_preference")
+  languagePreference           String   @default("en") @map("language_preference")
+  timezonePreference           String   @default("UTC") @map("timezone_preference")
+  meetingViewPreference        String   @default("grid") @map("meeting_view_preference")
+  chatPosition                 String   @default("right") @map("chat_position")
+  showParticipantNames         Boolean  @default(true) @map("show_participant_names")
+  showConnectionQuality        Boolean  @default(true) @map("show_connection_quality")
+  autoHideControls             Boolean  @default(false) @map("auto_hide_controls")
+  keyboardShortcutsEnabled     Boolean  @default(true) @map("keyboard_shortcuts_enabled")
+  highContrastMode             Boolean  @default(false) @map("high_contrast_mode")
+  reduceMotion                 Boolean  @default(false) @map("reduce_motion")
+  createdAt                    DateTime @default(now()) @map("created_at")
+  updatedAt                    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  type      String
+  title     String
+  message   String
+  data      String?
+  isRead    Boolean   @default(false) @map("is_read")
+  createdAt DateTime  @default(now()) @map("created_at")
+  readAt    DateTime? @map("read_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Group {
+  id                   Int                   @id @default(autoincrement())
+  clientId             Int                   @map("client_id")
+  name                 String
+  description          String?
+  groupType            String                @default("custom") @map("group_type")
+  isActive             Boolean               @default(true) @map("is_active")
+  maxMembers           Int                   @default(1000) @map("max_members")
+  autoAddNewUsers      Boolean               @default(false) @map("auto_add_new_users")
+  emailDomainFilter    String?               @map("email_domain_filter")
+  groupSettings        Json                  @default("{}") @map("group_settings")
+  meetingDefaults      Json                  @default("{}") @map("meeting_defaults")
+  notificationSettings Json                  @default("{}") @map("notification_settings")
+  externalId           String?               @map("external_id")
+  syncSource           String                @default("manual") @map("sync_source")
+  lastSyncAt           DateTime?             @map("last_sync_at")
+  syncErrors           Json                  @default("{}") @map("sync_errors")
+  createdBy            Int?                  @map("created_by")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  client      Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdByUser User?               @relation("GroupCreatedBy", fields: [createdBy], references: [id])
+  memberships UserGroupMembership[]
+
+  @@map("groups")
+}
+
+model UserGroupMembership {
+  id      Int      @id @default(autoincrement())
+  userId  Int      @map("user_id")
+  groupId Int      @map("group_id")
+  addedBy Int?     @map("added_by")
+  addedAt DateTime @default(now()) @map("added_at")
+
+  // Relations
+  user      User  @relation("UserGroupMember", fields: [userId], references: [id], onDelete: Cascade)
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  addedByUser User? @relation("UserGroupMemberAddedBy", fields: [addedBy], references: [id])
+
+  @@unique([userId, groupId])
+  @@map("user_group_memberships")
+}
+
+model AdminInvitation {
+  id                 Int       @id @default(autoincrement())
+  clientId           Int?      @map("client_id")
+  email              String
+  firstName          String    @map("first_name")
+  lastName           String    @map("last_name")
+  token              String    @unique
+  expiresAt          DateTime  @map("expires_at")
+  status             String    @default("pending")
+  invitedBy          Int?      @map("invited_by")
+  acceptedAt         DateTime? @map("accepted_at")
+  passwordCreatedAt  DateTime? @map("password_created_at")
+  reminderSentCount  Int       @default(0) @map("reminder_sent_count")
+  lastReminderSent   DateTime? @map("last_reminder_sent")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  invitedByUser User? @relation("AdminInvitationSentBy", fields: [invitedBy], references: [id])
+
+  @@map("admin_invitations")
+}
+
+model UserInvitation {
+  id                Int       @id @default(autoincrement())
+  clientId          Int?      @map("client_id")
+  adminId           Int?      @map("admin_id")
+  email             String
+  firstName         String    @map("first_name")
+  lastName          String    @map("last_name")
+  token             String    @unique
+  expiresAt         DateTime  @map("expires_at")
+  status            String    @default("pending")
+  welcomeMessage    String?   @map("welcome_message")
+  acceptedAt        DateTime? @map("accepted_at")
+  passwordCreatedAt DateTime? @map("password_created_at")
+  reminderSentCount Int       @default(0) @map("reminder_sent_count")
+  lastReminderSent  DateTime? @map("last_reminder_sent")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  admin User? @relation("UserInvitationSentBy", fields: [adminId], references: [id])
+
+  @@map("user_invitations")
+}
+
+model MeetingPermission {
+  id             Int       @id @default(autoincrement())
+  meetingId      Int?      @map("meeting_id")
+  userId         Int?      @map("user_id")
+  permissionType String    @map("permission_type")
+  isGranted      Boolean   @default(false) @map("is_granted")
+  requestedAt    DateTime? @map("requested_at")
+  approvedAt     DateTime? @map("approved_at")
+  deniedAt       DateTime? @map("denied_at")
+  approvedBy     Int?      @map("approved_by")
+  deniedBy       Int?      @map("denied_by")
+  requestMessage String?   @map("request_message")
+  adminResponse  String?   @map("admin_response")
+  autoGranted    Boolean   @default(false) @map("auto_granted")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  meeting       Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvedByUser User?   @relation("PermissionApprovedBy", fields: [approvedBy], references: [id])
+  deniedByUser  User?    @relation("PermissionDeniedBy", fields: [deniedBy], references: [id])
+
+  @@map("meeting_permissions")
+}
+
+model RaiseHand {
+  id             Int       @id @default(autoincrement())
+  meetingId      Int?      @map("meeting_id")
+  userId         Int?      @map("user_id")
+  raisedAt       DateTime  @default(now()) @map("raised_at")
+  loweredAt      DateTime? @map("lowered_at")
+  loweredBy      Int?      @map("lowered_by")
+  autoLowered    Boolean   @default(false) @map("auto_lowered")
+  acknowledgedBy Int?      @map("acknowledged_by")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  queuePosition  Int?      @map("queue_position")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  meeting         Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loweredByUser   User?    @relation("HandLoweredBy", fields: [loweredBy], references: [id])
+  acknowledgedByUser User? @relation("HandAcknowledgedBy", fields: [acknowledgedBy], references: [id])
+
+  @@map("raise_hands")
+}
+
+model MeetingAnalytics {
+  id                         Int      @id @default(autoincrement())
+  meetingId                  Int?     @unique @map("meeting_id")
+  participantCount           Int      @default(0) @map("participant_count")
+  peakParticipants           Int      @default(0) @map("peak_participants")
+  totalDurationSeconds       Int      @default(0) @map("total_duration_seconds")
+  chatMessagesCount          Int      @default(0) @map("chat_messages_count")
+  screenSharesCount          Int      @default(0) @map("screen_shares_count")
+  recordingsCount            Int      @default(0) @map("recordings_count")
+  raiseHandsCount            Int      @default(0) @map("raise_hands_count")
+  permissionRequestsCount    Int      @default(0) @map("permission_requests_count")
+  averageParticipantDuration Int      @default(0) @map("average_participant_duration")
+  participantJoinTimes       Json     @default("[]") @map("participant_join_times")
+  participantLeaveTimes      Json     @default("[]") @map("participant_leave_times")
+  featureUsageStats          Json     @default("{}") @map("feature_usage_stats")
+  qualityMetrics             Json     @default("{}") @map("quality_metrics")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  meeting Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_analytics")
+}
+
+model SpeakingActivity {
+  id                Int       @id @default(autoincrement())
+  meetingId         Int?      @map("meeting_id")
+  userId            Int?      @map("user_id")
+  startedSpeakingAt DateTime  @default(now()) @map("started_speaking_at")
+  stoppedSpeakingAt DateTime? @map("stopped_speaking_at")
+  durationSeconds   Int?      @map("duration_seconds")
+  audioLevelAvg     Float?    @map("audio_level_avg")
+  audioLevelPeak    Float?    @map("audio_level_peak")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  meeting Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("speaking_activity")
+}
+
+model UserAnalytics {
+  id                        Int       @id @default(autoincrement())
+  userId                    Int?      @map("user_id")
+  clientId                  Int?      @map("client_id")
+  totalMeetingsJoined       Int       @default(0) @map("total_meetings_joined")
+  totalMeetingDurationMins  Int       @default(0) @map("total_meeting_duration_minutes")
+  totalSpeakingTimeMins     Int       @default(0) @map("total_speaking_time_minutes")
+  totalChatMessages         Int       @default(0) @map("total_chat_messages")
+  totalHandRaises           Int       @default(0) @map("total_hand_raises")
+  meetingsThisWeek          Int       @default(0) @map("meetings_this_week")
+  meetingsThisMonth         Int       @default(0) @map("meetings_this_month")
+  averageMeetingDuration    Int       @default(0) @map("average_meeting_duration")
+  mostActiveDayOfWeek       Int       @default(1) @map("most_active_day_of_week")
+  mostActiveHour            Int       @default(12) @map("most_active_hour")
+  engagementScore           Float     @default(0.0) @map("engagement_score")
+  lastMeetingDate           DateTime? @map("last_meeting_date")
+  firstMeetingDate          DateTime? @map("first_meeting_date")
+  preferredMeetingDuration  Int       @default(60) @map("preferred_meeting_duration")
+  participationTrends       Json      @default("{}") @map("participation_trends")
+  featureUsageStats         Json      @default("{}") @map("feature_usage_stats")
+  devicePreferences         Json      @default("{}") @map("device_preferences")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("user_analytics")
+}
+
+model UserMeetingBookmark {
+  id                  Int      @id @default(autoincrement())
+  userId              Int?     @map("user_id")
+  meetingId           Int?     @map("meeting_id")
+  bookmarkTimeSeconds Int      @map("bookmark_time_seconds")
+  bookmarkTitle       String?  @map("bookmark_title")
+  bookmarkDescription String?  @map("bookmark_description")
+  bookmarkType        String   @default("manual") @map("bookmark_type")
+  isPrivate           Boolean  @default(false) @map("is_private")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meeting Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("user_meeting_bookmarks")
+}
+
+model MeetingParticipantExtended {
+  id                   Int      @id @default(autoincrement())
+  meetingParticipantId Int?     @unique @map("meeting_participant_id")
+  connectionQuality    String   @default("good") @map("connection_quality")
+  deviceInfo           Json     @default("{}") @map("device_info")
+  browserInfo          Json     @default("{}") @map("browser_info")
+  networkInfo          Json     @default("{}") @map("network_info")
+  permissionsGranted   Json     @default("{}") @map("permissions_granted")
+  speakingTimeSeconds  Int      @default(0) @map("speaking_time_seconds")
+  chatMessagesSent     Int      @default(0) @map("chat_messages_sent")
+  reactionsSent        Int      @default(0) @map("reactions_sent")
+  screenShareDuration  Int      @default(0) @map("screen_share_duration")
+  handRaisesCount      Int      @default(0) @map("hand_raises_count")
+  lastActivityAt       DateTime @default(now()) @map("last_activity_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  meetingParticipant MeetingParticipant? @relation(fields: [meetingParticipantId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_participant_extended")
+}
+
+model EmailTemplate {
+  id         Int      @id @default(autoincrement())
+  clientId   Int      @map("client_id")
+  type       String
+  name       String
+  subject    String
+  htmlBody   String   @map("html_body")
+  textBody   String?  @map("text_body")
+  variables  Json     @default("{}") 
+  isDefault  Boolean  @default(false) @map("is_default")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdBy  Int?     @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client        Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdByUser User?  @relation("EmailTemplateCreatedBy", fields: [createdBy], references: [id])
+
+  @@map("email_templates")
+}
+
+// Enums
+enum UserRole {
+  SUPER_ADMIN @map("super_admin")
+  ADMIN       @map("admin")
+  USER        @map("user")
+}
+
+enum UserStatus {
+  ACTIVE    @map("active")
+  INACTIVE  @map("inactive")
+  PENDING   @map("pending")
+  SUSPENDED @map("suspended")
+}
+
+enum MeetingStatus {
+  SCHEDULED @map("scheduled")
+  ACTIVE    @map("active")
+  ENDED     @map("ended")
+  CANCELLED @map("cancelled")
+}
+
+enum ParticipantRole {
+  HOST      @map("host")
+  CO_HOST   @map("co_host")
+  PRESENTER @map("presenter")
+  ATTENDEE  @map("attendee")
+}
+
+enum ParticipantStatus {
+  INVITED  @map("invited")
+  ACCEPTED @map("accepted")
+  DECLINED @map("declined")
+  JOINED   @map("joined")
+  LEFT     @map("left")
+}
+
+enum InvitationType {
+  EMAIL @map("email")
+  GROUP @map("group")
+  USER  @map("user")
+}
+
+enum InvitationStatus {
+  PENDING   @map("pending")
+  SENT      @map("sent")
+  ACCEPTED  @map("accepted")
+  DECLINED  @map("declined")
+  EXPIRED   @map("expired")
+  CANCELLED @map("cancelled")
+}
+
+enum RecordingStatus {
+  PENDING    @map("pending")
+  RECORDING  @map("recording")
+  PROCESSING @map("processing")
+  COMPLETED  @map("completed")
+  FAILED     @map("failed")
+}
