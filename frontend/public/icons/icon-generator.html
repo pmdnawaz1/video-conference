@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA Icon Generator</title>
+    <style>
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        .icon-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Generating PWA Icons...</h1>
+    <div class="icon-grid" id="iconGrid"></div>
+    
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        const iconGrid = document.getElementById('iconGrid');
+        
+        sizes.forEach(size => {
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw icon background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#3b82f6');
+            gradient.addColorStop(1, '#1d4ed8');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add border radius effect
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, size * 0.18);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Draw video camera icon
+            ctx.fillStyle = 'white';
+            const iconSize = size * 0.5;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // Camera body
+            const bodyWidth = iconSize * 0.7;
+            const bodyHeight = iconSize * 0.5;
+            ctx.fillRect(centerX - bodyWidth/2, centerY - bodyHeight/2, bodyWidth, bodyHeight);
+            
+            // Camera lens
+            ctx.beginPath();
+            ctx.arc(centerX - bodyWidth/4, centerY, iconSize * 0.15, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1d4ed8';
+            ctx.fill();
+            
+            // Viewfinder triangle
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.moveTo(centerX + bodyWidth/4, centerY - iconSize * 0.1);
+            ctx.lineTo(centerX + bodyWidth/2, centerY);
+            ctx.lineTo(centerX + bodyWidth/4, centerY + iconSize * 0.1);
+            ctx.fill();
+            
+            // Add to page
+            iconGrid.appendChild(canvas);
+            
+            // Download link
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `icon-${size}x${size}.png`;
+                link.textContent = `Download ${size}x${size}`;
+                link.style.display = 'block';
+                link.style.margin = '5px';
+                iconGrid.appendChild(link);
+            });
+        });
+        
+        // Auto-download all icons
+        setTimeout(() => {
+            const links = document.querySelectorAll('a[download]');
+            links.forEach((link, index) => {
+                setTimeout(() => link.click(), index * 500);
+            });
+        }, 1000);
+    </script>
+</body>
+</html>

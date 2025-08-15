@@ -82,3 +82,220 @@
   width: 100%;
   margin-bottom: 8px;
 }
+
+/* PWA Specific Styles */
+.pwa-mode {
+  /* Add padding for device notches when in PWA mode */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better text readability */
+  body {
+    font-size: 16px; /* Prevents zoom on iOS */
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Prevent horizontal scroll */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+}
+
+/* PWA fullscreen mode */
+@media (display-mode: fullscreen) {
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* PWA standalone mode */
+@media (display-mode: standalone) {
+  /* Hide elements not needed in standalone mode */
+  .browser-only {
+    display: none;
+  }
+  
+  /* Adjust layout for standalone */
+  .app-container {
+    height: 100vh;
+    height: 100svh; /* Use small viewport height */
+  }
+  
+  /* Desktop PWA specific adjustments */
+  @media (min-width: 768px) {
+    .app-container {
+      min-width: 800px;
+      min-height: 600px;
+    }
+  }
+}
+
+/* Window Controls Overlay for desktop PWA */
+@media (display-mode: window-controls-overlay) {
+  .app-header {
+    padding-left: env(titlebar-area-x);
+    padding-right: calc(100vw - env(titlebar-area-width) - env(titlebar-area-x));
+    padding-top: env(titlebar-area-y);
+    height: env(titlebar-area-height);
+  }
+  
+  .main-content {
+    margin-top: env(titlebar-area-height);
+  }
+}
+
+/* Desktop PWA optimizations */
+@media (min-width: 768px) {
+  .pwa-mode {
+    /* Better desktop experience */
+    padding: 0;
+  }
+  
+  /* Desktop install prompt */
+  .pwa-install-banner {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    left: auto;
+    bottom: auto;
+    max-width: 350px;
+    border-radius: 12px;
+  }
+  
+  /* Desktop app controls */
+  .desktop-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* iOS PWA specific */
+@supports (-webkit-touch-callout: none) {
+  .pwa-mode {
+    /* iOS specific adjustments */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Prevent pull-to-refresh in PWA */
+html.pwa-mode body {
+  overscroll-behavior-y: contain;
+}
+
+/* Video conference mobile optimizations */
+.video-container {
+  /* Prevent video overflow on mobile */
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: cover;
+}
+
+.mobile-controls {
+  /* Larger touch targets for mobile */
+  padding: 16px;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .mobile-controls button {
+    padding: 12px;
+    font-size: 14px;
+  }
+  
+  /* Stack video controls vertically on very small screens */
+  @media (max-width: 480px) {
+    .video-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .video-controls button {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+/* Loading spinner for PWA */
+.pwa-loading {
+  position: fixed;
+  inset: 0;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.pwa-loading.hidden {
+  display: none;
+}
+
+/* Network status indicator */
+.network-status {
+  position: fixed;
+  top: env(safe-area-inset-top, 0);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  border-radius: 0 0 8px 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.network-status.online {
+  background: #10b981;
+  color: white;
+}
+
+.network-status.offline {
+  background: #f59e0b;
+  color: white;
+}
+
+/* PWA install button */
+.pwa-install-button {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 1000;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pwa-install-button:hover {
+  transform: scale(1.1);
+}
+
+.pwa-install-button.hidden {
+  display: none;
+}

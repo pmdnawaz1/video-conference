@@ -2,12 +2,189 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    
+    <!-- Basic Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="description" content="Enterprise video conferencing platform with real-time collaboration, screen sharing, and advanced meeting controls." />
+    <meta name="keywords" content="video conference, webrtc, meetings, collaboration, screen sharing, chat" />
+    <meta name="author" content="Video Conference Platform" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="VideoConf" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="VideoConf" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="theme-color" content="#3b82f6" />
+    
+    <!-- Icons and Manifest -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Platform</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <meta name="msapplication-square70x70logo" content="/icons/icon-72x72.png" />
+    <meta name="msapplication-square150x150logo" content="/icons/icon-144x144.png" />
+    <meta name="msapplication-wide310x150logo" content="/icons/icon-192x192.png" />
+    <meta name="msapplication-square310x310logo" content="/icons/icon-384x384.png" />
+    
+    <!-- Social Media -->
+    <meta property="og:title" content="Video Conference Platform" />
+    <meta property="og:description" content="Enterprise video conferencing with real-time collaboration" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Video Conference Platform" />
+    <meta name="twitter:description" content="Enterprise video conferencing with real-time collaboration" />
+    
+    <title>Video Conference Platform</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.jsx" as="script" crossorigin />
+    
+    <!-- PWA Install Prompt Styles -->
+    <style>
+      /* PWA install banner styles */
+      .pwa-install-banner {
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        background: #3b82f6;
+        color: white;
+        padding: 16px;
+        border-radius: 8px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+      }
+      
+      .pwa-install-banner.show {
+        display: flex;
+      }
+      
+      .pwa-install-banner button {
+        background: white;
+        color: #3b82f6;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        margin-left: 12px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      
+      .pwa-install-banner .close {
+        background: transparent;
+        color: white;
+        padding: 4px 8px;
+      }
+      
+      @media (min-width: 768px) {
+        .pwa-install-banner {
+          max-width: 400px;
+          left: auto;
+          right: 16px;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" class="pwa-install-banner">
+      <div>
+        <strong>Install Video Conference App</strong>
+        <br />
+        <small>Get quick access and offline features</small>
+      </div>
+      <div>
+        <button id="pwa-install-btn">Install</button>
+        <button id="pwa-close-btn" class="close">×</button>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+      // Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('SW registered: ', registration);
+            })
+            .catch(registrationError => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // PWA Install Prompt
+      let deferredPrompt;
+      const installBanner = document.getElementById('pwa-install-banner');
+      const installBtn = document.getElementById('pwa-install-btn');
+      const closeBtn = document.getElementById('pwa-close-btn');
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show custom install banner
+        installBanner.classList.add('show');
+      });
+      
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          
+          if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          
+          deferredPrompt = null;
+          installBanner.classList.remove('show');
+        }
+      });
+      
+      closeBtn.addEventListener('click', () => {
+        installBanner.classList.remove('show');
+        
+        // Don't show again for this session
+        sessionStorage.setItem('pwa-install-dismissed', 'true');
+      });
+      
+      // Check if already dismissed this session
+      if (sessionStorage.getItem('pwa-install-dismissed')) {
+        installBanner.style.display = 'none';
+      }
+      
+      // Hide banner if already installed
+      window.addEventListener('appinstalled', () => {
+        installBanner.classList.remove('show');
+        console.log('PWA was installed');
+      });
+      
+      // Handle PWA launch
+      window.addEventListener('beforeinstallprompt', (e) => {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          console.log('Running as PWA');
+          document.documentElement.classList.add('pwa-mode');
+        }
+      });
+    </script>
   </body>
 </html>
