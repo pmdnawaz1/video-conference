@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .full-width {
+            grid-column: span 2;
+        }
+        input, button, select, textarea {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            width: auto;
+            padding: 8px 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.authenticated {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.unauthenticated {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .token-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .user-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .permissions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .permission-tag {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Test Client</h1>
+    
+    <div id="authStatus" class="status unauthenticated">
+        Not authenticated
+    </div>
+
+    <div class="container">
+        <!-- Registration Panel -->
+        <div class="panel">
+            <h3>User Registration</h3>
+            <div class="form-group">
+                <input type="email" id="regEmail" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="regPassword" placeholder="Password (min 8 chars)" required>
+            </div>
+            <div class="form-row">
+                <input type="text" id="regFirstName" placeholder="First Name" required>
+                <input type="text" id="regLastName" placeholder="Last Name" required>
+            </div>
+            <div class="form-group">
+                <input type="text" id="regDisplayName" placeholder="Display Name (optional)">
+            </div>
+            <div class="form-group">
+                <select id="regRole">
+                    <option value="USER">User</option>
+                    <option value="ADMIN">Admin (if allowed)</option>
+                </select>
+            </div>
+            <button id="registerBtn">Register</button>
+        </div>
+
+        <!-- Login Panel -->
+        <div class="panel">
+            <h3>User Login</h3>
+            <div class="form-group">
+                <input type="email" id="loginEmail" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="loginPassword" placeholder="Password" required>
+            </div>
+            <div class="form-group">
+                <input type="text" id="loginClientId" placeholder="Client ID (optional)">
+            </div>
+            <button id="loginBtn">Login</button>
+            <button id="logoutBtn" disabled>Logout</button>
+        </div>
+
+        <!-- User Profile Panel -->
+        <div class="panel">
+            <h3>User Profile</h3>
+            <div id="userInfo" class="user-info" style="display: none;">
+                <h4>Current User</h4>
+                <div id="userDetails"></div>
+            </div>
+            
+            <h4>Update Profile</h4>
+            <div class="form-row">
+                <input type="text" id="profileFirstName" placeholder="First Name">
+                <input type="text" id="profileLastName" placeholder="Last Name">
+            </div>
+            <div class="form-group">
+                <input type="text" id="profileDisplayName" placeholder="Display Name">
+            </div>
+            <div class="form-row">
+                <input type="text" id="profileTimezone" placeholder="Timezone (e.g., UTC)">
+                <input type="text" id="profileLocale" placeholder="Locale (e.g., en)">
+            </div>
+            <button id="updateProfileBtn" disabled>Update Profile</button>
+        </div>
+
+        <!-- Token & Permissions Panel -->
+        <div class="panel">
+            <h3>Tokens & Permissions</h3>
+            
+            <h4>Access Token</h4>
+            <div id="accessToken" class="token-display">No token</div>
+            
+            <h4>User Permissions</h4>
+            <div id="permissions" class="permissions-list">
+                <div>Not loaded</div>
+            </div>
+            
+            <button id="refreshTokenBtn" disabled>Refresh Token</button>
+            <button id="verifyTokenBtn" disabled>Verify Token</button>
+            <button id="getPermissionsBtn" disabled>Get Permissions</button>
+        </div>
+
+        <!-- Password Change Panel -->
+        <div class="panel full-width">
+            <h3>Change Password</h3>
+            <div class="form-row">
+                <input type="password" id="currentPassword" placeholder="Current Password">
+                <input type="password" id="newPassword" placeholder="New Password (min 8 chars)">
+            </div>
+            <button id="changePasswordBtn" disabled>Change Password</button>
+        </div>
+
+        <!-- Admin Functions Panel -->
+        <div class="panel full-width">
+            <h3>Admin Functions</h3>
+            <div class="form-row">
+                <input type="email" id="adminCreateEmail" placeholder="User Email">
+                <input type="password" id="adminCreatePassword" placeholder="Password">
+            </div>
+            <div class="form-row">
+                <input type="text" id="adminCreateFirstName" placeholder="First Name">
+                <input type="text" id="adminCreateLastName" placeholder="Last Name">
+            </div>
+            <div class="form-row">
+                <select id="adminCreateRole">
+                    <option value="USER">User</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                </select>
+                <input type="text" id="adminCreateClientId" placeholder="Client ID (optional)">
+            </div>
+            <button id="adminCreateUserBtn" disabled>Create User (Admin Only)</button>
+        </div>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="panel full-width">
+        <h3>Activity Log</h3>
+        <div id="authLog" class="log"></div>
+        <button id="clearLogBtn">Clear Log</button>
+    </div>
+
+    <script>
+        class AuthTestClient {
+            constructor() {
+                this.baseUrl = window.location.origin;
+                this.accessToken = localStorage.getItem('accessToken');
+                this.currentUser = null;
+                
+                this.initializeUI();
+                this.updateAuthStatus();
+                
+                // Auto-load user if token exists
+                if (this.accessToken) {
+                    this.getCurrentUser();
+                }
+            }
+
+            initializeUI() {
+                // Registration
+                document.getElementById('registerBtn').onclick = () => this.register();
+                
+                // Login/Logout
+                document.getElementById('loginBtn').onclick = () => this.login();
+                document.getElementById('logoutBtn').onclick = () => this.logout();
+                
+                // Profile management
+                document.getElementById('updateProfileBtn').onclick = () => this.updateProfile();
+                document.getElementById('changePasswordBtn').onclick = () => this.changePassword();
+                
+                // Token management
+                document.getElementById('refreshTokenBtn').onclick = () => this.refreshToken();
+                document.getElementById('verifyTokenBtn').onclick = () => this.verifyToken();
+                document.getElementById('getPermissionsBtn').onclick = () => this.getPermissions();
+                
+                // Admin functions
+                document.getElementById('adminCreateUserBtn').onclick = () => this.adminCreateUser();
+                
+                // Utilities
+                document.getElementById('clearLogBtn').onclick = () => this.clearLog();
+                
+                // Auto-fill demo data
+                this.fillDemoData();
+            }
+
+            fillDemoData() {
+                // Registration form
+                document.getElementById('regEmail').value = 'john.test@example.com';
+                document.getElementById('regPassword').value = 'password123';
+                document.getElementById('regFirstName').value = 'John';
+                document.getElementById('regLastName').value = 'Test';
+                document.getElementById('regDisplayName').value = 'John Test';
+                
+                // Login form
+                document.getElementById('loginEmail').value = 'admin@videoconf.local';
+                document.getElementById('loginPassword').value = 'admin123';
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logElement = document.getElementById('authLog');
+                const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#fff';
+                logElement.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+                logElement.scrollTop = logElement.scrollHeight;
+                console.log(`[Auth Test] ${message}`);
+            }
+
+            clearLog() {
+                document.getElementById('authLog').innerHTML = '';
+            }
+
+            async apiCall(endpoint, options = {}) {
+                try {
+                    const url = `${this.baseUrl}/api/auth${endpoint}`;
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        ...(this.accessToken && { 'Authorization': `Bearer ${this.accessToken}` }),
+                        ...options.headers
+                    };
+
+                    this.log(`🔗 ${options.method || 'GET'} ${endpoint}`);
+
+                    const response = await fetch(url, {
+                        ...options,
+                        headers,
+                        credentials: 'include' // Important for cookies
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.message || data.error || 'Request failed');
+                    }
+
+                    return data;
+                } catch (error) {
+                    this.log(`❌ Error: ${error.message}`, 'error');
+                    throw error;
+                }
+            }
+
+            updateAuthStatus() {
+                const statusEl = document.getElementById('authStatus');
+                const isAuth = !!this.accessToken && !!this.currentUser;
+                
+                if (isAuth) {
+                    statusEl.textContent = `Authenticated as ${this.currentUser.email} (${this.currentUser.role})`;
+                    statusEl.className = 'status authenticated';
+                } else {
+                    statusEl.textContent = 'Not authenticated';
+                    statusEl.className = 'status unauthenticated';
+                }
+
+                // Enable/disable buttons
+                const authRequiredButtons = [
+                    'logoutBtn', 'updateProfileBtn', 'changePasswordBtn',
+                    'refreshTokenBtn', 'verifyTokenBtn', 'getPermissionsBtn'
+                ];
+                
+                authRequiredButtons.forEach(id => {
+                    document.getElementById(id).disabled = !isAuth;
+                });
+
+                // Admin buttons
+                const isAdmin = isAuth && ['ADMIN', 'SUPER_ADMIN'].includes(this.currentUser?.role);
+                document.getElementById('adminCreateUserBtn').disabled = !isAdmin;
+
+                // Update token display
+                document.getElementById('accessToken').textContent = 
+                    this.accessToken || 'No token';
+            }
+
+            async register() {
+                try {
+                    const data = {
+                        email: document.getElementById('regEmail').value,
+                        password: document.getElementById('regPassword').value,
+                        firstName: document.getElementById('regFirstName').value,
+                        lastName: document.getElementById('regLastName').value,
+                        displayName: document.getElementById('regDisplayName').value,
+                        role: document.getElementById('regRole').value
+                    };
+
+                    const result = await this.apiCall('/register', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.accessToken = result.accessToken;
+                    this.currentUser = result.user;
+                    localStorage.setItem('accessToken', this.accessToken);
+
+                    this.log(`✅ Registration successful: ${result.user.email}`, 'success');
+                    this.updateAuthStatus();
+                    this.displayUserInfo();
+
+                } catch (error) {
+                    this.log(`❌ Registration failed: ${error.message}`, 'error');
+                }
+            }
+
+            async login() {
+                try {
+                    const data = {
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value,
+                        clientId: document.getElementById('loginClientId').value || undefined
+                    };
+
+                    const result = await this.apiCall('/login', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.accessToken = result.accessToken;
+                    this.currentUser = result.user;
+                    localStorage.setItem('accessToken', this.accessToken);
+
+                    this.log(`✅ Login successful: ${result.user.email}`, 'success');
+                    this.updateAuthStatus();
+                    this.displayUserInfo();
+
+                } catch (error) {
+                    this.log(`❌ Login failed: ${error.message}`, 'error');
+                }
+            }
+
+            async logout() {
+                try {
+                    await this.apiCall('/logout', { method: 'POST' });
+
+                    this.accessToken = null;
+                    this.currentUser = null;
+                    localStorage.removeItem('accessToken');
+
+                    this.log('✅ Logout successful', 'success');
+                    this.updateAuthStatus();
+                    this.clearUserInfo();
+
+                } catch (error) {
+                    this.log(`❌ Logout failed: ${error.message}`, 'error');
+                }
+            }
+
+            async getCurrentUser() {
+                try {
+                    const result = await this.apiCall('/me');
+                    this.currentUser = result.user;
+                    this.log(`✅ User profile loaded: ${result.user.email}`, 'success');
+                    this.updateAuthStatus();
+                    this.displayUserInfo();
+                } catch (error) {
+                    this.log(`❌ Failed to get user: ${error.message}`, 'error');
+                    // Clear invalid token
+                    this.accessToken = null;
+                    localStorage.removeItem('accessToken');
+                    this.updateAuthStatus();
+                }
+            }
+
+            async updateProfile() {
+                try {
+                    const data = {
+                        firstName: document.getElementById('profileFirstName').value || undefined,
+                        lastName: document.getElementById('profileLastName').value || undefined,
+                        displayName: document.getElementById('profileDisplayName').value || undefined,
+                        timezone: document.getElementById('profileTimezone').value || undefined,
+                        locale: document.getElementById('profileLocale').value || undefined
+                    };
+
+                    const result = await this.apiCall('/profile', {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.currentUser = result.user;
+                    this.log('✅ Profile updated successfully', 'success');
+                    this.displayUserInfo();
+
+                } catch (error) {
+                    this.log(`❌ Profile update failed: ${error.message}`, 'error');
+                }
+            }
+
+            async changePassword() {
+                try {
+                    const data = {
+                        currentPassword: document.getElementById('currentPassword').value,
+                        newPassword: document.getElementById('newPassword').value
+                    };
+
+                    await this.apiCall('/password', {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.log('✅ Password changed successfully. Please login again.', 'success');
+                    
+                    // Clear form
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    
+                    // Auto logout
+                    this.logout();
+
+                } catch (error) {
+                    this.log(`❌ Password change failed: ${error.message}`, 'error');
+                }
+            }
+
+            async refreshToken() {
+                try {
+                    const result = await this.apiCall('/refresh', { method: 'POST' });
+                    
+                    this.accessToken = result.accessToken;
+                    localStorage.setItem('accessToken', this.accessToken);
+                    
+                    this.log('✅ Token refreshed successfully', 'success');
+                    this.updateAuthStatus();
+
+                } catch (error) {
+                    this.log(`❌ Token refresh failed: ${error.message}`, 'error');
+                }
+            }
+
+            async verifyToken() {
+                try {
+                    const result = await this.apiCall('/verify');
+                    this.log(`✅ Token is valid. User: ${result.user.email} (${result.user.role})`, 'success');
+                } catch (error) {
+                    this.log(`❌ Token verification failed: ${error.message}`, 'error');
+                }
+            }
+
+            async getPermissions() {
+                try {
+                    const result = await this.apiCall('/permissions');
+                    
+                    const permissionsEl = document.getElementById('permissions');
+                    permissionsEl.innerHTML = '';
+                    
+                    result.permissions.forEach(permission => {
+                        const tag = document.createElement('span');
+                        tag.className = 'permission-tag';
+                        tag.textContent = permission;
+                        permissionsEl.appendChild(tag);
+                    });
+
+                    this.log(`✅ Permissions loaded: ${result.permissions.length} permissions`, 'success');
+
+                } catch (error) {
+                    this.log(`❌ Failed to get permissions: ${error.message}`, 'error');
+                }
+            }
+
+            async adminCreateUser() {
+                try {
+                    const data = {
+                        email: document.getElementById('adminCreateEmail').value,
+                        password: document.getElementById('adminCreatePassword').value,
+                        firstName: document.getElementById('adminCreateFirstName').value,
+                        lastName: document.getElementById('adminCreateLastName').value,
+                        role: document.getElementById('adminCreateRole').value,
+                        clientId: document.getElementById('adminCreateClientId').value || undefined
+                    };
+
+                    const result = await this.apiCall('/admin/create-user', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.log(`✅ Admin created user: ${result.user.email} (${result.user.role})`, 'success');
+
+                } catch (error) {
+                    this.log(`❌ Admin create user failed: ${error.message}`, 'error');
+                }
+            }
+
+            displayUserInfo() {
+                if (!this.currentUser) return;
+
+                const userInfoEl = document.getElementById('userInfo');
+                const userDetailsEl = document.getElementById('userDetails');
+                
+                userDetailsEl.innerHTML = `
+                    <p><strong>ID:</strong> ${this.currentUser.id}</p>
+                    <p><strong>Email:</strong> ${this.currentUser.email}</p>
+                    <p><strong>Name:</strong> ${this.currentUser.displayName}</p>
+                    <p><strong>Role:</strong> ${this.currentUser.role}</p>
+                    <p><strong>Client:</strong> ${this.currentUser.client.name}</p>
+                    <p><strong>Last Login:</strong> ${this.currentUser.lastLoginAt ? new Date(this.currentUser.lastLoginAt).toLocaleString() : 'Never'}</p>
+                `;
+                
+                userInfoEl.style.display = 'block';
+                
+                // Pre-fill profile form
+                document.getElementById('profileFirstName').value = this.currentUser.firstName || '';
+                document.getElementById('profileLastName').value = this.currentUser.lastName || '';
+                document.getElementById('profileDisplayName').value = this.currentUser.displayName || '';
+                document.getElementById('profileTimezone').value = this.currentUser.timezone || '';
+                document.getElementById('profileLocale').value = this.currentUser.locale || '';
+            }
+
+            clearUserInfo() {
+                document.getElementById('userInfo').style.display = 'none';
+                document.getElementById('permissions').innerHTML = '<div>Not loaded</div>';
+            }
+        }
+
+        // Initialize the test client
+        const authClient = new AuthTestClient();
+        
+        // Log initial state
+        authClient.log('🚀 Authentication test client initialized');
+    </script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  USER
+  GUEST
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum MeetingType {
+  INSTANT
+  SCHEDULED
+  RECURRING
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum InvitationType {
+  USER
+  GROUP
+  BULK
+}
+
+enum RecordingStatus {
+  RECORDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ChatMessageType {
+  TEXT
+  FILE
+  SYSTEM
+  EMOJI_REACTION
+}
+
+enum NotificationType {
+  MEETING_INVITATION
+  MEETING_REMINDER
+  MEETING_STARTED
+  MEETING_ENDED
+  USER_JOINED
+  USER_LEFT
+  CHAT_MESSAGE
+  SYSTEM_ALERT
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
+// Core Models
+model Client {
+  id              String    @id @default(cuid())
+  name            String
+  domain          String?   @unique
+  logo            String?
+  settings        Json?     // Client-specific settings
+  features        Json?     // Enabled features for this client
+  isActive        Boolean   @default(true)
+  maxUsers        Int       @default(100)
+  maxMeetingDuration Int?   // in minutes
+  storageQuota    Int?      // in MB
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relationships
+  users           User[]
+  meetings        Meeting[]
+  rooms           Room[]
+  groups          Group[]
+  invitations     Invitation[]
+  recordings      Recording[]
+  analytics       UserAnalytics[]
+  emailLogs       EmailLog[]
+
+  @@map("clients")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  firstName       String
+  lastName        String
+  displayName     String?
+  avatar          String?
+  role            UserRole  @default(USER)
+  isActive        Boolean   @default(true)
+  isEmailVerified Boolean   @default(false)
+  passwordHash    String?   // nullable for OAuth users
+  lastLoginAt     DateTime?
+  timezone        String    @default("UTC")
+  locale          String    @default("en")
+  preferences     Json?     // User preferences (notifications, UI settings, etc.)
+  tokenVersion    Int       @default(0) // For JWT refresh token invalidation
+  
+  // Client relationship
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relationships
+  createdMeetings Meeting[] @relation("MeetingCreator")
+  meetingParticipants MeetingParticipant[]
+  chatMessages    ChatMessage[]
+  recordings      Recording[] @relation("RecordingOwner")
+  sentInvitations Invitation[] @relation("InvitationSender")
+  receivedInvitations Invitation[] @relation("InvitationReceiver")
+  groupMemberships GroupMember[]
+  userAnalytics   UserAnalytics[]
+  notifications   Notification[]
+  emailLogs       EmailLog[] @relation("EmailLogUser")
+  meetingReactions MeetingReaction[]
+  meetingInteractions MeetingInteraction[]
+
+  @@map("users")
+  @@index([email])
+  @@index([clientId])
+  @@index([role])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  settings    Json?    // Group-specific settings
+  
+  // Client relationship
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  members     GroupMember[]
+  invitations Invitation[]
+
+  @@map("groups")
+  @@index([clientId])
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  userId   String
+  groupId  String
+  role     String   @default("member") // member, admin, moderator
+  joinedAt DateTime @default(now())
+
+  // Relationships
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+model Meeting {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  meetingType     MeetingType   @default(INSTANT)
+  status          MeetingStatus @default(SCHEDULED)
+  roomId          String?       @unique // One-to-one with Room when active
+  
+  // Scheduling
+  scheduledStartTime DateTime?
+  scheduledEndTime   DateTime?
+  startTime          DateTime?   // Actual start time (also used as scheduled start for compatibility)
+  endTime            DateTime?   // Actual end time (also used as scheduled end for compatibility)
+  actualStartTime    DateTime?   // For detailed tracking
+  actualEndTime      DateTime?   // For detailed tracking
+  duration           Int?        // duration in minutes
+  
+  // Meeting settings
+  maxParticipants    Int         @default(50)
+  isRecordingEnabled Boolean     @default(false)
+  isWaitingRoomEnabled Boolean   @default(false)
+  requiresApproval   Boolean     @default(false)
+  allowScreenShare   Boolean     @default(true)
+  allowChat          Boolean     @default(true)
+  isPublic           Boolean     @default(false)
+  meetingPassword    String?
+  
+  // URLs and integrations
+  meetingUrl         String?     // Join URL for the meeting
+  joinUrl            String?     // Alternative join URL
+  calendarEventId    String?     // Google Calendar event ID
+  timezone           String      @default("UTC")
+  
+  // Additional fields for compatibility
+  recurrenceRule     String?      // RRULE string for recurring meetings
+  
+  // Recurring meetings
+  recurrencePattern  Json?       // RRULE or custom pattern
+  parentMeetingId    String?
+  parentMeeting      Meeting?    @relation("RecurringMeetings", fields: [parentMeetingId], references: [id])
+  childMeetings      Meeting[]   @relation("RecurringMeetings")
+  
+  // Relationships
+  createdBy       String
+  creator         User         @relation("MeetingCreator", fields: [createdBy], references: [id])
+  clientId        String
+  client          Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relationships
+  room            Room?        @relation(fields: [roomId], references: [id])
+  participants    MeetingParticipant[]
+  chatMessages    ChatMessage[]
+  recordings      Recording[]
+  invitations     Invitation[]
+  analytics       MeetingAnalytics[]
+  reactions       MeetingReaction[]
+  interactions    MeetingInteraction[]
+
+  @@map("meetings")
+  @@index([createdBy])
+  @@index([clientId])
+  @@index([status])
+  @@index([scheduledStartTime])
+}
+
+model Room {
+  id              String   @id @default(cuid())
+  name            String
+  isActive        Boolean  @default(true)
+  maxParticipants Int      @default(50)
+  currentParticipants Int @default(0)
+  
+  // Room state
+  isLocked        Boolean  @default(false)
+  isRecording     Boolean  @default(false)
+  screenShareUserId String? // User currently sharing screen
+  
+  // Client relationship
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  meeting         Meeting?
+  participants    MeetingParticipant[]
+  chatMessages    ChatMessage[]
+
+  @@map("rooms")
+  @@index([clientId])
+  @@index([isActive])
+}
+
+model MeetingParticipant {
+  id              String    @id @default(cuid())
+  userId          String
+  meetingId       String
+  roomId          String?
+  
+  // Participant state
+  isPresent       Boolean   @default(false)
+  joinedAt        DateTime?
+  leftAt          DateTime?
+  duration        Int?      // participation duration in minutes
+  
+  // Media state
+  isAudioMuted    Boolean   @default(false)
+  isVideoMuted    Boolean   @default(false)
+  isScreenSharing Boolean   @default(false)
+  
+  // Permissions
+  canShare        Boolean   @default(true)
+  canChat         Boolean   @default(true)
+  isModerator     Boolean   @default(false)
+  
+  // Connection quality metrics
+  connectionQuality String? // poor, fair, good, excellent
+  lastPingAt      DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relationships
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meeting         Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  room            Room?     @relation(fields: [roomId], references: [id])
+
+  @@unique([userId, meetingId])
+  @@map("meeting_participants")
+  @@index([meetingId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id          String          @id @default(cuid())
+  content     String
+  messageType ChatMessageType @default(TEXT)
+  
+  // File attachments
+  fileName    String?
+  fileUrl     String?
+  fileSize    Int?
+  
+  // Reactions and metadata
+  reactions   Json?           // emoji reactions with user counts
+  isEdited    Boolean         @default(false)
+  editedAt    DateTime?
+  
+  // Relationships
+  userId      String
+  meetingId   String
+  roomId      String?
+  
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meeting     Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  room        Room?           @relation(fields: [roomId], references: [id])
+  
+  // Reply functionality
+  replyToId   String?
+  replyTo     ChatMessage?    @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies     ChatMessage[]   @relation("MessageReplies")
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("chat_messages")
+  @@index([meetingId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Recording {
+  id              String          @id @default(cuid())
+  title           String
+  fileName        String
+  filePath        String
+  fileUrl         String?         // CDN or storage URL
+  fileSize        Int?            // in bytes
+  duration        Int?            // in seconds
+  format          String          @default("mp4")
+  quality         String          @default("720p")
+  
+  status          RecordingStatus @default(RECORDING)
+  thumbnailUrl    String?
+  
+  // Recording metadata
+  startedAt       DateTime
+  endedAt         DateTime?
+  processedAt     DateTime?
+  
+  // Access control
+  isPublic        Boolean         @default(false)
+  password        String?
+  downloadCount   Int             @default(0)
+  viewCount       Int             @default(0)
+  
+  // Relationships
+  meetingId       String
+  ownerId         String          // User who initiated recording
+  clientId        String
+  
+  meeting         Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  owner           User            @relation("RecordingOwner", fields: [ownerId], references: [id])
+  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@map("recordings")
+  @@index([meetingId])
+  @@index([ownerId])
+  @@index([clientId])
+}
+
+model Invitation {
+  id              String           @id @default(cuid())
+  email           String
+  firstName       String?
+  lastName        String?
+  invitationType  InvitationType   @default(USER)
+  status          InvitationStatus @default(PENDING)
+  
+  // Invitation details
+  token           String           @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  
+  // Meeting invitation specific
+  meetingId       String?
+  meetingRole     String?          // participant, moderator
+  
+  // Group invitation specific
+  groupId         String?
+  groupRole       String?          // member, admin
+  
+  // Bulk invitation metadata
+  batchId         String?          // For bulk invitations
+  customMessage   String?
+  
+  // Relationships
+  senderId        String
+  receiverId      String?          // null for new users
+  clientId        String
+  
+  sender          User             @relation("InvitationSender", fields: [senderId], references: [id])
+  receiver        User?            @relation("InvitationReceiver", fields: [receiverId], references: [id])
+  client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  meeting         Meeting?         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  group           Group?           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("invitations")
+  @@index([token])
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model Notification {
+  id              String             @id @default(cuid())
+  title           String
+  message         String
+  notificationType NotificationType
+  
+  // Notification state
+  isRead          Boolean            @default(false)
+  readAt          DateTime?
+  
+  // Related entities
+  relatedEntityId String?            // ID of meeting, user, etc.
+  relatedEntityType String?          // meeting, user, etc.
+  
+  // Action data
+  actionUrl       String?
+  actionData      Json?
+  
+  // Relationships
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@map("notifications")
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// Analytics and Reporting Models
+model UserAnalytics {
+  id              String   @id @default(cuid())
+  
+  // Time period
+  date            DateTime
+  period          String   @default("daily") // daily, weekly, monthly
+  
+  // Usage metrics
+  meetingsCreated Int      @default(0)
+  meetingsJoined  Int      @default(0)
+  totalMeetingDuration Int @default(0) // in minutes
+  messagesSet     Int      @default(0)
+  screenSharesCount Int    @default(0)
+  
+  // Engagement metrics
+  averageJoinTime Int      @default(0) // seconds from meeting start
+  connectionQualityAvg String? // poor, fair, good, excellent
+  
+  // Relationships
+  userId          String
+  clientId        String
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, period])
+  @@map("user_analytics")
+  @@index([date])
+  @@index([userId])
+}
+
+model MeetingAnalytics {
+  id                    String   @id @default(cuid())
+  
+  // Meeting metrics
+  actualDuration        Int      // in minutes
+  maxConcurrentUsers    Int      @default(0)
+  totalParticipants     Int      @default(0)
+  totalMessages         Int      @default(0)
+  screenSharesCount     Int      @default(0)
+  recordingDuration     Int?     // in minutes
+  
+  // Quality metrics
+  averageConnectionQuality String? // poor, fair, good, excellent
+  dropoutRate           Float    @default(0) // percentage
+  
+  // Engagement metrics
+  averageParticipationTime Int   @default(0) // in minutes
+  peakParticipants      Int      @default(0)
+  
+  // Technical metrics
+  bandwidthUsed         Int?     // in MB
+  serverLoad            Float?   // percentage
+  
+  // Relationships
+  meetingId             String   @unique
+  meeting               Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime @default(now())
+
+  @@map("meeting_analytics")
+  @@index([meetingId])
+}
+
+// Email system models
+model EmailLog {
+  id           String         @id @default(cuid())
+  to           String         // JSON array of recipient emails
+  cc           String?        // JSON array of CC emails
+  bcc          String?        // JSON array of BCC emails
+  subject      String
+  template     String?        // Template name used
+  status       EmailStatus    @default(PENDING)
+  sentAt       DateTime?
+  failedAt     DateTime?
+  errorMessage String?
+  messageId    String?        // Email service message ID
+  
+  // Relationships
+  clientId     String
+  userId       String?        // User who triggered the email
+  
+  client       Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user         User?          @relation("EmailLogUser", fields: [userId], references: [id])
+  
+  // Metadata for tracking and analytics
+  metadata     String?        // JSON metadata
+  tags         String?        // JSON array of tags
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@map("email_logs")
+  @@index([clientId])
+  @@index([userId])
+  @@index([status])
+  @@index([template])
+  @@index([createdAt])
+}
+
+// Real-time interactions and reactions models
+model MeetingReaction {
+  id        String   @id @default(cuid())
+  meetingId String
+  userId    String
+  emoji     String
+  timestamp DateTime @default(now())
+  
+  // Relationships
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("meeting_reactions")
+  @@index([meetingId])
+  @@index([userId])
+  @@index([timestamp])
+}
+
+enum InteractionType {
+  HAND_RAISED
+  HAND_LOWERED
+  SPEAKING_STARTED
+  SPEAKING_STOPPED
+  STATUS_CHANGED
+  PERMISSION_REQUESTED
+  PERMISSION_GRANTED
+  PERMISSION_DENIED
+}
+
+model MeetingInteraction {
+  id           String          @id @default(cuid())
+  meetingId    String
+  userId       String
+  type         InteractionType
+  data         Json?           // Additional data for the interaction
+  timestamp    DateTime        @default(now())
+  
+  // Relationships
+  meeting      Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("meeting_interactions")
+  @@index([meetingId])
+  @@index([userId])
+  @@index([type])
+  @@index([timestamp])
+}

@@ -2,7 +2,7 @@ import userAnalyticsService from './UserAnalyticsService';
 
 class MeetingAccessService {
   constructor() {
-    this.baseURL = '/api/meetings';
+    this.baseURL = `${import.meta.env.VITE_API_BASE_URL}/api/meetings`;
   }
 
   /**
@@ -392,11 +392,16 @@ class MeetingAccessService {
   }
 
   /**
-   * Gets authentication token from storage
+   * Gets authentication token from auth store
    * @returns {string|null}
    */
   getToken() {
-    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    try {
+      const { default: useAuthStore } = require('../stores/authStore');
+      return useAuthStore.getState().accessToken;
+    } catch {
+      return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    }
   }
 
   /**

@@ -110,7 +110,7 @@ const useUserStore = create(
         set({ isProfileUpdating: true, profileError: null });
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/profile`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/profile`, {
             method: 'PUT',
             headers: get().getAuthHeaders(),
             body: JSON.stringify(profileData),
@@ -119,7 +119,7 @@ const useUserStore = create(
           const result = await response.json();
           
           if (response.ok && result.success) {
-            set({ profile: result.data });
+            set({ profile: result.user || result.data });
             return { success: true };
           } else {
             set({ profileError: result.error || 'Failed to update profile' });
@@ -137,7 +137,7 @@ const useUserStore = create(
       // Preferences management
       updatePreferences: async (preferences) => {
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/preferences`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/preferences`, {
             method: 'PUT',
             headers: get().getAuthHeaders(),
             body: JSON.stringify(preferences),
@@ -163,14 +163,14 @@ const useUserStore = create(
         set({ isDashboardLoading: true, dashboardError: null });
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/dashboard`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/dashboard`, {
             headers: get().getAuthHeaders(),
           });
           
           const result = await response.json();
           
           if (response.ok && result.success) {
-            set({ dashboardData: result.data });
+            set({ dashboardData: result.dashboard || result.data });
             return { success: true };
           } else {
             set({ dashboardError: result.error || 'Failed to fetch dashboard data' });
@@ -190,14 +190,14 @@ const useUserStore = create(
         set({ isAnalyticsLoading: true, analyticsError: null });
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/analytics?timeframe=${timeframe}`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/analytics?timeframe=${timeframe}`, {
             headers: get().getAuthHeaders(),
           });
           
           const result = await response.json();
           
           if (response.ok && result.success) {
-            set({ analytics: result.data });
+            set({ analytics: result.analytics || result.data });
             return { success: true };
           } else {
             set({ analyticsError: result.error || 'Failed to fetch analytics' });
@@ -223,21 +223,22 @@ const useUserStore = create(
             ...filters
           });
           
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/meeting-history?${queryParams}`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/meetings/history?${queryParams}`, {
             headers: get().getAuthHeaders(),
           });
           
           const result = await response.json();
           
           if (response.ok && result.success) {
+            const meetings = result.meetings || result.data?.meetings || [];
             if (page === 1) {
-              set({ meetingHistory: result.data.meetings });
+              set({ meetingHistory: meetings });
             } else {
               set((state) => ({
-                meetingHistory: [...state.meetingHistory, ...result.data.meetings]
+                meetingHistory: [...state.meetingHistory, ...meetings]
               }));
             }
-            return { success: true, hasMore: result.data.hasMore };
+            return { success: true, hasMore: result.hasMore || result.data?.hasMore || false };
           } else {
             set({ historyError: result.error || 'Failed to fetch meeting history' });
             return { success: false, error: result.error };

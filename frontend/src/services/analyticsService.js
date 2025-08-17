@@ -54,6 +54,16 @@ class AnalyticsService {
     }
   }
 
+  timeframeToDays(timeframe) {
+    const timeframeDays = {
+      'week': 7,
+      'month': 30,
+      'quarter': 90,
+      'year': 365
+    };
+    return timeframeDays[timeframe] || 30;
+  }
+
   // ===========================================
   // Cache Management
   // ===========================================
@@ -224,14 +234,14 @@ class AnalyticsService {
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/users/analytics?timeframe=${timeframe}`, {
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/usage?days=${this.timeframeToDays(timeframe)}`, {
         headers: this.getAuthHeaders(),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformUserAnalytics(result.data);
+        const transformedData = this.transformUserAnalytics(result.analytics);
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
@@ -256,14 +266,14 @@ class AnalyticsService {
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/users/analytics/participation-trends?timeframe=${timeframe}&metric=${metric}`, {
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/meetings?period=${timeframe}&days=${this.timeframeToDays(timeframe)}`, {
         headers: this.getAuthHeaders(),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformTrendsData(result.data);
+        const transformedData = this.transformTrendsData(result.analytics);
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
@@ -288,14 +298,14 @@ class AnalyticsService {
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/users/analytics/meeting-stats?timeframe=${timeframe}&breakdown=${breakdown}`, {
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/meetings?period=${breakdown}&days=${this.timeframeToDays(timeframe)}`, {
         headers: this.getAuthHeaders(),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformMeetingStats(result.data);
+        const transformedData = this.transformMeetingStats(result.analytics);
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
@@ -320,14 +330,14 @@ class AnalyticsService {
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/users/analytics/engagement?timeframe=${timeframe}`, {
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/overview`, {
         headers: this.getAuthHeaders(),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformEngagementMetrics(result.data);
+        const transformedData = this.transformEngagementMetrics(result.analytics);
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
@@ -359,14 +369,14 @@ class AnalyticsService {
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/admin/analytics/system?timeframe=${timeframe}`, {
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/dashboard?days=${this.timeframeToDays(timeframe)}`, {
         headers: this.getAuthHeaders(),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformSystemAnalytics(result.data);
+        const transformedData = this.transformSystemAnalytics(result.dashboard);
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
@@ -391,14 +401,14 @@ class AnalyticsService {
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/admin/analytics/user-engagement?timeframe=${timeframe}&group_by=${groupBy}`, {
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/users?period=${timeframe}&months=${Math.ceil(this.timeframeToDays(timeframe)/30)}`, {
         headers: this.getAuthHeaders(),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformUserEngagementReport(result.data);
+        const transformedData = this.transformUserEngagementReport(result.analytics);
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
@@ -423,14 +433,14 @@ class AnalyticsService {
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/admin/analytics/meeting-utilization?timeframe=${timeframe}`, {
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/performance?hours=${this.timeframeToDays(timeframe) * 24}`, {
         headers: this.getAuthHeaders(),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformMeetingUtilization(result.data);
+        const transformedData = this.transformMeetingUtilization(result.performance);
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
@@ -718,15 +728,9 @@ class AnalyticsService {
   
   async exportAnalyticsData(type = 'user', format = 'csv', timeframe = 'month') {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/analytics/export`, {
-        method: 'POST',
+      const response = await fetch(`${this.apiBaseUrl}/api/analytics/export?type=${type}&format=${format}&days=${this.timeframeToDays(timeframe)}`, {
+        method: 'GET',
         headers: this.getAuthHeaders(),
-        body: JSON.stringify({
-          type,
-          format,
-          timeframe,
-          timestamp: Date.now()
-        }),
       });
 
       if (response.ok) {

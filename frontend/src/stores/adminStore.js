@@ -97,14 +97,14 @@ const useAdminStore = create((set, get) => ({
     set({ isDashboardLoading: true, dashboardError: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/dashboard/overview`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/dashboard`, {
         headers: get().getAuthHeaders(),
       });
       
       const result = await response.json();
       
       if (response.ok && result.success) {
-        get().setDashboardData({ overview: result.data });
+        get().setDashboardData({ overview: result.dashboard || result.data });
         return { success: true };
       } else {
         set({ dashboardError: result.error || 'Failed to fetch dashboard overview' });
@@ -121,14 +121,14 @@ const useAdminStore = create((set, get) => ({
   
   fetchMeetingStats: async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/dashboard/meeting-stats`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/meetings/stats`, {
         headers: get().getAuthHeaders(),
       });
       
       const result = await response.json();
       
       if (response.ok && result.success) {
-        get().setDashboardData({ meetingStats: result.data });
+        get().setDashboardData({ meetingStats: result.stats || result.data });
         return { success: true };
       } else {
         return { success: false, error: result.error };
@@ -140,14 +140,14 @@ const useAdminStore = create((set, get) => ({
   
   fetchRecentMeetings: async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/dashboard/recent-meetings`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/meetings?recent=true`, {
         headers: get().getAuthHeaders(),
       });
       
       const result = await response.json();
       
       if (response.ok && result.success) {
-        get().setDashboardData({ recentMeetings: result.data });
+        get().setDashboardData({ recentMeetings: result.meetings || result.data });
         return { success: true };
       } else {
         return { success: false, error: result.error };
@@ -159,14 +159,14 @@ const useAdminStore = create((set, get) => ({
   
   fetchUpcomingMeetings: async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/dashboard/upcoming-meetings`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/meetings?upcoming=true`, {
         headers: get().getAuthHeaders(),
       });
       
       const result = await response.json();
       
       if (response.ok && result.success) {
-        get().setDashboardData({ upcomingMeetings: result.data });
+        get().setDashboardData({ upcomingMeetings: result.meetings || result.data });
         return { success: true };
       } else {
         return { success: false, error: result.error };
@@ -181,14 +181,14 @@ const useAdminStore = create((set, get) => ({
     set({ isUsersLoading: true, usersError: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/users`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users`, {
         headers: get().getAuthHeaders(),
       });
       
       const result = await response.json();
       
       if (response.ok && result.success) {
-        set({ users: result.data });
+        set({ users: result.users || result.data });
         return { success: true };
       } else {
         set({ usersError: result.error || 'Failed to fetch users' });
@@ -207,7 +207,7 @@ const useAdminStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/users/invite`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/users/invite`, {
         method: 'POST',
         headers: get().getAuthHeaders(),
         body: JSON.stringify(invitationData),
@@ -218,9 +218,9 @@ const useAdminStore = create((set, get) => ({
       if (response.ok && result.success) {
         // Add invitation to list
         set(state => ({
-          userInvitations: [result.data, ...state.userInvitations]
+          userInvitations: [result.invitation || result.data, ...state.userInvitations]
         }));
-        return { success: true, invitation: result.data };
+        return { success: true, invitation: result.invitation || result.data };
       } else {
         set({ error: result.error || 'Failed to send invitation' });
         return { success: false, error: result.error };

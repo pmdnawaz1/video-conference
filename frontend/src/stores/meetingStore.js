@@ -92,14 +92,14 @@ const useMeetingStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/meetings`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings`, {
         headers: get().getAuthHeaders(),
       });
       
       const result = await response.json();
       
       if (response.ok && result.success) {
-        set({ meetings: result.data });
+        set({ meetings: result.meetings || [] });
         return { success: true };
       } else {
         set({ error: result.error || 'Failed to fetch meetings' });
@@ -118,7 +118,7 @@ const useMeetingStore = create((set, get) => ({
     set({ isCreating: true, error: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/meetings`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings`, {
         method: 'POST',
         headers: get().getAuthHeaders(),
         body: JSON.stringify(meetingData),
@@ -129,9 +129,9 @@ const useMeetingStore = create((set, get) => ({
       if (response.ok && result.success) {
         // Add new meeting to the list
         set((state) => ({
-          meetings: [result.data, ...state.meetings]
+          meetings: [result.meeting, ...state.meetings]
         }));
-        return { success: true, meeting: result.data };
+        return { success: true, meeting: result.meeting };
       } else {
         set({ error: result.error || 'Failed to create meeting' });
         return { success: false, error: result.error };
@@ -149,7 +149,7 @@ const useMeetingStore = create((set, get) => ({
     set({ isUpdating: true, error: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/meetings/${meetingId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/${meetingId}`, {
         method: 'PUT',
         headers: get().getAuthHeaders(),
         body: JSON.stringify(updateData),
@@ -161,11 +161,11 @@ const useMeetingStore = create((set, get) => ({
         // Update meeting in the list
         set((state) => ({
           meetings: state.meetings.map(m => 
-            m.id === meetingId ? result.data : m
+            m.id === meetingId ? result.meeting : m
           ),
-          currentMeeting: state.currentMeeting?.id === meetingId ? result.data : state.currentMeeting
+          currentMeeting: state.currentMeeting?.id === meetingId ? result.meeting : state.currentMeeting
         }));
-        return { success: true, meeting: result.data };
+        return { success: true, meeting: result.meeting };
       } else {
         set({ error: result.error || 'Failed to update meeting' });
         return { success: false, error: result.error };
@@ -183,7 +183,7 @@ const useMeetingStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/meetings/${meetingId}/start`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/${meetingId}/start`, {
         method: 'POST',
         headers: get().getAuthHeaders(),
       });
@@ -191,7 +191,7 @@ const useMeetingStore = create((set, get) => ({
       const result = await response.json();
       
       if (response.ok && result.success) {
-        return { success: true, data: result.data };
+        return { success: true, data: result.meeting };
       } else {
         set({ error: result.error || 'Failed to start meeting' });
         return { success: false, error: result.error };
@@ -209,7 +209,7 @@ const useMeetingStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/meetings/${meetingId}/end`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/${meetingId}/end`, {
         method: 'POST',
         headers: get().getAuthHeaders(),
       });
@@ -217,7 +217,7 @@ const useMeetingStore = create((set, get) => ({
       const result = await response.json();
       
       if (response.ok && result.success) {
-        return { success: true, data: result.data };
+        return { success: true, data: result.meeting };
       } else {
         set({ error: result.error || 'Failed to end meeting' });
         return { success: false, error: result.error };
@@ -235,15 +235,15 @@ const useMeetingStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/meetings/${meetingId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/${meetingId}`, {
         headers: get().getAuthHeaders(),
       });
       
       const result = await response.json();
       
       if (response.ok && result.success) {
-        set({ currentMeeting: result.data });
-        return { success: true, meeting: result.data };
+        set({ currentMeeting: result.meeting });
+        return { success: true, meeting: result.meeting };
       } else {
         set({ error: result.error || 'Failed to get meeting' });
         return { success: false, error: result.error };

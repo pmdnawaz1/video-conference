@@ -67,7 +67,7 @@ const useAuthStore = create(
         set({ isLoggingIn: true, error: null });
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/public/auth/login`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -78,8 +78,8 @@ const useAuthStore = create(
           const result = await response.json();
           
           if (response.ok && result.success) {
-            const { access_token, refresh_token, user } = result.data;
-            get().setAuth(user, access_token, refresh_token);
+            const { accessToken, user } = result;
+            get().setAuth(user, accessToken, null); // Backend doesn't return refresh token yet
             return { success: true };
           } else {
             set({ error: result.error || 'Login failed' });
@@ -98,7 +98,7 @@ const useAuthStore = create(
         set({ isRegistering: true, error: null });
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/public/auth/register`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/register`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ const useAuthStore = create(
           const result = await response.json();
           
           if (response.ok && result.success) {
-            return { success: true, user: result.data };
+            return { success: true, user: result.user };
           } else {
             set({ error: result.error || 'Registration failed' });
             return { success: false, error: result.error || 'Registration failed' };
@@ -128,19 +128,19 @@ const useAuthStore = create(
         if (!refreshToken) return false;
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/public/auth/refresh`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/refresh`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ refresh_token: refreshToken }),
+            body: JSON.stringify({ refreshToken }),
           });
           
           const result = await response.json();
           
           if (response.ok && result.success) {
-            const { access_token, refresh_token, user } = result.data;
-            get().setAuth(user, access_token, refresh_token);
+            const { accessToken } = result;
+            get().setTokens(accessToken, null); // Backend doesn't support refresh tokens yet
             return true;
           } else {
             get().logout();
@@ -159,7 +159,7 @@ const useAuthStore = create(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/profile`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ const useAuthStore = create(
           const result = await response.json();
           
           if (response.ok && result.success) {
-            set({ user: result.data });
+            set({ user: result.user });
             return { success: true };
           } else {
             set({ error: result.error || 'Profile update failed' });
@@ -193,13 +193,13 @@ const useAuthStore = create(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/password`, {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/password`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${accessToken}`,
             },
-            body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+            body: JSON.stringify({ oldPassword, newPassword }),
           });
           
           const result = await response.json();
