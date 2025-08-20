@@ -1,0 +1,123 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Your Email Address</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .container {
+        background-color: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #e5e5e5;
+      }
+      .logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2563eb;
+        margin-bottom: 10px;
+      }
+      .content {
+        margin-bottom: 30px;
+      }
+      .button {
+        display: inline-block;
+        background-color: #2563eb;
+        color: white;
+        padding: 12px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        text-align: center;
+        margin: 20px 0;
+      }
+      .button:hover {
+        background-color: #1d4ed8;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e5e5;
+        font-size: 14px;
+        color: #666;
+        text-align: center;
+      }
+      .warning {
+        background-color: #fef3c7;
+        border: 1px solid #f59e0b;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+        color: #92400e;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">{{companyName}}</div>
+        <h1>Verify Your Email Address</h1>
+      </div>
+
+      <div class="content">
+        <p>Hello {{firstName}},</p>
+
+        <p>Welcome to
+          {{companyName}}! To complete your registration and start using our
+          video conferencing platform, please verify your email address by
+          clicking the button below:</p>
+
+        <div style="text-align: center;">
+          <a href="{{verificationUrl}}" class="button">Verify Email Address</a>
+        </div>
+
+        <p>If the button above doesn't work, you can also copy and paste this
+          link into your browser:</p>
+        <p
+          style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px;"
+        >
+          {{verificationUrl}}
+        </p>
+
+        <div class="warning">
+          <strong>Important:</strong>
+          This verification link will expire on
+          {{expiresAt}}. If you don't verify your email before then, you'll need
+          to request a new verification link.
+        </div>
+
+        <p>Once your email is verified, you'll be able to:</p>
+        <ul>
+          <li>Join and create video conferences</li>
+          <li>Access all platform features</li>
+          <li>Receive important notifications</li>
+          <li>Reset your password if needed</li>
+        </ul>
+
+        <p>If you didn't create an account with us, please ignore this email.
+          Your email address will not be added to our system.</p>
+      </div>
+
+      <div class="footer">
+        <p>Need help? Contact our support team at
+          <a href="mailto:{{supportEmail}}">{{supportEmail}}</a></p>
+        <p>This is an automated email. Please do not reply to this message.</p>
+        <p>&copy; {{companyName}} - Video Conferencing Platform</p>
+      </div>
+    </div>
+  </body>
+</html>

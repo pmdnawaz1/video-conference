@@ -1,5 +1,5 @@
-import { Request } from 'express';
-import { UserRole, MeetingStatus } from '@prisma/client';
+import { Request } from "express";
+import { UserRole, MeetingStatus } from "@prisma/client";
 
 export interface AuthenticatedUser {
   id: string;
@@ -33,7 +33,7 @@ export interface SocketUser {
     isModerator: boolean;
   };
   handRaised?: boolean;
-  status?: 'online' | 'away' | 'busy';
+  status?: "online" | "away" | "busy";
 }
 
 export interface Room {
@@ -47,10 +47,23 @@ export interface Room {
 }
 
 export interface WebRTCMessage {
-  type: 'offer' | 'answer' | 'ice-candidate' | 'join-room' | 'leave-room' | 
-        'user-joined' | 'user-left' | 'screen-share-start' | 'screen-share-stop' |
-        'mute-audio' | 'unmute-audio' | 'mute-video' | 'unmute-video' |
-        'chat-message' | 'room-created' | 'room-users';
+  type:
+    | "offer"
+    | "answer"
+    | "ice-candidate"
+    | "join-room"
+    | "leave-room"
+    | "user-joined"
+    | "user-left"
+    | "screen-share-start"
+    | "screen-share-stop"
+    | "mute-audio"
+    | "unmute-audio"
+    | "mute-video"
+    | "unmute-video"
+    | "chat-message"
+    | "room-created"
+    | "room-users";
   roomId: string;
   userId: string;
   data?: any;
@@ -63,7 +76,7 @@ export interface ChatMessage {
   userName: string;
   message: string;
   timestamp: Date;
-  type: 'text' | 'file' | 'system';
+  type: "text" | "file" | "system";
 }
 
 export interface JWTPayload {
@@ -85,7 +98,7 @@ export interface EmailLog {
   bcc?: string[] | null;
   subject: string;
   template?: string | null;
-  status: 'PENDING' | 'SENT' | 'FAILED' | 'BOUNCED';
+  status: "PENDING" | "SENT" | "FAILED" | "BOUNCED";
   sentAt?: Date | null;
   failedAt?: Date | null;
   errorMessage?: string | null;

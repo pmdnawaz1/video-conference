@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import React, { useState } from "react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
 const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
-  const [emails, setEmails] = useState(['']);
+  const [emails, setEmails] = useState([""]);
   const [isLoading, setIsLoading] = useState(false);
 
   const addEmailField = () => {
-    setEmails([...emails, '']);
+    setEmails([...emails, ""]);
   };
 
   const removeEmailField = (index) => {
@@ -25,12 +25,14 @@ const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Filter out empty emails and validate
-    const validEmails = emails.filter(email => email.trim() && isValidEmail(email.trim()));
-    
+    const validEmails = emails.filter(
+      (email) => email.trim() && isValidEmail(email.trim()),
+    );
+
     if (validEmails.length === 0) {
-      alert('Please enter at least one valid email address');
+      alert("Please enter at least one valid email address");
       setIsLoading(false);
       return;
     }
@@ -38,7 +40,7 @@ const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
     try {
       await onSendInvitations(validEmails);
     } catch (error) {
-      console.error('Error sending invitations:', error);
+      console.error("Error sending invitations:", error);
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +61,8 @@ const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
         <h3 className="font-medium text-blue-900">{meeting.title}</h3>
         <p className="text-sm text-blue-700 mt-1">{meeting.description}</p>
         <p className="text-sm text-blue-600 mt-2">
-          📅 {formatDateTime(meeting.scheduled_start)} - {formatDateTime(meeting.scheduled_end)}
+          📅 {formatDateTime(meeting.scheduled_start)} -{" "}
+          {formatDateTime(meeting.scheduled_end)}
         </p>
       </div>
 
@@ -68,7 +71,7 @@ const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
           <label className="block text-sm font-medium mb-2">
             Invite People (Email Addresses)
           </label>
-          
+
           {emails.map((email, index) => (
             <div key={index} className="flex space-x-2 mb-2">
               <Input
@@ -91,7 +94,7 @@ const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
               )}
             </div>
           ))}
-          
+
           <Button
             type="button"
             variant="outline"
@@ -103,9 +106,11 @@ const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
           </Button>
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-medium text-gray-900 mb-2">What will be sent:</h4>
-          <ul className="text-sm text-gray-600 space-y-1">
+        <div className="bg-muted p-4 rounded-lg">
+          <h4 className="font-medium text-muted-foreground mb-2">
+            What will be sent:
+          </h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
             <li>✉️ Email invitation with meeting details</li>
             <li>📅 Calendar event (Google Calendar, Outlook, ICS file)</li>
             <li>🔗 Secure meeting link with invitation token</li>
@@ -119,7 +124,7 @@ const InvitationForm = ({ meeting, onSendInvitations, onCancel }) => {
             disabled={isLoading}
             className="flex-1 bg-blue-600 hover:bg-blue-700"
           >
-            {isLoading ? 'Sending Invitations...' : 'Send Invitations'}
+            {isLoading ? "Sending Invitations..." : "Send Invitations"}
           </Button>
           <Button
             type="button"

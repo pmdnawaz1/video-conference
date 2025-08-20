@@ -1,10 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import useAdminStore from '../../stores/adminStore';
-import useAuthStore from '../../stores/authStore';
-import analyticsService from '../../services/analyticsService';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import useAdminStore from "../../stores/adminStore";
+import useAuthStore from "../../stores/authStore";
+import analyticsService from "../../services/analyticsService";
+import GroupManagement from "./GroupManagement";
+import { AdminOnly } from "../auth/RoleBasedAccess";
 
 // Icons (using simple Unicode symbols for now, could be replaced with icon library)
 const Icons = {
@@ -17,7 +26,7 @@ const Icons = {
   Warning: () => <span className="text-xl">⚠️</span>,
   Success: () => <span className="text-xl">✅</span>,
   Info: () => <span className="text-xl">ℹ️</span>,
-  Error: () => <span className="text-xl">❌</span>
+  Error: () => <span className="text-xl">❌</span>,
 };
 
 const AdminDashboard = () => {
@@ -33,11 +42,11 @@ const AdminDashboard = () => {
     fetchSystemHealth,
     getUsersCount,
     getActiveUsersCount,
-    getAdminsCount
+    getAdminsCount,
   } = useAdminStore();
-  
+
   const { user } = useAuthStore();
-  const [selectedTimeframe, setSelectedTimeframe] = useState('week');
+  const [selectedTimeframe, setSelectedTimeframe] = useState("week");
   const [systemAnalytics, setSystemAnalytics] = useState(null);
   const [refreshInterval, setRefreshInterval] = useState(null);
 
@@ -50,10 +59,10 @@ const AdminDashboard = () => {
           fetchMeetingStats(),
           fetchRecentMeetings(),
           fetchUpcomingMeetings(),
-          fetchSystemHealth()
+          fetchSystemHealth(),
         ]);
       } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        console.error("Error loading dashboard data:", error);
       }
     };
 
@@ -73,12 +82,13 @@ const AdminDashboard = () => {
   useEffect(() => {
     const loadSystemAnalytics = async () => {
       try {
-        const result = await analyticsService.getSystemAnalytics(selectedTimeframe);
+        const result =
+          await analyticsService.getSystemAnalytics(selectedTimeframe);
         if (result.success) {
           setSystemAnalytics(result.data);
         }
       } catch (error) {
-        console.error('Error loading system analytics:', error);
+        console.error("Error loading system analytics:", error);
       }
     };
 
@@ -91,10 +101,10 @@ const AdminDashboard = () => {
         fetchDashboardOverview(),
         fetchMeetingStats(),
         fetchRecentMeetings(),
-        fetchUpcomingMeetings()
+        fetchUpcomingMeetings(),
       ]);
     } catch (error) {
-      console.error('Error refreshing dashboard:', error);
+      console.error("Error refreshing dashboard:", error);
     }
   };
 
@@ -102,9 +112,9 @@ const AdminDashboard = () => {
     if (!health) return null;
 
     const getHealthColor = (score) => {
-      if (score >= 90) return 'text-green-600 bg-green-100';
-      if (score >= 70) return 'text-yellow-600 bg-yellow-100';
-      return 'text-red-600 bg-red-100';
+      if (score >= 90) return "text-success bg-success/10";
+      if (score >= 70) return "text-warning bg-warning/10";
+      return "text-destructive bg-destructive/10";
     };
 
     const getHealthIcon = (score) => {
@@ -114,7 +124,9 @@ const AdminDashboard = () => {
     };
 
     return (
-      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getHealthColor(health.overall_score)}`}>
+      <div
+        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getHealthColor(health.overall_score)}`}
+      >
         {getHealthIcon(health.overall_score)}
         <span className="ml-1">{health.overall_score}%</span>
       </div>
@@ -126,18 +138,22 @@ const AdminDashboard = () => {
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+            <p className="text-sm font-medium text-muted">{title}</p>
+            <p className="text-2xl font-bold text-primary">{value}</p>
+            {subtitle && (
+              <p className="text-xs text-muted">{subtitle}</p>
+            )}
           </div>
           <div className="text-2xl opacity-75">{icon}</div>
         </div>
         {trend && (
           <div className="mt-2 text-xs">
-            <span className={trend.positive ? 'text-green-600' : 'text-red-600'}>
-              {trend.positive ? '↗️' : '↘️'} {trend.percentage}%
+            <span
+              className={trend.positive ? "text-success" : "text-destructive"}
+            >
+              {trend.positive ? "↗️" : "↘️"} {trend.percentage}%
             </span>
-            <span className="text-gray-500 ml-1">vs last period</span>
+            <span className="text-muted ml-1">vs last period</span>
           </div>
         )}
       </CardContent>
@@ -146,12 +162,12 @@ const AdminDashboard = () => {
 
   const renderRecentActivity = () => {
     const activities = [
-      ...(dashboardData.recentMeetings?.slice(0, 3).map(meeting => ({
-        type: 'meeting',
+      ...(dashboardData.recentMeetings?.slice(0, 3).map((meeting) => ({
+        type: "meeting",
         title: `Meeting "${meeting.title}" started`,
         time: new Date(meeting.start_time).toLocaleTimeString(),
         user: meeting.created_by_name,
-        status: meeting.status
+        status: meeting.status,
       })) || []),
     ];
 
@@ -165,18 +181,31 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activities.length > 0 ? activities.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{activity.title}</p>
-                  <p className="text-xs text-gray-500">by {activity.user} at {activity.time}</p>
+            {activities.length > 0 ? (
+              activities.map((activity, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-2 border-b last:border-0"
+                >
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.title}</p>
+                    <p className="text-xs text-muted">
+                      by {activity.user} at {activity.time}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      activity.status === "active" ? "success" : "secondary"
+                    }
+                  >
+                    {activity.status}
+                  </Badge>
                 </div>
-                <Badge variant={activity.status === 'active' ? 'success' : 'secondary'}>
-                  {activity.status}
-                </Badge>
-              </div>
-            )) : (
-              <p className="text-gray-500 text-center py-4">No recent activity</p>
+              ))
+            ) : (
+              <p className="text-muted text-center py-4">
+                No recent activity
+              </p>
             )}
           </div>
         </CardContent>
@@ -186,34 +215,45 @@ const AdminDashboard = () => {
 
   const renderSystemAlerts = () => {
     const alerts = systemHealth?.alerts || [];
-    
+
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Icons.Warning />
             System Alerts
-            {alerts.length > 0 && <Badge variant="destructive">{alerts.length}</Badge>}
+            {alerts.length > 0 && (
+              <Badge variant="destructive">{alerts.length}</Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {alerts.length > 0 ? alerts.map((alert, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                <Icons.Warning />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{alert.title}</p>
-                  <p className="text-xs text-gray-600">{alert.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">{alert.timestamp}</p>
+            {alerts.length > 0 ? (
+              alerts.map((alert, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg"
+                >
+                  <Icons.Warning />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{alert.title}</p>
+                    <p className="text-xs text-muted">
+                      {alert.message}
+                    </p>
+                    <p className="text-xs text-muted mt-1">
+                      {alert.timestamp}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline">
+                    Resolve
+                  </Button>
                 </div>
-                <Button size="sm" variant="outline">
-                  Resolve
-                </Button>
-              </div>
-            )) : (
-              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+              ))
+            ) : (
+              <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg">
                 <Icons.Success />
-                <p className="text-sm text-green-700">All systems operational</p>
+                <p className="text-sm text-success">All systems operational</p>
               </div>
             )}
           </div>
@@ -229,26 +269,38 @@ const AdminDashboard = () => {
           <Icons.Calendar />
           Upcoming Meetings
         </CardTitle>
-        <CardDescription>Next scheduled meetings across the platform</CardDescription>
+        <CardDescription>
+          Next scheduled meetings across the platform
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {dashboardData.upcomingMeetings?.slice(0, 5).map((meeting, index) => (
-            <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
+            <div
+              key={index}
+              className="flex items-center justify-between py-2 border-b last:border-0"
+            >
               <div className="flex-1">
                 <p className="text-sm font-medium">{meeting.title}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(meeting.scheduled_start).toLocaleString()} • {meeting.participant_count} participants
+                <p className="text-xs text-muted">
+                  {new Date(meeting.scheduled_start).toLocaleString()} •{" "}
+                  {meeting.participant_count} participants
                 </p>
               </div>
               <div className="text-right">
                 <Badge variant="outline">
-                  {Math.ceil((new Date(meeting.scheduled_start) - new Date()) / (1000 * 60))} min
+                  {Math.ceil(
+                    (new Date(meeting.scheduled_start) - new Date()) /
+                      (1000 * 60),
+                  )}{" "}
+                  min
                 </Badge>
               </div>
             </div>
           )) || (
-            <p className="text-gray-500 text-center py-4">No upcoming meetings</p>
+            <p className="text-muted text-center py-4">
+              No upcoming meetings
+            </p>
           )}
         </div>
       </CardContent>
@@ -293,8 +345,8 @@ const AdminDashboard = () => {
             <Icons.Analytics />
             System Analytics
           </CardTitle>
-          <select 
-            value={selectedTimeframe} 
+          <select
+            value={selectedTimeframe}
             onChange={(e) => setSelectedTimeframe(e.target.value)}
             className="px-3 py-1 border rounded-md text-sm"
           >
@@ -306,33 +358,39 @@ const AdminDashboard = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">{systemAnalytics.total_meetings || 0}</p>
-              <p className="text-sm text-gray-500">Total Meetings</p>
+              <p className="text-2xl font-bold text-primary">
+                {systemAnalytics.total_meetings || 0}
+              </p>
+              <p className="text-sm text-muted">Total Meetings</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{systemAnalytics.active_users || 0}</p>
-              <p className="text-sm text-gray-500">Active Users</p>
+              <p className="text-2xl font-bold text-success">
+                {systemAnalytics.active_users || 0}
+              </p>
+              <p className="text-sm text-muted">Active Users</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-purple-600">
+              <p className="text-2xl font-bold text-primary">
                 {Math.round((systemAnalytics.total_duration || 0) / 60)}h
               </p>
-              <p className="text-sm text-gray-500">Total Duration</p>
+              <p className="text-sm text-muted">Total Duration</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-2xl font-bold text-warning">
                 {systemAnalytics.average_participants || 0}
               </p>
-              <p className="text-sm text-gray-500">Avg. Participants</p>
+              <p className="text-sm text-muted">Avg. Participants</p>
             </div>
           </div>
-          
+
           {/* Simple chart representation */}
-          <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
+          <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
             <div className="text-center">
               <Icons.Analytics />
-              <p className="text-gray-500 mt-2">Analytics Chart</p>
-              <p className="text-xs text-gray-400">Chart visualization would go here</p>
+              <p className="text-muted mt-2">Analytics Chart</p>
+              <p className="text-xs text-muted">
+                Chart visualization would go here
+              </p>
             </div>
           </div>
         </CardContent>
@@ -345,7 +403,7 @@ const AdminDashboard = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading dashboard...</p>
+          <p className="text-muted">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -356,8 +414,8 @@ const AdminDashboard = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Icons.Error />
-          <p className="text-red-600 mt-2">Error loading dashboard</p>
-          <p className="text-sm text-gray-500">{dashboardError}</p>
+          <p className="text-destructive mt-2">Error loading dashboard</p>
+          <p className="text-sm text-muted">{dashboardError}</p>
           <Button onClick={handleRefreshDashboard} className="mt-4">
             Retry
           </Button>
@@ -367,150 +425,257 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500 mt-1">
-            Welcome back, {user?.name || 'Admin'}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {renderSystemHealthIndicator(systemHealth)}
-          <Button onClick={handleRefreshDashboard} variant="outline">
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      {/* Key Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {renderMetricCard(
-          'Total Users',
-          getUsersCount(),
-          `${getActiveUsersCount()} active`,
-          <Icons.Users />,
-          { positive: true, percentage: 12 }
-        )}
-        {renderMetricCard(
-          'Active Meetings',
-          dashboardData.meetingStats?.active_meetings || 0,
-          'Right now',
-          <Icons.Meetings />,
-          { positive: false, percentage: 5 }
-        )}
-        {renderMetricCard(
-          'Total Meetings Today',
-          dashboardData.meetingStats?.todays_meetings || 0,
-          'Since midnight',
-          <Icons.Calendar />
-        )}
-        {renderMetricCard(
-          'System Health',
-          systemHealth ? `${systemHealth.overall_score}%` : 'N/A',
-          'All systems',
-          <Icons.Activity />,
-          systemHealth ? { 
-            positive: systemHealth.overall_score > 80, 
-            percentage: Math.abs(systemHealth.trend || 0) 
-          } : null
-        )}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {renderRecentActivity()}
-          {renderSystemAlerts()}
+    <AdminOnly>
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-primary">
+              Admin Dashboard
+            </h1>
+            <p className="text-muted mt-1">
+              Welcome back, {user?.name || "Admin"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {renderSystemHealthIndicator(systemHealth)}
+            <Button onClick={handleRefreshDashboard} variant="outline">
+              Refresh
+            </Button>
+          </div>
         </div>
 
-        {/* Middle Column */}
-        <div className="space-y-6">
-          {renderUpcomingMeetings()}
-          {renderQuickActions()}
-        </div>
+        {/* Main Dashboard Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="groups">Group Management</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="system">System</TabsTrigger>
+          </TabsList>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Metrics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">CPU Usage</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${systemHealth?.cpu_usage || 0}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-gray-500">{systemHealth?.cpu_usage || 0}%</span>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Memory Usage</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-600 h-2 rounded-full" 
-                        style={{ width: `${systemHealth?.memory_usage || 0}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-gray-500">{systemHealth?.memory_usage || 0}%</span>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Storage</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-yellow-600 h-2 rounded-full" 
-                        style={{ width: `${systemHealth?.storage_usage || 0}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-gray-500">{systemHealth?.storage_usage || 0}%</span>
-                  </div>
-                </div>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Key Metrics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {renderMetricCard(
+                "Total Users",
+                getUsersCount(),
+                `${getActiveUsersCount()} active`,
+                <Icons.Users />,
+                { positive: true, percentage: 12 },
+              )}
+              {renderMetricCard(
+                "Active Meetings",
+                dashboardData.meetingStats?.active_meetings || 0,
+                "Right now",
+                <Icons.Meetings />,
+                { positive: false, percentage: 5 },
+              )}
+              {renderMetricCard(
+                "Total Meetings Today",
+                dashboardData.meetingStats?.todays_meetings || 0,
+                "Since midnight",
+                <Icons.Calendar />,
+              )}
+              {renderMetricCard(
+                "System Health",
+                systemHealth ? `${systemHealth.overall_score}%` : "N/A",
+                "All systems",
+                <Icons.Activity />,
+                systemHealth
+                  ? {
+                      positive: systemHealth.overall_score > 80,
+                      percentage: Math.abs(systemHealth.trend || 0),
+                    }
+                  : null,
+              )}
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column */}
+              <div className="space-y-6">
+                {renderRecentActivity()}
+                {renderSystemAlerts()}
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Tools</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
-                  <Icons.Users />
-                  <span className="ml-2">User Management</span>
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Icons.Settings />
-                  <span className="ml-2">System Settings</span>
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Icons.Analytics />
-                  <span className="ml-2">Analytics Reports</span>
-                </Button>
+              {/* Middle Column */}
+              <div className="space-y-6">
+                {renderUpcomingMeetings()}
+                {renderQuickActions()}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
 
-      {/* Analytics Chart Section */}
-      {systemAnalytics && (
-        <div className="grid grid-cols-1">
-          {renderAnalyticsChart()}
-        </div>
-      )}
-    </div>
+              {/* Right Column */}
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance Metrics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">CPU Usage</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 bg-muted rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full"
+                              style={{
+                                width: `${systemHealth?.cpu_usage || 0}%`,
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-muted">
+                            {systemHealth?.cpu_usage || 0}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Memory Usage</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 bg-muted rounded-full h-2">
+                            <div
+                              className="bg-success h-2 rounded-full"
+                              style={{
+                                width: `${systemHealth?.memory_usage || 0}%`,
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-muted">
+                            {systemHealth?.memory_usage || 0}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Storage</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 bg-muted rounded-full h-2">
+                            <div
+                              className="bg-warning h-2 rounded-full"
+                              style={{
+                                width: `${systemHealth?.storage_usage || 0}%`,
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-muted">
+                            {systemHealth?.storage_usage || 0}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Admin Tools</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        <Icons.Users />
+                        <span className="ml-2">User Management</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        <Icons.Settings />
+                        <span className="ml-2">System Settings</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        <Icons.Analytics />
+                        <span className="ml-2">Analytics Reports</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Group Management Tab */}
+          <TabsContent value="groups">
+            <GroupManagement />
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            {systemAnalytics && renderAnalyticsChart()}
+          </TabsContent>
+
+          {/* System Tab */}
+          <TabsContent value="system" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {renderSystemAlerts()}
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">CPU Usage</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-muted rounded-full h-3">
+                          <div
+                            className="bg-primary h-3 rounded-full transition-all"
+                            style={{
+                              width: `${systemHealth?.cpu_usage || 0}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm text-muted min-w-[3rem]">
+                          {systemHealth?.cpu_usage || 0}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Memory Usage</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-muted rounded-full h-3">
+                          <div
+                            className="bg-success h-3 rounded-full transition-all"
+                            style={{
+                              width: `${systemHealth?.memory_usage || 0}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm text-muted min-w-[3rem]">
+                          {systemHealth?.memory_usage || 0}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Storage</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-muted rounded-full h-3">
+                          <div
+                            className="bg-warning h-3 rounded-full transition-all"
+                            style={{
+                              width: `${systemHealth?.storage_usage || 0}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm text-muted min-w-[3rem]">
+                          {systemHealth?.storage_usage || 0}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AdminOnly>
   );
 };
 

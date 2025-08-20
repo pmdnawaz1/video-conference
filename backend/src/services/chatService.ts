@@ -1,8 +1,8 @@
-import { prisma } from './prismaService';
-import { ChatMessageType } from '@prisma/client';
-import { Server as SocketIOServer } from 'socket.io';
-import path from 'path';
-import fs from 'fs/promises';
+import { prisma } from "./prismaService";
+import { ChatMessageType } from "@prisma/client";
+import { Server as SocketIOServer } from "socket.io";
+import path from "path";
+import fs from "fs/promises";
 
 export interface ChatMessageData {
   content: string;
@@ -77,7 +77,7 @@ export interface ChatPaginationOptions {
   page?: number;
   limit?: number;
   before?: string; // Message ID to get messages before
-  after?: string;  // Message ID to get messages after
+  after?: string; // Message ID to get messages after
 }
 
 /**
@@ -90,23 +90,25 @@ export class ChatService {
 
   constructor(io: SocketIOServer) {
     this.io = io;
-    this.uploadsPath = path.join(process.cwd(), 'uploads', 'chat');
+    this.uploadsPath = path.join(process.cwd(), "uploads", "chat");
     this.initializeUploadDirectory();
   }
 
   private async initializeUploadDirectory() {
     try {
       await fs.mkdir(this.uploadsPath, { recursive: true });
-      console.log('📁 Chat uploads directory initialized');
+      console.log("📁 Chat uploads directory initialized");
     } catch (error) {
-      console.error('📁 Error creating chat uploads directory:', error);
+      console.error("📁 Error creating chat uploads directory:", error);
     }
   }
 
   /**
    * Send a chat message with full feature support
    */
-  async sendMessage(messageData: ChatMessageData): Promise<ChatMessageWithRelations> {
+  async sendMessage(
+    messageData: ChatMessageData,
+  ): Promise<ChatMessageWithRelations> {
     try {
       // Validate user exists and has permission
       const user = await prisma.user.findUnique({
@@ -122,7 +124,7 @@ export class ChatService {
       });
 
       if (!user) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
 
       // Validate meeting exists and user has access
@@ -134,7 +136,7 @@ export class ChatService {
       });
 
       if (!meeting) {
-        throw new Error('Meeting not found or access denied');
+        throw new Error("Meeting not found or access denied");
       }
 
       // Check if user is participant
@@ -146,12 +148,12 @@ export class ChatService {
       });
 
       if (!participant) {
-        throw new Error('User is not a participant in this meeting');
+        throw new Error("User is not a participant in this meeting");
       }
 
       // Check if user can send messages
       if (!participant.canChat) {
-        throw new Error('User does not have chat permissions');
+        throw new Error("User does not have chat permissions");
       }
 
       // Validate reply-to message if specified
@@ -164,7 +166,7 @@ export class ChatService {
         });
 
         if (!replyToMessage) {
-          throw new Error('Reply-to message not found');
+          throw new Error("Reply-to message not found");
         }
       }
 
@@ -246,17 +248,21 @@ export class ChatService {
 
       // Broadcast to room if roomId is specified
       if (messageData.roomId) {
-        this.io.to(messageData.roomId).emit('chat-message', messagePayload);
+        this.io.to(messageData.roomId).emit("chat-message", messagePayload);
       }
 
       // Broadcast to meeting participants
-      this.io.to(`meeting-${messageData.meetingId}`).emit('chat-message', messagePayload);
+      this.io
+        .to(`meeting-${messageData.meetingId}`)
+        .emit("chat-message", messagePayload);
 
-      console.log(`💬 Message sent by ${user.firstName} in meeting ${messageData.meetingId}`);
+      console.log(
+        `💬 Message sent by ${user.firstName} in meeting ${messageData.meetingId}`,
+      );
 
       return chatMessage as ChatMessageWithRelations;
     } catch (error) {
-      console.error('Error sending chat message:', error);
+      console.error("Error sending chat message:", error);
       throw error;
     }
   }
@@ -264,26 +270,39 @@ export class ChatService {
   /**
    * Handle file upload for chat
    */
-  async uploadFile(fileData: FileUploadData, userId: string, meetingId: string): Promise<string> {
+  async uploadFile(
+    fileData: FileUploadData,
+    userId: string,
+    meetingId: string,
+  ): Promise<string> {
     try {
       // Validate file size (max 50MB)
       const maxSize = 50 * 1024 * 1024; // 50MB
       if (fileData.size > maxSize) {
-        throw new Error('File size exceeds maximum limit of 50MB');
+        throw new Error("File size exceeds maximum limit of 50MB");
       }
 
       // Validate file type
       const allowedTypes = [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        'application/pdf', 'text/plain', 'text/csv',
-        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/zip', 'application/x-zip-compressed',
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "application/pdf",
+        "text/plain",
+        "text/csv",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/zip",
+        "application/x-zip-compressed",
       ];
 
       if (!allowedTypes.includes(fileData.mimetype)) {
-        throw new Error('File type not allowed');
+        throw new Error("File type not allowed");
       }
 
       // Generate unique filename
@@ -303,7 +322,7 @@ export class ChatService {
 
       return fileUrl;
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error("Error uploading file:", error);
       throw error;
     }
   }
@@ -316,7 +335,7 @@ export class ChatService {
     userId: string,
     meetingId: string,
     roomId?: string,
-    replyToId?: string
+    replyToId?: string,
   ): Promise<ChatMessageWithRelations> {
     try {
       const fileUrl = await this.uploadFile(fileData, userId, meetingId);
@@ -335,7 +354,7 @@ export class ChatService {
 
       return await this.sendMessage(messageData);
     } catch (error) {
-      console.error('Error sending file message:', error);
+      console.error("Error sending file message:", error);
       throw error;
     }
   }
@@ -343,7 +362,11 @@ export class ChatService {
   /**
    * Add or remove emoji reaction
    */
-  async toggleReaction(messageId: string, userId: string, emoji: string): Promise<ChatMessageWithRelations> {
+  async toggleReaction(
+    messageId: string,
+    userId: string,
+    emoji: string,
+  ): Promise<ChatMessageWithRelations> {
     try {
       // Get current message
       const message = await prisma.chatMessage.findUnique({
@@ -362,7 +385,7 @@ export class ChatService {
       });
 
       if (!message) {
-        throw new Error('Message not found');
+        throw new Error("Message not found");
       }
 
       // Validate user has access to the meeting
@@ -374,11 +397,11 @@ export class ChatService {
       });
 
       if (!participant) {
-        throw new Error('User is not a participant in this meeting');
+        throw new Error("User is not a participant in this meeting");
       }
 
       // Parse existing reactions
-      let reactions = message.reactions as any || {};
+      let reactions = (message.reactions as any) || {};
 
       // Initialize emoji if not exists
       if (!reactions[emoji]) {
@@ -389,7 +412,9 @@ export class ChatService {
       }
 
       // Check if user already reacted with this emoji
-      const userIndex = reactions[emoji].users.findIndex((u: any) => u.userId === userId);
+      const userIndex = reactions[emoji].users.findIndex(
+        (u: any) => u.userId === userId,
+      );
 
       if (userIndex >= 0) {
         // Remove reaction
@@ -467,19 +492,23 @@ export class ChatService {
         reactions: updatedMessage.reactions,
         emoji,
         userId,
-        action: userIndex >= 0 ? 'remove' : 'add',
+        action: userIndex >= 0 ? "remove" : "add",
       };
 
       if (message.roomId) {
-        this.io.to(message.roomId).emit('message-reaction', reactionPayload);
+        this.io.to(message.roomId).emit("message-reaction", reactionPayload);
       }
-      this.io.to(`meeting-${message.meetingId}`).emit('message-reaction', reactionPayload);
+      this.io
+        .to(`meeting-${message.meetingId}`)
+        .emit("message-reaction", reactionPayload);
 
-      console.log(`🎭 Reaction ${emoji} ${userIndex >= 0 ? 'removed' : 'added'} by user ${userId}`);
+      console.log(
+        `🎭 Reaction ${emoji} ${userIndex >= 0 ? "removed" : "added"} by user ${userId}`,
+      );
 
       return updatedMessage as ChatMessageWithRelations;
     } catch (error) {
-      console.error('Error toggling reaction:', error);
+      console.error("Error toggling reaction:", error);
       throw error;
     }
   }
@@ -487,7 +516,11 @@ export class ChatService {
   /**
    * Edit a message
    */
-  async editMessage(messageId: string, userId: string, newContent: string): Promise<ChatMessageWithRelations> {
+  async editMessage(
+    messageId: string,
+    userId: string,
+    newContent: string,
+  ): Promise<ChatMessageWithRelations> {
     try {
       // Get message and verify ownership
       const message = await prisma.chatMessage.findFirst({
@@ -498,12 +531,12 @@ export class ChatService {
       });
 
       if (!message) {
-        throw new Error('Message not found or not owned by user');
+        throw new Error("Message not found or not owned by user");
       }
 
       // Prevent editing file messages
       if (message.messageType === ChatMessageType.FILE) {
-        throw new Error('File messages cannot be edited');
+        throw new Error("File messages cannot be edited");
       }
 
       // Update message
@@ -564,15 +597,17 @@ export class ChatService {
       };
 
       if (message.roomId) {
-        this.io.to(message.roomId).emit('message-edited', editPayload);
+        this.io.to(message.roomId).emit("message-edited", editPayload);
       }
-      this.io.to(`meeting-${message.meetingId}`).emit('message-edited', editPayload);
+      this.io
+        .to(`meeting-${message.meetingId}`)
+        .emit("message-edited", editPayload);
 
       console.log(`✏️ Message ${messageId} edited by user ${userId}`);
 
       return updatedMessage as ChatMessageWithRelations;
     } catch (error) {
-      console.error('Error editing message:', error);
+      console.error("Error editing message:", error);
       throw error;
     }
   }
@@ -580,7 +615,11 @@ export class ChatService {
   /**
    * Delete a message (soft delete by clearing content)
    */
-  async deleteMessage(messageId: string, userId: string, isModeration = false): Promise<void> {
+  async deleteMessage(
+    messageId: string,
+    userId: string,
+    isModeration = false,
+  ): Promise<void> {
     try {
       // Get message and verify permissions
       const message = await prisma.chatMessage.findUnique({
@@ -596,11 +635,12 @@ export class ChatService {
       });
 
       if (!message) {
-        throw new Error('Message not found');
+        throw new Error("Message not found");
       }
 
       // Check permissions (owner or meeting creator or moderator)
-      let hasPermission = message.userId === userId || message.meeting.createdBy === userId;
+      let hasPermission =
+        message.userId === userId || message.meeting.createdBy === userId;
 
       if (!hasPermission && isModeration) {
         // Check if user is moderator
@@ -615,14 +655,14 @@ export class ChatService {
       }
 
       if (!hasPermission) {
-        throw new Error('Permission denied');
+        throw new Error("Permission denied");
       }
 
       // Soft delete by updating content
       await prisma.chatMessage.update({
         where: { id: messageId },
         data: {
-          content: '[Message deleted]',
+          content: "[Message deleted]",
           fileName: null,
           fileUrl: null,
           fileSize: null,
@@ -637,25 +677,29 @@ export class ChatService {
           const filePath = path.join(this.uploadsPath, fileName);
           await fs.unlink(filePath);
         } catch (fileError) {
-          console.warn('Could not delete file:', fileError);
+          console.warn("Could not delete file:", fileError);
         }
       }
 
       // Emit deletion update
       const deletePayload = {
         messageId,
-        content: '[Message deleted]',
+        content: "[Message deleted]",
         isDeleted: true,
       };
 
       if (message.roomId) {
-        this.io.to(message.roomId).emit('message-deleted', deletePayload);
+        this.io.to(message.roomId).emit("message-deleted", deletePayload);
       }
-      this.io.to(`meeting-${message.meetingId}`).emit('message-deleted', deletePayload);
+      this.io
+        .to(`meeting-${message.meetingId}`)
+        .emit("message-deleted", deletePayload);
 
-      console.log(`🗑️ Message ${messageId} deleted by user ${userId} ${isModeration ? '(moderation)' : ''}`);
+      console.log(
+        `🗑️ Message ${messageId} deleted by user ${userId} ${isModeration ? "(moderation)" : ""}`,
+      );
     } catch (error) {
-      console.error('Error deleting message:', error);
+      console.error("Error deleting message:", error);
       throw error;
     }
   }
@@ -666,7 +710,7 @@ export class ChatService {
   async getChatHistory(
     meetingId: string,
     userId: string,
-    options: ChatPaginationOptions = {}
+    options: ChatPaginationOptions = {},
   ): Promise<{
     messages: ChatMessageWithRelations[];
     pagination: {
@@ -685,7 +729,7 @@ export class ChatService {
       });
 
       if (!participant) {
-        throw new Error('User is not a participant in this meeting');
+        throw new Error("User is not a participant in this meeting");
       }
 
       const { page = 1, limit = 50, before, after } = options;
@@ -705,7 +749,7 @@ export class ChatService {
       const messages = await prisma.chatMessage.findMany({
         where: whereClause,
         take: take + 1, // Take one extra to check if there are more
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           user: {
             select: {
@@ -743,7 +787,7 @@ export class ChatService {
               },
             },
             take: 3,
-            orderBy: { createdAt: 'asc' },
+            orderBy: { createdAt: "asc" },
           },
         },
       });
@@ -759,12 +803,15 @@ export class ChatService {
         messages: result as ChatMessageWithRelations[],
         pagination: {
           hasMore,
-          nextCursor: hasMore && result.length > 0 ? result[result.length - 1].id : undefined,
+          nextCursor:
+            hasMore && result.length > 0
+              ? result[result.length - 1].id
+              : undefined,
           prevCursor: result.length > 0 ? result[0].id : undefined,
         },
       };
     } catch (error) {
-      console.error('Error getting chat history:', error);
+      console.error("Error getting chat history:", error);
       throw error;
     }
   }
@@ -776,7 +823,7 @@ export class ChatService {
     meetingId: string,
     roomId: string | undefined,
     content: string,
-    metadata?: any
+    metadata?: any,
   ): Promise<void> {
     try {
       // Get system user or create a system message without user
@@ -784,7 +831,7 @@ export class ChatService {
         data: {
           content,
           messageType: ChatMessageType.SYSTEM,
-          userId: 'system', // This might need adjustment based on your system design
+          userId: "system", // This might need adjustment based on your system design
           meetingId,
           roomId,
         },
@@ -795,8 +842,8 @@ export class ChatService {
         id: systemMessage.id,
         content: systemMessage.content,
         messageType: ChatMessageType.SYSTEM,
-        userId: 'system',
-        userName: 'System',
+        userId: "system",
+        userName: "System",
         meetingId,
         roomId,
         timestamp: systemMessage.createdAt,
@@ -804,22 +851,24 @@ export class ChatService {
       };
 
       if (roomId) {
-        this.io.to(roomId).emit('system-message', messagePayload);
+        this.io.to(roomId).emit("system-message", messagePayload);
       }
-      this.io.to(`meeting-${meetingId}`).emit('system-message', messagePayload);
+      this.io.to(`meeting-${meetingId}`).emit("system-message", messagePayload);
 
       console.log(`🤖 System message sent to meeting ${meetingId}: ${content}`);
     } catch (error) {
-      console.error('Error sending system message:', error);
+      console.error("Error sending system message:", error);
     }
   }
 
   /**
    * Get file by filename (for serving uploaded files)
    */
-  async getFile(fileName: string): Promise<{ filePath: string; exists: boolean }> {
+  async getFile(
+    fileName: string,
+  ): Promise<{ filePath: string; exists: boolean }> {
     const filePath = path.join(this.uploadsPath, fileName);
-    
+
     try {
       await fs.access(filePath);
       return { filePath, exists: true };
@@ -831,7 +880,9 @@ export class ChatService {
   /**
    * Clean up old files and messages (cleanup utility)
    */
-  async cleanup(olderThanDays = 30): Promise<{ deletedFiles: number; cleanedMessages: number }> {
+  async cleanup(
+    olderThanDays = 30,
+  ): Promise<{ deletedFiles: number; cleanedMessages: number }> {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
@@ -857,7 +908,10 @@ export class ChatService {
             await fs.unlink(filePath);
             deletedFiles++;
           } catch (fileError) {
-            console.warn(`Could not delete file ${message.fileUrl}:`, fileError);
+            console.warn(
+              `Could not delete file ${message.fileUrl}:`,
+              fileError,
+            );
           }
         }
       }
@@ -875,14 +929,16 @@ export class ChatService {
         },
       });
 
-      console.log(`🧹 Cleanup completed: ${deletedFiles} files deleted, ${cleanedMessages.count} messages cleaned`);
+      console.log(
+        `🧹 Cleanup completed: ${deletedFiles} files deleted, ${cleanedMessages.count} messages cleaned`,
+      );
 
       return {
         deletedFiles,
         cleanedMessages: cleanedMessages.count,
       };
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      console.error("Error during cleanup:", error);
       throw error;
     }
   }
@@ -898,7 +954,9 @@ export const initializeChatService = (io: SocketIOServer) => {
 
 export const getChatService = (): ChatService => {
   if (!chatServiceInstance) {
-    throw new Error('Chat service not initialized. Call initializeChatService first.');
+    throw new Error(
+      "Chat service not initialized. Call initializeChatService first.",
+    );
   }
   return chatServiceInstance;
 };

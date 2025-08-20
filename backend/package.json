@@ -14,7 +14,9 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:seed:quibic": "ts-node prisma/seed-quibic.ts",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
+    "db:reset:quibic": "prisma migrate reset --force && npm run db:seed:quibic",
     "test": "playwright test",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
@@ -50,6 +52,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "@playwright/test": "^1.54.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.9",

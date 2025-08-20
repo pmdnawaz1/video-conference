@@ -1,4 +1,4 @@
-import userAnalyticsService from './UserAnalyticsService';
+import userAnalyticsService from "./UserAnalyticsService";
 
 class MeetingAccessService {
   constructor() {
@@ -13,26 +13,29 @@ class MeetingAccessService {
    */
   async validateAccess(meetingId, userId = null) {
     try {
-      const response = await fetch(`${this.baseURL}/${meetingId}/access-validation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getToken()}`
+      const response = await fetch(
+        `${this.baseURL}/${meetingId}/access-validation`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            timestamp: Date.now(),
+          }),
         },
-        body: JSON.stringify({
-          user_id: userId,
-          timestamp: Date.now()
-        })
-      });
+      );
 
       const result = await response.json();
 
       if (response.ok) {
-        userAnalyticsService.trackEvent('meeting_access_validated', {
+        userAnalyticsService.trackEvent("meeting_access_validated", {
           meeting_id: meetingId,
           access_granted: result.access_granted,
           validation_reason: result.reason,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         return {
@@ -43,20 +46,20 @@ class MeetingAccessService {
             meetingInfo: result.meeting_info,
             userPermissions: result.user_permissions,
             waitingRoomRequired: result.waiting_room_required,
-            timeRestrictions: result.time_restrictions
-          }
+            timeRestrictions: result.time_restrictions,
+          },
         };
       } else {
         return {
           success: false,
-          error: result.message || 'Failed to validate meeting access'
+          error: result.message || "Failed to validate meeting access",
         };
       }
     } catch (error) {
-      console.error('Meeting access validation error:', error);
+      console.error("Meeting access validation error:", error);
       return {
         success: false,
-        error: 'Network error during access validation'
+        error: "Network error during access validation",
       };
     }
   }
@@ -69,10 +72,10 @@ class MeetingAccessService {
   async checkTimeRestrictions(meetingId) {
     try {
       const response = await fetch(`${this.baseURL}/${meetingId}/time-check`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
+          Authorization: `Bearer ${this.getToken()}`,
+        },
       });
 
       const result = await response.json();
@@ -89,20 +92,20 @@ class MeetingAccessService {
             scheduledStart: result.scheduled_start,
             scheduledEnd: result.scheduled_end,
             actualStart: result.actual_start,
-            actualEnd: result.actual_end
-          }
+            actualEnd: result.actual_end,
+          },
         };
       } else {
         return {
           success: false,
-          error: result.message || 'Failed to check time restrictions'
+          error: result.message || "Failed to check time restrictions",
         };
       }
     } catch (error) {
-      console.error('Time restriction check error:', error);
+      console.error("Time restriction check error:", error);
       return {
         success: false,
-        error: 'Network error during time check'
+        error: "Network error during time check",
       };
     }
   }
@@ -115,24 +118,27 @@ class MeetingAccessService {
    */
   async joinWaitingRoom(meetingId, userInfo = {}) {
     try {
-      const response = await fetch(`${this.baseURL}/${meetingId}/waiting-room`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getToken()}`
+      const response = await fetch(
+        `${this.baseURL}/${meetingId}/waiting-room`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+          body: JSON.stringify({
+            user_info: userInfo,
+            join_time: Date.now(),
+          }),
         },
-        body: JSON.stringify({
-          user_info: userInfo,
-          join_time: Date.now()
-        })
-      });
+      );
 
       const result = await response.json();
 
       if (response.ok) {
-        userAnalyticsService.trackEvent('waiting_room_joined', {
+        userAnalyticsService.trackEvent("waiting_room_joined", {
           meeting_id: meetingId,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         return {
@@ -141,20 +147,20 @@ class MeetingAccessService {
             waitingRoomId: result.waiting_room_id,
             queuePosition: result.queue_position,
             estimatedWait: result.estimated_wait,
-            message: result.message
-          }
+            message: result.message,
+          },
         };
       } else {
         return {
           success: false,
-          error: result.message || 'Failed to join waiting room'
+          error: result.message || "Failed to join waiting room",
         };
       }
     } catch (error) {
-      console.error('Waiting room join error:', error);
+      console.error("Waiting room join error:", error);
       return {
         success: false,
-        error: 'Network error joining waiting room'
+        error: "Network error joining waiting room",
       };
     }
   }
@@ -166,12 +172,15 @@ class MeetingAccessService {
    */
   async getWaitingRoomStatus(meetingId) {
     try {
-      const response = await fetch(`${this.baseURL}/${meetingId}/waiting-room/status`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
+      const response = await fetch(
+        `${this.baseURL}/${meetingId}/waiting-room/status`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+        },
+      );
 
       const result = await response.json();
 
@@ -184,20 +193,20 @@ class MeetingAccessService {
             estimatedWait: result.estimated_wait,
             admitted: result.admitted,
             denied: result.denied,
-            denialReason: result.denial_reason
-          }
+            denialReason: result.denial_reason,
+          },
         };
       } else {
         return {
           success: false,
-          error: result.message || 'Failed to get waiting room status'
+          error: result.message || "Failed to get waiting room status",
         };
       }
     } catch (error) {
-      console.error('Waiting room status error:', error);
+      console.error("Waiting room status error:", error);
       return {
         success: false,
-        error: 'Network error getting waiting room status'
+        error: "Network error getting waiting room status",
       };
     }
   }
@@ -211,28 +220,28 @@ class MeetingAccessService {
   async joinMeeting(meetingId, joinOptions = {}) {
     try {
       const response = await fetch(`${this.baseURL}/${meetingId}/join`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getToken()}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken()}`,
         },
         body: JSON.stringify({
           audio_enabled: joinOptions.audioEnabled || false,
           video_enabled: joinOptions.videoEnabled || false,
           screen_share_enabled: joinOptions.screenShareEnabled || false,
           join_options: joinOptions,
-          timestamp: Date.now()
-        })
+          timestamp: Date.now(),
+        }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        userAnalyticsService.trackEvent('meeting_join_attempted', {
+        userAnalyticsService.trackEvent("meeting_join_attempted", {
           meeting_id: meetingId,
           success: true,
-          join_method: 'direct',
-          timestamp: Date.now()
+          join_method: "direct",
+          timestamp: Date.now(),
         });
 
         return {
@@ -241,34 +250,34 @@ class MeetingAccessService {
             meetingToken: result.meeting_token,
             userPermissions: result.user_permissions,
             meetingSettings: result.meeting_settings,
-            participantInfo: result.participant_info
-          }
+            participantInfo: result.participant_info,
+          },
         };
       } else {
-        userAnalyticsService.trackEvent('meeting_join_attempted', {
+        userAnalyticsService.trackEvent("meeting_join_attempted", {
           meeting_id: meetingId,
           success: false,
           error: result.message,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         return {
           success: false,
-          error: result.message || 'Failed to join meeting'
+          error: result.message || "Failed to join meeting",
         };
       }
     } catch (error) {
-      console.error('Meeting join error:', error);
-      userAnalyticsService.trackEvent('meeting_join_attempted', {
+      console.error("Meeting join error:", error);
+      userAnalyticsService.trackEvent("meeting_join_attempted", {
         meeting_id: meetingId,
         success: false,
-        error: 'Network error',
-        timestamp: Date.now()
+        error: "Network error",
+        timestamp: Date.now(),
       });
 
       return {
         success: false,
-        error: 'Network error joining meeting'
+        error: "Network error joining meeting",
       };
     }
   }
@@ -280,12 +289,15 @@ class MeetingAccessService {
    */
   async getUserMeetingHistory(meetingId) {
     try {
-      const response = await fetch(`${this.baseURL}/${meetingId}/user-history`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
+      const response = await fetch(
+        `${this.baseURL}/${meetingId}/user-history`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+        },
+      );
 
       const result = await response.json();
 
@@ -297,20 +309,20 @@ class MeetingAccessService {
             participationCount: result.participation_count,
             lastJoinTime: result.last_join_time,
             averageParticipation: result.average_participation,
-            meetingRole: result.meeting_role
-          }
+            meetingRole: result.meeting_role,
+          },
         };
       } else {
         return {
           success: false,
-          error: result.message || 'Failed to get meeting history'
+          error: result.message || "Failed to get meeting history",
         };
       }
     } catch (error) {
-      console.error('Meeting history error:', error);
+      console.error("Meeting history error:", error);
       return {
         success: false,
-        error: 'Network error getting meeting history'
+        error: "Network error getting meeting history",
       };
     }
   }
@@ -322,12 +334,15 @@ class MeetingAccessService {
    */
   async validateOrganizationMembership(meetingId) {
     try {
-      const response = await fetch(`${this.baseURL}/${meetingId}/organization-validation`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.getToken()}`
-        }
-      });
+      const response = await fetch(
+        `${this.baseURL}/${meetingId}/organization-validation`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${this.getToken()}`,
+          },
+        },
+      );
 
       const result = await response.json();
 
@@ -339,20 +354,20 @@ class MeetingAccessService {
             organizationId: result.organization_id,
             organizationName: result.organization_name,
             membershipType: result.membership_type,
-            canJoin: result.can_join
-          }
+            canJoin: result.can_join,
+          },
         };
       } else {
         return {
           success: false,
-          error: result.message || 'Failed to validate organization membership'
+          error: result.message || "Failed to validate organization membership",
         };
       }
     } catch (error) {
-      console.error('Organization validation error:', error);
+      console.error("Organization validation error:", error);
       return {
         success: false,
-        error: 'Network error validating organization membership'
+        error: "Network error validating organization membership",
       };
     }
   }
@@ -364,29 +379,42 @@ class MeetingAccessService {
    */
   async getMeetingAccessInfo(meetingId) {
     try {
-      const [accessValidation, timeCheck, orgValidation, userHistory] = await Promise.allSettled([
-        this.validateAccess(meetingId),
-        this.checkTimeRestrictions(meetingId),
-        this.validateOrganizationMembership(meetingId),
-        this.getUserMeetingHistory(meetingId)
-      ]);
+      const [accessValidation, timeCheck, orgValidation, userHistory] =
+        await Promise.allSettled([
+          this.validateAccess(meetingId),
+          this.checkTimeRestrictions(meetingId),
+          this.validateOrganizationMembership(meetingId),
+          this.getUserMeetingHistory(meetingId),
+        ]);
 
       const result = {
-        access: accessValidation.status === 'fulfilled' ? accessValidation.value : { success: false, error: 'Access validation failed' },
-        time: timeCheck.status === 'fulfilled' ? timeCheck.value : { success: false, error: 'Time check failed' },
-        organization: orgValidation.status === 'fulfilled' ? orgValidation.value : { success: false, error: 'Organization validation failed' },
-        history: userHistory.status === 'fulfilled' ? userHistory.value : { success: false, error: 'History check failed' }
+        access:
+          accessValidation.status === "fulfilled"
+            ? accessValidation.value
+            : { success: false, error: "Access validation failed" },
+        time:
+          timeCheck.status === "fulfilled"
+            ? timeCheck.value
+            : { success: false, error: "Time check failed" },
+        organization:
+          orgValidation.status === "fulfilled"
+            ? orgValidation.value
+            : { success: false, error: "Organization validation failed" },
+        history:
+          userHistory.status === "fulfilled"
+            ? userHistory.value
+            : { success: false, error: "History check failed" },
       };
 
       return {
         success: true,
-        data: result
+        data: result,
       };
     } catch (error) {
-      console.error('Meeting access info error:', error);
+      console.error("Meeting access info error:", error);
       return {
         success: false,
-        error: 'Failed to get meeting access information'
+        error: "Failed to get meeting access information",
       };
     }
   }
@@ -397,10 +425,13 @@ class MeetingAccessService {
    */
   getToken() {
     try {
-      const { default: useAuthStore } = require('../stores/authStore');
+      const { default: useAuthStore } = require("../stores/authStore");
       return useAuthStore.getState().accessToken;
     } catch {
-      return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      return (
+        localStorage.getItem("auth_token") ||
+        sessionStorage.getItem("auth_token")
+      );
     }
   }
 
@@ -410,8 +441,8 @@ class MeetingAccessService {
    * @returns {string}
    */
   formatTimeRemaining(seconds) {
-    if (seconds <= 0) return 'Now';
-    
+    if (seconds <= 0) return "Now";
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
@@ -432,16 +463,16 @@ class MeetingAccessService {
    */
   getStatusDescription(status) {
     const descriptions = {
-      'not_started': 'Meeting has not started yet',
-      'waiting_to_start': 'Meeting is scheduled but not yet active',
-      'active': 'Meeting is currently in progress',
-      'ended': 'Meeting has ended',
-      'cancelled': 'Meeting was cancelled',
-      'locked': 'Meeting is locked by organizer',
-      'full': 'Meeting has reached maximum capacity'
+      not_started: "Meeting has not started yet",
+      waiting_to_start: "Meeting is scheduled but not yet active",
+      active: "Meeting is currently in progress",
+      ended: "Meeting has ended",
+      cancelled: "Meeting was cancelled",
+      locked: "Meeting is locked by organizer",
+      full: "Meeting has reached maximum capacity",
     };
 
-    return descriptions[status] || 'Unknown meeting status';
+    return descriptions[status] || "Unknown meeting status";
   }
 }
 

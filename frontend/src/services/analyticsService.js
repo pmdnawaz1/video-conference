@@ -11,24 +11,24 @@ class AnalyticsService {
     this.cache = new Map();
     this.realTimeSubscriptions = new Map();
     this.isOnline = navigator.onLine;
-    
+
     // WebSocket for real-time analytics updates
     this.wsConnection = null;
     this.wsReconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
-    
+
     // Setup online/offline listeners
-    window.addEventListener('online', () => {
+    window.addEventListener("online", () => {
       this.isOnline = true;
       this.initializeWebSocket();
     });
-    
-    window.addEventListener('offline', () => {
+
+    window.addEventListener("offline", () => {
       this.isOnline = false;
       this.disconnectWebSocket();
     });
-    
+
     // Initialize WebSocket connection for real-time updates
     this.initializeWebSocket();
   }
@@ -36,18 +36,18 @@ class AnalyticsService {
   // ===========================================
   // Authentication and Headers
   // ===========================================
-  
+
   getAuthHeaders(accessToken = null) {
     const token = accessToken || this.getAccessTokenFromStore();
     return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     };
   }
 
   getAccessTokenFromStore() {
     try {
-      const { useAuthStore } = require('../stores/authStore');
+      const { useAuthStore } = require("../stores/authStore");
       return useAuthStore.getState().accessToken;
     } catch {
       return null;
@@ -56,10 +56,10 @@ class AnalyticsService {
 
   timeframeToDays(timeframe) {
     const timeframeDays = {
-      'week': 7,
-      'month': 30,
-      'quarter': 90,
-      'year': 365
+      week: 7,
+      month: 30,
+      quarter: 90,
+      year: 365,
     };
     return timeframeDays[timeframe] || 30;
   }
@@ -67,10 +67,10 @@ class AnalyticsService {
   // ===========================================
   // Cache Management
   // ===========================================
-  
+
   getCacheKey(endpoint, params = {}) {
     const paramString = new URLSearchParams(params).toString();
-    return `${endpoint}${paramString ? `?${paramString}` : ''}`;
+    return `${endpoint}${paramString ? `?${paramString}` : ""}`;
   }
 
   getFromCache(key) {
@@ -85,7 +85,7 @@ class AnalyticsService {
   setCache(key, data) {
     this.cache.set(key, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -96,48 +96,53 @@ class AnalyticsService {
   // ===========================================
   // WebSocket Real-time Updates
   // ===========================================
-  
+
   initializeWebSocket() {
+    // Disabled analytics WebSocket until backend websocket is implemented
+    return;
+
     if (!this.isOnline || this.wsConnection) return;
 
     try {
       const wsUrl = `${import.meta.env.VITE_WS_URL}/analytics`;
       this.wsConnection = new WebSocket(wsUrl);
-      
+
       this.wsConnection.onopen = () => {
-        console.log('Analytics WebSocket connected');
+        console.log("Analytics WebSocket connected");
         this.wsReconnectAttempts = 0;
-        
+
         // Authenticate WebSocket connection
         const token = this.getAccessTokenFromStore();
         if (token) {
-          this.wsConnection.send(JSON.stringify({
-            type: 'authenticate',
-            token: token
-          }));
+          this.wsConnection.send(
+            JSON.stringify({
+              type: "authenticate",
+              token: token,
+            }),
+          );
         }
       };
-      
+
       this.wsConnection.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
           this.handleRealtimeUpdate(message);
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.error("Error parsing WebSocket message:", error);
         }
       };
-      
+
       this.wsConnection.onclose = () => {
-        console.log('Analytics WebSocket disconnected');
+        console.log("Analytics WebSocket disconnected");
         this.wsConnection = null;
         this.attemptReconnect();
       };
-      
+
       this.wsConnection.onerror = (error) => {
-        console.error('Analytics WebSocket error:', error);
+        console.error("Analytics WebSocket error:", error);
       };
     } catch (error) {
-      console.error('Failed to initialize analytics WebSocket:', error);
+      console.error("Failed to initialize analytics WebSocket:", error);
     }
   }
 
@@ -149,13 +154,17 @@ class AnalyticsService {
   }
 
   attemptReconnect() {
-    if (this.wsReconnectAttempts >= this.maxReconnectAttempts || !this.isOnline) {
+    if (
+      this.wsReconnectAttempts >= this.maxReconnectAttempts ||
+      !this.isOnline
+    ) {
       return;
     }
-    
+
     this.wsReconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.wsReconnectAttempts - 1);
-    
+    const delay =
+      this.reconnectDelay * Math.pow(2, this.wsReconnectAttempts - 1);
+
     setTimeout(() => {
       this.initializeWebSocket();
     }, delay);
@@ -163,14 +172,14 @@ class AnalyticsService {
 
   handleRealtimeUpdate(message) {
     const { type, data, timestamp } = message;
-    
+
     // Invalidate related cache entries
     this.invalidateCache(type);
-    
+
     // Notify subscribers
     if (this.realTimeSubscriptions.has(type)) {
       const subscribers = this.realTimeSubscriptions.get(type);
-      subscribers.forEach(callback => callback(data, timestamp));
+      subscribers.forEach((callback) => callback(data, timestamp));
     }
   }
 
@@ -179,15 +188,17 @@ class AnalyticsService {
       this.realTimeSubscriptions.set(type, new Set());
     }
     this.realTimeSubscriptions.get(type).add(callback);
-    
+
     // Send subscription message to WebSocket
     if (this.wsConnection && this.wsConnection.readyState === WebSocket.OPEN) {
-      this.wsConnection.send(JSON.stringify({
-        type: 'subscribe',
-        analytics_type: type
-      }));
+      this.wsConnection.send(
+        JSON.stringify({
+          type: "subscribe",
+          analytics_type: type,
+        }),
+      );
     }
-    
+
     return () => {
       this.unsubscribeFromUpdates(type, callback);
     };
@@ -196,16 +207,21 @@ class AnalyticsService {
   unsubscribeFromUpdates(type, callback) {
     if (this.realTimeSubscriptions.has(type)) {
       this.realTimeSubscriptions.get(type).delete(callback);
-      
+
       if (this.realTimeSubscriptions.get(type).size === 0) {
         this.realTimeSubscriptions.delete(type);
-        
+
         // Send unsubscription message to WebSocket
-        if (this.wsConnection && this.wsConnection.readyState === WebSocket.OPEN) {
-          this.wsConnection.send(JSON.stringify({
-            type: 'unsubscribe',
-            analytics_type: type
-          }));
+        if (
+          this.wsConnection &&
+          this.wsConnection.readyState === WebSocket.OPEN
+        ) {
+          this.wsConnection.send(
+            JSON.stringify({
+              type: "unsubscribe",
+              analytics_type: type,
+            }),
+          );
         }
       }
     }
@@ -214,29 +230,32 @@ class AnalyticsService {
   invalidateCache(type) {
     const keysToDelete = [];
     for (const key of this.cache.keys()) {
-      if (key.includes(type.replace('_', '-'))) {
+      if (key.includes(type.replace("_", "-"))) {
         keysToDelete.push(key);
       }
     }
-    keysToDelete.forEach(key => this.cache.delete(key));
+    keysToDelete.forEach((key) => this.cache.delete(key));
   }
 
   // ===========================================
   // User Analytics APIs
   // ===========================================
-  
-  async getUserAnalytics(timeframe = 'month', useCache = true) {
-    const cacheKey = this.getCacheKey('user/analytics', { timeframe });
-    
+
+  async getUserAnalytics(timeframe = "month", useCache = true) {
+    const cacheKey = this.getCacheKey("user/analytics", { timeframe });
+
     if (useCache) {
       const cached = this.getFromCache(cacheKey);
       if (cached) return { success: true, data: cached };
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/usage?days=${this.timeframeToDays(timeframe)}`, {
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/usage?days=${this.timeframeToDays(timeframe)}`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       const result = await response.json();
 
@@ -247,28 +266,33 @@ class AnalyticsService {
       } else {
         return {
           success: false,
-          error: result.error || 'Failed to fetch user analytics'
+          error: result.error || "Failed to fetch user analytics",
         };
       }
-
     } catch (error) {
-      console.error('AnalyticsService: Error fetching user analytics:', error);
+      console.error("AnalyticsService: Error fetching user analytics:", error);
       return {
         success: false,
-        error: 'Network error - unable to fetch analytics'
+        error: "Network error - unable to fetch analytics",
       };
     }
   }
 
-  async getParticipationTrends(timeframe = 'month', metric = 'meetings') {
-    const cacheKey = this.getCacheKey('user/participation-trends', { timeframe, metric });
+  async getParticipationTrends(timeframe = "month", metric = "meetings") {
+    const cacheKey = this.getCacheKey("user/participation-trends", {
+      timeframe,
+      metric,
+    });
     const cached = this.getFromCache(cacheKey);
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/meetings?period=${timeframe}&days=${this.timeframeToDays(timeframe)}`, {
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/meetings?period=${timeframe}&days=${this.timeframeToDays(timeframe)}`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       const result = await response.json();
 
@@ -279,28 +303,36 @@ class AnalyticsService {
       } else {
         return {
           success: false,
-          error: result.error || 'Failed to fetch participation trends'
+          error: result.error || "Failed to fetch participation trends",
         };
       }
-
     } catch (error) {
-      console.error('AnalyticsService: Error fetching participation trends:', error);
+      console.error(
+        "AnalyticsService: Error fetching participation trends:",
+        error,
+      );
       return {
         success: false,
-        error: 'Network error - unable to fetch participation trends'
+        error: "Network error - unable to fetch participation trends",
       };
     }
   }
 
-  async getMeetingStats(timeframe = 'month', breakdown = 'daily') {
-    const cacheKey = this.getCacheKey('user/meeting-stats', { timeframe, breakdown });
+  async getMeetingStats(timeframe = "month", breakdown = "daily") {
+    const cacheKey = this.getCacheKey("user/meeting-stats", {
+      timeframe,
+      breakdown,
+    });
     const cached = this.getFromCache(cacheKey);
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/meetings?period=${breakdown}&days=${this.timeframeToDays(timeframe)}`, {
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/meetings?period=${breakdown}&days=${this.timeframeToDays(timeframe)}`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       const result = await response.json();
 
@@ -311,47 +343,53 @@ class AnalyticsService {
       } else {
         return {
           success: false,
-          error: result.error || 'Failed to fetch meeting statistics'
+          error: result.error || "Failed to fetch meeting statistics",
         };
       }
-
     } catch (error) {
-      console.error('AnalyticsService: Error fetching meeting stats:', error);
+      console.error("AnalyticsService: Error fetching meeting stats:", error);
       return {
         success: false,
-        error: 'Network error - unable to fetch meeting statistics'
+        error: "Network error - unable to fetch meeting statistics",
       };
     }
   }
 
-  async getEngagementMetrics(timeframe = 'month') {
-    const cacheKey = this.getCacheKey('user/engagement-metrics', { timeframe });
+  async getEngagementMetrics(timeframe = "month") {
+    const cacheKey = this.getCacheKey("user/engagement-metrics", { timeframe });
     const cached = this.getFromCache(cacheKey);
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/overview`, {
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/overview`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformEngagementMetrics(result.analytics);
+        const transformedData = this.transformEngagementMetrics(
+          result.analytics,
+        );
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
         return {
           success: false,
-          error: result.error || 'Failed to fetch engagement metrics'
+          error: result.error || "Failed to fetch engagement metrics",
         };
       }
-
     } catch (error) {
-      console.error('AnalyticsService: Error fetching engagement metrics:', error);
+      console.error(
+        "AnalyticsService: Error fetching engagement metrics:",
+        error,
+      );
       return {
         success: false,
-        error: 'Network error - unable to fetch engagement metrics'
+        error: "Network error - unable to fetch engagement metrics",
       };
     }
   }
@@ -359,19 +397,22 @@ class AnalyticsService {
   // ===========================================
   // Admin Analytics APIs
   // ===========================================
-  
-  async getSystemAnalytics(timeframe = 'month', useCache = true) {
-    const cacheKey = this.getCacheKey('admin/system-analytics', { timeframe });
-    
+
+  async getSystemAnalytics(timeframe = "month", useCache = true) {
+    const cacheKey = this.getCacheKey("admin/system-analytics", { timeframe });
+
     if (useCache) {
       const cached = this.getFromCache(cacheKey);
       if (cached) return { success: true, data: cached };
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/dashboard?days=${this.timeframeToDays(timeframe)}`, {
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/dashboard?days=${this.timeframeToDays(timeframe)}`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       const result = await response.json();
 
@@ -382,79 +423,100 @@ class AnalyticsService {
       } else {
         return {
           success: false,
-          error: result.error || 'Failed to fetch system analytics'
+          error: result.error || "Failed to fetch system analytics",
         };
       }
-
     } catch (error) {
-      console.error('AnalyticsService: Error fetching system analytics:', error);
+      console.error(
+        "AnalyticsService: Error fetching system analytics:",
+        error,
+      );
       return {
         success: false,
-        error: 'Network error - unable to fetch system analytics'
+        error: "Network error - unable to fetch system analytics",
       };
     }
   }
 
-  async getUserEngagementReport(timeframe = 'month', groupBy = 'department') {
-    const cacheKey = this.getCacheKey('admin/user-engagement', { timeframe, groupBy });
+  async getUserEngagementReport(timeframe = "month", groupBy = "department") {
+    const cacheKey = this.getCacheKey("admin/user-engagement", {
+      timeframe,
+      groupBy,
+    });
     const cached = this.getFromCache(cacheKey);
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/users?period=${timeframe}&months=${Math.ceil(this.timeframeToDays(timeframe)/30)}`, {
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/users?period=${timeframe}&months=${Math.ceil(this.timeframeToDays(timeframe) / 30)}`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformUserEngagementReport(result.analytics);
+        const transformedData = this.transformUserEngagementReport(
+          result.analytics,
+        );
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
         return {
           success: false,
-          error: result.error || 'Failed to fetch user engagement report'
+          error: result.error || "Failed to fetch user engagement report",
         };
       }
-
     } catch (error) {
-      console.error('AnalyticsService: Error fetching user engagement report:', error);
+      console.error(
+        "AnalyticsService: Error fetching user engagement report:",
+        error,
+      );
       return {
         success: false,
-        error: 'Network error - unable to fetch user engagement report'
+        error: "Network error - unable to fetch user engagement report",
       };
     }
   }
 
-  async getMeetingUtilizationStats(timeframe = 'month') {
-    const cacheKey = this.getCacheKey('admin/meeting-utilization', { timeframe });
+  async getMeetingUtilizationStats(timeframe = "month") {
+    const cacheKey = this.getCacheKey("admin/meeting-utilization", {
+      timeframe,
+    });
     const cached = this.getFromCache(cacheKey);
     if (cached) return { success: true, data: cached };
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/performance?hours=${this.timeframeToDays(timeframe) * 24}`, {
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/performance?hours=${this.timeframeToDays(timeframe) * 24}`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const transformedData = this.transformMeetingUtilization(result.performance);
+        const transformedData = this.transformMeetingUtilization(
+          result.performance,
+        );
         this.setCache(cacheKey, transformedData);
         return { success: true, data: transformedData };
       } else {
         return {
           success: false,
-          error: result.error || 'Failed to fetch meeting utilization stats'
+          error: result.error || "Failed to fetch meeting utilization stats",
         };
       }
-
     } catch (error) {
-      console.error('AnalyticsService: Error fetching meeting utilization:', error);
+      console.error(
+        "AnalyticsService: Error fetching meeting utilization:",
+        error,
+      );
       return {
         success: false,
-        error: 'Network error - unable to fetch meeting utilization'
+        error: "Network error - unable to fetch meeting utilization",
       };
     }
   }
@@ -462,7 +524,7 @@ class AnalyticsService {
   // ===========================================
   // Data Transformation Methods
   // ===========================================
-  
+
   transformUserAnalytics(data) {
     return {
       ...data,
@@ -474,14 +536,14 @@ class AnalyticsService {
       totalMeetings: this.formatNumber(data.total_meetings),
       totalDuration: this.formatDuration(data.total_duration_minutes),
       // Chart-ready data
-      chartData: this.prepareChartData(data)
+      chartData: this.prepareChartData(data),
     };
   }
 
   transformTrendsData(data) {
     if (!Array.isArray(data)) return data;
-    
-    return data.map(trend => ({
+
+    return data.map((trend) => ({
       ...trend,
       // Format dates consistently
       date: this.formatDate(trend.date),
@@ -489,7 +551,7 @@ class AnalyticsService {
       changePercent: this.calculatePercentageChange(trend),
       // Prepare for visualization
       displayValue: this.formatNumber(trend.value),
-      trend: this.identifyTrend(trend)
+      trend: this.identifyTrend(trend),
     }));
   }
 
@@ -498,11 +560,15 @@ class AnalyticsService {
       ...data,
       // Add aggregated metrics
       totalMeetingHours: this.calculateTotalHours(data.meetings || []),
-      averageParticipants: this.calculateAverageParticipants(data.meetings || []),
+      averageParticipants: this.calculateAverageParticipants(
+        data.meetings || [],
+      ),
       peakUsageDay: this.identifyPeakUsageDay(data.daily_stats || []),
       // Format for charts
       timeSeriesData: this.prepareTimeSeriesData(data.daily_stats || []),
-      participantDistribution: this.prepareParticipantDistribution(data.meetings || [])
+      participantDistribution: this.prepareParticipantDistribution(
+        data.meetings || [],
+      ),
     };
   }
 
@@ -517,7 +583,7 @@ class AnalyticsService {
       recommendations: this.generateEngagementRecommendations(data),
       // Format for visualization
       radarChartData: this.prepareRadarChartData(data),
-      trendChartData: this.prepareEngagementTrendData(data)
+      trendChartData: this.prepareEngagementTrendData(data),
     };
   }
 
@@ -526,30 +592,32 @@ class AnalyticsService {
       ...data,
       // System health indicators
       healthScore: this.calculateSystemHealthScore(data),
-      performanceMetrics: this.transformPerformanceMetrics(data.performance || {}),
+      performanceMetrics: this.transformPerformanceMetrics(
+        data.performance || {},
+      ),
       // Resource utilization
       resourceUtilization: this.calculateResourceUtilization(data),
       // Growth metrics
       growthMetrics: this.calculateGrowthMetrics(data),
       // Alert thresholds
-      alerts: this.checkSystemAlerts(data)
+      alerts: this.checkSystemAlerts(data),
     };
   }
 
   transformUserEngagementReport(data) {
     if (!Array.isArray(data)) return data;
-    
+
     return {
       summary: this.calculateEngagementSummary(data),
-      groupedData: data.map(group => ({
+      groupedData: data.map((group) => ({
         ...group,
         engagementLevel: this.categorizeEngagementLevel(group.average_score),
         trendIndicator: this.calculateTrendIndicator(group.trend_data || []),
-        recommendations: this.generateGroupRecommendations(group)
+        recommendations: this.generateGroupRecommendations(group),
       })),
       // Prepare for charts
       comparisonChart: this.prepareEngagementComparisonChart(data),
-      distributionChart: this.prepareEngagementDistributionChart(data)
+      distributionChart: this.prepareEngagementDistributionChart(data),
     };
   }
 
@@ -563,61 +631,76 @@ class AnalyticsService {
       efficiencyScore: this.calculateMeetingEfficiencyScore(data),
       optimizationSuggestions: this.generateOptimizationSuggestions(data),
       // Capacity planning
-      capacityForecast: this.generateCapacityForecast(data)
+      capacityForecast: this.generateCapacityForecast(data),
     };
   }
 
   // ===========================================
   // Utility Calculation Methods
   // ===========================================
-  
+
   calculateAverageSessionDuration(data) {
     if (!data.total_sessions || data.total_sessions === 0) return 0;
     return Math.round((data.total_duration_minutes || 0) / data.total_sessions);
   }
 
   calculateEngagementTrend(weeklyStats) {
-    if (!Array.isArray(weeklyStats) || weeklyStats.length < 2) return 'stable';
-    
+    if (!Array.isArray(weeklyStats) || weeklyStats.length < 2) return "stable";
+
     const recent = weeklyStats.slice(-2);
-    const change = ((recent[1].engagement_score - recent[0].engagement_score) / recent[0].engagement_score) * 100;
-    
-    if (change > 10) return 'increasing';
-    if (change < -10) return 'decreasing';
-    return 'stable';
+    const change =
+      ((recent[1].engagement_score - recent[0].engagement_score) /
+        recent[0].engagement_score) *
+      100;
+
+    if (change > 10) return "increasing";
+    if (change < -10) return "decreasing";
+    return "stable";
   }
 
   identifyPeakHours(hourlyActivity) {
     if (!Array.isArray(hourlyActivity)) return [];
-    
+
     return hourlyActivity
       .sort((a, b) => b.activity - a.activity)
       .slice(0, 3)
-      .map(hour => ({
+      .map((hour) => ({
         hour: hour.hour,
         activity: hour.activity,
-        formatted: this.formatHour(hour.hour)
+        formatted: this.formatHour(hour.hour),
       }));
   }
 
   calculatePercentageChange(trend) {
     if (!trend.previous_value || trend.previous_value === 0) return 0;
-    return Math.round(((trend.value - trend.previous_value) / trend.previous_value) * 100);
+    return Math.round(
+      ((trend.value - trend.previous_value) / trend.previous_value) * 100,
+    );
   }
 
   identifyTrend(trend) {
     const change = this.calculatePercentageChange(trend);
-    if (Math.abs(change) < 5) return 'stable';
-    return change > 0 ? 'up' : 'down';
+    if (Math.abs(change) < 5) return "stable";
+    return change > 0 ? "up" : "down";
   }
 
   calculateTotalHours(meetings) {
-    return meetings.reduce((total, meeting) => total + (meeting.duration_minutes || 0), 0) / 60;
+    return (
+      meetings.reduce(
+        (total, meeting) => total + (meeting.duration_minutes || 0),
+        0,
+      ) / 60
+    );
   }
 
   calculateAverageParticipants(meetings) {
     if (meetings.length === 0) return 0;
-    return Math.round(meetings.reduce((total, meeting) => total + (meeting.participant_count || 0), 0) / meetings.length);
+    return Math.round(
+      meetings.reduce(
+        (total, meeting) => total + (meeting.participant_count || 0),
+        0,
+      ) / meetings.length,
+    );
   }
 
   calculateOverallEngagementScore(data) {
@@ -626,13 +709,13 @@ class AnalyticsService {
       interaction_frequency: 0.2,
       session_duration: 0.2,
       feature_usage: 0.15,
-      feedback_score: 0.15
+      feedback_score: 0.15,
     };
 
     let score = 0;
     let totalWeight = 0;
 
-    Object.keys(weights).forEach(key => {
+    Object.keys(weights).forEach((key) => {
       if (data[key] !== undefined) {
         score += data[key] * weights[key];
         totalWeight += weights[key];
@@ -647,56 +730,58 @@ class AnalyticsService {
       data.uptime_percentage || 0,
       data.response_time_score || 0,
       data.error_rate_score || 0,
-      data.capacity_score || 0
+      data.capacity_score || 0,
     ];
 
-    return Math.round(metrics.reduce((sum, metric) => sum + metric, 0) / metrics.length);
+    return Math.round(
+      metrics.reduce((sum, metric) => sum + metric, 0) / metrics.length,
+    );
   }
 
   // ===========================================
   // Chart Data Preparation Methods
   // ===========================================
-  
+
   prepareChartData(data) {
     return {
       timeSeriesData: this.prepareTimeSeriesData(data.daily_stats || []),
       pieChartData: this.preparePieChartData(data),
       barChartData: this.prepareBarChartData(data),
-      lineChartData: this.prepareLineChartData(data.trends || [])
+      lineChartData: this.prepareLineChartData(data.trends || []),
     };
   }
 
   prepareTimeSeriesData(dailyStats) {
-    return dailyStats.map(stat => ({
+    return dailyStats.map((stat) => ({
       date: this.formatDate(stat.date),
       value: stat.value || 0,
-      label: this.formatDateForChart(stat.date)
+      label: this.formatDateForChart(stat.date),
     }));
   }
 
   prepareRadarChartData(data) {
     return [
-      { metric: 'Participation', value: data.participation_rate || 0 },
-      { metric: 'Interaction', value: data.interaction_frequency || 0 },
-      { metric: 'Duration', value: data.session_duration_score || 0 },
-      { metric: 'Features', value: data.feature_usage_score || 0 },
-      { metric: 'Feedback', value: data.feedback_score || 0 }
+      { metric: "Participation", value: data.participation_rate || 0 },
+      { metric: "Interaction", value: data.interaction_frequency || 0 },
+      { metric: "Duration", value: data.session_duration_score || 0 },
+      { metric: "Features", value: data.feature_usage_score || 0 },
+      { metric: "Feedback", value: data.feedback_score || 0 },
     ];
   }
 
   // ===========================================
   // Formatting Methods
   // ===========================================
-  
+
   formatNumber(num) {
-    if (!num) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    if (!num) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
     return num.toString();
   }
 
   formatDuration(minutes) {
-    if (!minutes) return '0m';
+    if (!minutes) return "0m";
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
@@ -710,14 +795,14 @@ class AnalyticsService {
   }
 
   formatDateForChart(dateString) {
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
   }
 
   formatHour(hour) {
-    const period = hour >= 12 ? 'PM' : 'AM';
+    const period = hour >= 12 ? "PM" : "AM";
     const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${displayHour}:00 ${period}`;
   }
@@ -725,18 +810,25 @@ class AnalyticsService {
   // ===========================================
   // Export and Utility Methods
   // ===========================================
-  
-  async exportAnalyticsData(type = 'user', format = 'csv', timeframe = 'month') {
+
+  async exportAnalyticsData(
+    type = "user",
+    format = "csv",
+    timeframe = "month",
+  ) {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/analytics/export?type=${type}&format=${format}&days=${this.timeframeToDays(timeframe)}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/api/analytics/export?type=${type}&format=${format}&days=${this.timeframeToDays(timeframe)}`,
+        {
+          method: "GET",
+          headers: this.getAuthHeaders(),
+        },
+      );
 
       if (response.ok) {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
         a.download = `analytics-${type}-${timeframe}-${Date.now()}.${format}`;
         a.click();
@@ -747,8 +839,8 @@ class AnalyticsService {
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('Error exporting analytics data:', error);
-      return { success: false, error: 'Export failed' };
+      console.error("Error exporting analytics data:", error);
+      return { success: false, error: "Export failed" };
     }
   }
 
@@ -757,9 +849,9 @@ class AnalyticsService {
     this.disconnectWebSocket();
     this.clearCache();
     this.realTimeSubscriptions.clear();
-    
-    window.removeEventListener('online', this.initializeWebSocket);
-    window.removeEventListener('offline', this.disconnectWebSocket);
+
+    window.removeEventListener("online", this.initializeWebSocket);
+    window.removeEventListener("offline", this.disconnectWebSocket);
   }
 }
 

@@ -25,51 +25,51 @@ class SpeakingDetectionService {
     try {
       // Create audio context if it doesn't exist
       if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.audioContext = new (window.AudioContext ||
+          window.webkitAudioContext)();
       }
 
       // Resume audio context if suspended
-      if (this.audioContext.state === 'suspended') {
+      if (this.audioContext.state === "suspended") {
         await this.audioContext.resume();
       }
 
       // Get audio tracks from stream
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length === 0) {
-        throw new Error('No audio tracks found in stream');
+        throw new Error("No audio tracks found in stream");
       }
 
       // Create media stream source
       this.microphone = this.audioContext.createMediaStreamSource(stream);
-      
+
       // Create analyser node
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 512;
       this.analyser.smoothingTimeConstant = 0.8;
-      
+
       // Connect microphone to analyser
       this.microphone.connect(this.analyser);
-      
+
       // Create data array for frequency analysis
       this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-      
-      console.log('🎤 Speaking detection initialized');
-      return true;
 
+      console.log("🎤 Speaking detection initialized");
+      return true;
     } catch (error) {
-      console.error('Failed to initialize speaking detection:', error);
+      console.error("Failed to initialize speaking detection:", error);
       return false;
     }
   }
 
   // Start monitoring audio levels
-  startMonitoring(userId = 'local') {
+  startMonitoring(userId = "local") {
     if (!this.analyser || this.isMonitoring) {
       return false;
     }
 
     this.isMonitoring = true;
-    console.log('🎙️ Started speaking detection monitoring');
+    console.log("🎙️ Started speaking detection monitoring");
 
     // Monitor audio levels at 60fps for smooth detection
     const monitor = () => {
@@ -77,7 +77,7 @@ class SpeakingDetectionService {
 
       const audioLevel = this.getAudioLevel();
       const wasSpeaking = this.isSpeaking;
-      
+
       // Update speaking status based on threshold
       if (audioLevel > this.speakingThreshold && !this.isSpeaking) {
         this.isSpeaking = true;
@@ -106,13 +106,13 @@ class SpeakingDetectionService {
   // Stop monitoring audio levels
   stopMonitoring() {
     this.isMonitoring = false;
-    
+
     if (this.isSpeaking) {
       this.isSpeaking = false;
-      this.notifySpeakingChange('local', false, 0);
+      this.notifySpeakingChange("local", false, 0);
     }
 
-    console.log('🛑 Stopped speaking detection monitoring');
+    console.log("🛑 Stopped speaking detection monitoring");
   }
 
   // Get current audio level (0-100)
@@ -120,18 +120,20 @@ class SpeakingDetectionService {
     if (!this.analyser || !this.dataArray) return 0;
 
     this.analyser.getByteFrequencyData(this.dataArray);
-    
+
     // Calculate RMS (Root Mean Square) for better voice detection
     let sum = 0;
     for (let i = 0; i < this.dataArray.length; i++) {
       sum += this.dataArray[i] * this.dataArray[i];
     }
-    
+
     const rms = Math.sqrt(sum / this.dataArray.length);
-    
+
     // Apply smoothing to reduce noise
-    this.lastAudioLevel = this.lastAudioLevel * this.smoothingFactor + rms * (1 - this.smoothingFactor);
-    
+    this.lastAudioLevel =
+      this.lastAudioLevel * this.smoothingFactor +
+      rms * (1 - this.smoothingFactor);
+
     return Math.min(100, this.lastAudioLevel);
   }
 
@@ -141,7 +143,7 @@ class SpeakingDetectionService {
 
     const frequencyData = new Uint8Array(this.analyser.frequencyBinCount);
     this.analyser.getByteFrequencyData(frequencyData);
-    
+
     return frequencyData;
   }
 
@@ -153,25 +155,25 @@ class SpeakingDetectionService {
     // Voice frequencies are typically between 85Hz and 4kHz
     const sampleRate = this.audioContext.sampleRate;
     const binSize = sampleRate / this.analyser.fftSize;
-    
+
     const voiceStart = Math.floor(85 / binSize);
     const voiceEnd = Math.floor(4000 / binSize);
-    
+
     let voiceEnergy = 0;
     let totalEnergy = 0;
-    
+
     for (let i = 0; i < frequencyData.length; i++) {
       const energy = frequencyData[i];
       totalEnergy += energy;
-      
+
       if (i >= voiceStart && i <= voiceEnd) {
         voiceEnergy += energy;
       }
     }
-    
+
     // Calculate voice energy ratio
     const voiceRatio = totalEnergy > 0 ? voiceEnergy / totalEnergy : 0;
-    
+
     // Voice activity detected if voice energy is significant and above threshold
     return voiceRatio > 0.3 && voiceEnergy > this.speakingThreshold;
   }
@@ -179,11 +181,11 @@ class SpeakingDetectionService {
   // Update speaking history for analytics
   updateSpeakingHistory(audioLevel, isSpeaking) {
     const timestamp = Date.now();
-    
+
     this.speakingHistory.push({
       timestamp,
       audioLevel,
-      isSpeaking
+      isSpeaking,
     });
 
     // Limit history size
@@ -193,12 +195,13 @@ class SpeakingDetectionService {
   }
 
   // Get speaking statistics
-  getSpeakingStats(timeRangeMs = 60000) { // Default: last 60 seconds
+  getSpeakingStats(timeRangeMs = 60000) {
+    // Default: last 60 seconds
     const now = Date.now();
     const cutoff = now - timeRangeMs;
-    
-    const recentHistory = this.speakingHistory.filter(entry => 
-      entry.timestamp >= cutoff
+
+    const recentHistory = this.speakingHistory.filter(
+      (entry) => entry.timestamp >= cutoff,
     );
 
     if (recentHistory.length === 0) {
@@ -208,7 +211,7 @@ class SpeakingDetectionService {
         speakingPercentage: 0,
         averageAudioLevel: 0,
         peakAudioLevel: 0,
-        speakingBursts: 0
+        speakingBursts: 0,
       };
     }
 
@@ -224,7 +227,7 @@ class SpeakingDetectionService {
           const timeDiff = entry.timestamp - recentHistory[index - 1].timestamp;
           speakingTime += timeDiff;
         }
-        
+
         if (!wasSpeaking) {
           speakingBursts++;
         }
@@ -247,7 +250,7 @@ class SpeakingDetectionService {
       speakingPercentage,
       averageAudioLevel,
       peakAudioLevel,
-      speakingBursts
+      speakingBursts,
     };
   }
 
@@ -259,25 +262,24 @@ class SpeakingDetectionService {
       const audioStream = audioElement.captureStream();
       const source = this.audioContext.createMediaElementSource(audioElement);
       const analyser = this.audioContext.createAnalyser();
-      
+
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.8;
-      
+
       source.connect(analyser);
       source.connect(this.audioContext.destination); // Still output audio
-      
+
       this.participants.set(userId, {
         audioElement,
         source,
         analyser,
         dataArray: new Uint8Array(analyser.frequencyBinCount),
         isSpeaking: false,
-        lastAudioLevel: 0
+        lastAudioLevel: 0,
       });
 
       console.log(`🎤 Added participant ${userId} for speaking detection`);
       return true;
-
     } catch (error) {
       console.error(`Failed to add participant ${userId}:`, error);
       return false;
@@ -320,15 +322,17 @@ class SpeakingDetectionService {
     if (!participant || !participant.analyser) return 0;
 
     participant.analyser.getByteFrequencyData(participant.dataArray);
-    
+
     let sum = 0;
     for (let i = 0; i < participant.dataArray.length; i++) {
       sum += participant.dataArray[i] * participant.dataArray[i];
     }
-    
+
     const rms = Math.sqrt(sum / participant.dataArray.length);
-    participant.lastAudioLevel = participant.lastAudioLevel * this.smoothingFactor + rms * (1 - this.smoothingFactor);
-    
+    participant.lastAudioLevel =
+      participant.lastAudioLevel * this.smoothingFactor +
+      rms * (1 - this.smoothingFactor);
+
     return Math.min(100, participant.lastAudioLevel);
   }
 
@@ -356,14 +360,14 @@ class SpeakingDetectionService {
       isSpeaking,
       audioLevel,
       timestamp: Date.now(),
-      ...(duration && { duration })
+      ...(duration && { duration }),
     };
 
-    this.speakingCallbacks.forEach(callback => {
+    this.speakingCallbacks.forEach((callback) => {
       try {
         callback(data);
       } catch (error) {
-        console.error('Error in speaking change callback:', error);
+        console.error("Error in speaking change callback:", error);
       }
     });
   }
@@ -373,14 +377,14 @@ class SpeakingDetectionService {
       userId,
       audioLevel,
       isSpeaking,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
-    this.audioLevelCallbacks.forEach(callback => {
+    this.audioLevelCallbacks.forEach((callback) => {
       try {
         callback(data);
       } catch (error) {
-        console.error('Error in audio level callback:', error);
+        console.error("Error in audio level callback:", error);
       }
     });
   }
@@ -401,7 +405,7 @@ class SpeakingDetectionService {
   // Cleanup
   cleanup() {
     this.stopMonitoring();
-    
+
     // Disconnect all participants
     this.participants.forEach((participant, userId) => {
       this.removeParticipant(userId);
@@ -425,7 +429,7 @@ class SpeakingDetectionService {
     this.audioLevelCallbacks.clear();
     this.speakingHistory = [];
 
-    console.log('🧹 Speaking detection service cleaned up');
+    console.log("🧹 Speaking detection service cleaned up");
   }
 
   // Utility methods
@@ -436,7 +440,7 @@ class SpeakingDetectionService {
       audioLevel: this.lastAudioLevel,
       participantCount: this.participants.size,
       speakingThreshold: this.speakingThreshold,
-      silenceThreshold: this.silenceThreshold
+      silenceThreshold: this.silenceThreshold,
     };
   }
 
@@ -444,7 +448,7 @@ class SpeakingDetectionService {
   async calibrateThresholds(calibrationTimeMs = 3000) {
     if (!this.isMonitoring) return false;
 
-    console.log('🎯 Starting speaking threshold calibration...');
+    console.log("🎯 Starting speaking threshold calibration...");
     const samples = [];
     const startTime = Date.now();
 
@@ -475,7 +479,7 @@ class SpeakingDetectionService {
           resolve({
             ambientLevel: median,
             silenceThreshold: this.silenceThreshold,
-            speakingThreshold: this.speakingThreshold
+            speakingThreshold: this.speakingThreshold,
           });
         }
       };

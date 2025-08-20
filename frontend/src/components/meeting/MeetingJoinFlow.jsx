@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import MeetingAccessValidator from './MeetingAccessValidator';
-import MeetingWaitingRoom from './MeetingWaitingRoom';
-import MeetingTimeRestriction from './MeetingTimeRestriction';
-import VideoConference from './VideoConference';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Card, CardContent } from '../ui/card';
-import { Button } from '../ui/button';
-import { 
-  AlertTriangle, 
-  ArrowLeft, 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import MeetingAccessValidator from "./MeetingAccessValidator";
+import MeetingWaitingRoom from "./MeetingWaitingRoom";
+import MeetingTimeRestriction from "./MeetingTimeRestriction";
+import VideoConference from "./VideoConference";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Card, CardContent } from "../ui/card";
+import { Button } from "../ui/button";
+import {
+  AlertTriangle,
+  ArrowLeft,
   RefreshCw,
   Loader2,
-  XCircle
-} from 'lucide-react';
-import meetingAccessService from '../../services/MeetingAccessService';
-import userAnalyticsService from '../../services/UserAnalyticsService';
-import useAuthStore from '../../stores/authStore';
-import LoadingSpinner from '../ui/LoadingSpinner';
+  XCircle,
+} from "lucide-react";
+import meetingAccessService from "../../services/MeetingAccessService";
+import userAnalyticsService from "../../services/UserAnalyticsService";
+import useAuthStore from "../../stores/authStore";
+import LoadingSpinner from "../ui/LoadingSpinner";
 
 const MeetingJoinFlow = () => {
   const { meetingId } = useParams();
@@ -25,7 +25,7 @@ const MeetingJoinFlow = () => {
   const { user, isAuthenticated } = useAuthStore();
 
   // Flow state management
-  const [currentStep, setCurrentStep] = useState('initializing'); // initializing, validating, waiting_room, time_restriction, joining, in_meeting, error
+  const [currentStep, setCurrentStep] = useState("initializing"); // initializing, validating, waiting_room, time_restriction, joining, in_meeting, error
   const [error, setError] = useState(null);
   const [accessData, setAccessData] = useState(null);
   const [meetingData, setMeetingData] = useState(null);
@@ -34,18 +34,18 @@ const MeetingJoinFlow = () => {
   const [joinOptions, setJoinOptions] = useState({
     audioEnabled: false,
     videoEnabled: false,
-    screenShareEnabled: false
+    screenShareEnabled: false,
   });
   const [retryCount, setRetryCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login', { 
-        state: { 
+      navigate("/login", {
+        state: {
           returnUrl: `/meeting/${meetingId}`,
-          message: 'Please log in to join the meeting'
-        }
+          message: "Please log in to join the meeting",
+        },
       });
       return;
     }
@@ -57,26 +57,26 @@ const MeetingJoinFlow = () => {
 
   useEffect(() => {
     // Track flow progression
-    userAnalyticsService.trackEvent('meeting_join_flow_step', {
+    userAnalyticsService.trackEvent("meeting_join_flow_step", {
       meeting_id: meetingId,
       step: currentStep,
       user_id: user?.id,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }, [currentStep]);
 
   const initializeJoinFlow = async () => {
-    setCurrentStep('initializing');
+    setCurrentStep("initializing");
     setError(null);
     setIsLoading(true);
 
     try {
       // Start with access validation
-      setCurrentStep('validating');
+      setCurrentStep("validating");
     } catch (error) {
-      console.error('Join flow initialization error:', error);
-      setError('Failed to initialize meeting join process');
-      setCurrentStep('error');
+      console.error("Join flow initialization error:", error);
+      setError("Failed to initialize meeting join process");
+      setCurrentStep("error");
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +90,7 @@ const MeetingJoinFlow = () => {
     }
 
     if (result.waitingRoomRequired) {
-      setCurrentStep('waiting_room_entry');
+      setCurrentStep("waiting_room_entry");
     } else {
       // Direct join allowed
       handleDirectJoin(result);
@@ -98,57 +98,57 @@ const MeetingJoinFlow = () => {
   };
 
   const handleAccessDenied = (reason) => {
-    userAnalyticsService.trackEvent('meeting_access_denied', {
+    userAnalyticsService.trackEvent("meeting_access_denied", {
       meeting_id: meetingId,
       denial_reason: reason,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     setError(`Access denied: ${reason}`);
-    setCurrentStep('error');
+    setCurrentStep("error");
   };
 
   const handleTimeRestriction = (timeData) => {
     setTimeRestrictionData(timeData);
-    setCurrentStep('time_restriction');
+    setCurrentStep("time_restriction");
   };
 
   const handleWaitingRoomJoin = (waitingData) => {
     setWaitingRoomData(waitingData);
-    setCurrentStep('waiting_room');
+    setCurrentStep("waiting_room");
   };
 
   const handleWaitingRoomAdmitted = (admissionData) => {
-    userAnalyticsService.trackEvent('waiting_room_admitted', {
+    userAnalyticsService.trackEvent("waiting_room_admitted", {
       meeting_id: meetingId,
       admission_data: admissionData,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
-    setCurrentStep('joining');
+    setCurrentStep("joining");
     handleDirectJoin(admissionData);
   };
 
   const handleWaitingRoomDenied = (denialReason) => {
-    userAnalyticsService.trackEvent('waiting_room_denied', {
+    userAnalyticsService.trackEvent("waiting_room_denied", {
       meeting_id: meetingId,
       denial_reason: denialReason,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     setError(`Admission denied: ${denialReason}`);
-    setCurrentStep('error');
+    setCurrentStep("error");
   };
 
   const handleDirectJoin = async (joinData) => {
-    setCurrentStep('joining');
+    setCurrentStep("joining");
     setIsLoading(true);
 
     try {
       const result = await meetingAccessService.joinMeeting(meetingId, {
         ...joinOptions,
         accessToken: joinData.meetingToken || joinData.accessToken,
-        userPermissions: joinData.userPermissions
+        userPermissions: joinData.userPermissions,
       });
 
       if (result.success) {
@@ -156,63 +156,65 @@ const MeetingJoinFlow = () => {
           ...meetingData,
           ...result.data.meetingSettings,
           userPermissions: result.data.userPermissions,
-          participantInfo: result.data.participantInfo
+          participantInfo: result.data.participantInfo,
         });
-        setCurrentStep('in_meeting');
+        setCurrentStep("in_meeting");
 
-        userAnalyticsService.trackEvent('meeting_joined_successfully', {
+        userAnalyticsService.trackEvent("meeting_joined_successfully", {
           meeting_id: meetingId,
-          join_method: 'direct',
-          timestamp: Date.now()
+          join_method: "direct",
+          timestamp: Date.now(),
         });
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Direct join error:', error);
-      setError('Failed to join meeting: ' + error.message);
-      setCurrentStep('error');
+      console.error("Direct join error:", error);
+      setError("Failed to join meeting: " + error.message);
+      setCurrentStep("error");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleRetryAccess = () => {
-    setRetryCount(prev => prev + 1);
+    setRetryCount((prev) => prev + 1);
     setError(null);
-    setCurrentStep('validating');
+    setCurrentStep("validating");
   };
 
   const handleLeaveWaitingRoom = () => {
-    setCurrentStep('validating');
+    setCurrentStep("validating");
     setWaitingRoomData(null);
   };
 
   const handleMeetingExit = () => {
-    userAnalyticsService.trackEvent('meeting_exited', {
+    userAnalyticsService.trackEvent("meeting_exited", {
       meeting_id: meetingId,
-      exit_reason: 'user_initiated',
-      timestamp: Date.now()
+      exit_reason: "user_initiated",
+      timestamp: Date.now(),
     });
 
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   const handleBackToDashboard = () => {
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 'initializing':
+      case "initializing":
         return (
           <Card>
             <CardContent className="py-12">
               <div className="text-center space-y-4">
                 <LoadingSpinner size="lg" />
                 <div>
-                  <h3 className="text-lg font-medium">Initializing Meeting Join</h3>
-                  <p className="text-sm text-gray-500">
+                  <h3 className="text-lg font-medium">
+                    Initializing Meeting Join
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
                     Setting up your meeting connection...
                   </p>
                 </div>
@@ -221,7 +223,7 @@ const MeetingJoinFlow = () => {
           </Card>
         );
 
-      case 'validating':
+      case "validating":
         return (
           <MeetingAccessValidator
             meetingId={meetingId}
@@ -234,7 +236,7 @@ const MeetingJoinFlow = () => {
           />
         );
 
-      case 'waiting_room_entry':
+      case "waiting_room_entry":
         return (
           <MeetingAccessValidator
             meetingId={meetingId}
@@ -246,7 +248,7 @@ const MeetingJoinFlow = () => {
           />
         );
 
-      case 'waiting_room':
+      case "waiting_room":
         return (
           <MeetingWaitingRoom
             meetingId={meetingId}
@@ -258,7 +260,7 @@ const MeetingJoinFlow = () => {
           />
         );
 
-      case 'time_restriction':
+      case "time_restriction":
         return (
           <MeetingTimeRestriction
             meetingId={meetingId}
@@ -269,7 +271,7 @@ const MeetingJoinFlow = () => {
           />
         );
 
-      case 'joining':
+      case "joining":
         return (
           <Card>
             <CardContent className="py-12">
@@ -277,7 +279,7 @@ const MeetingJoinFlow = () => {
                 <LoadingSpinner size="lg" />
                 <div>
                   <h3 className="text-lg font-medium">Joining Meeting</h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Connecting to the meeting room...
                   </p>
                 </div>
@@ -286,7 +288,7 @@ const MeetingJoinFlow = () => {
           </Card>
         );
 
-      case 'in_meeting':
+      case "in_meeting":
         return (
           <VideoConference
             meetingId={meetingId}
@@ -297,12 +299,12 @@ const MeetingJoinFlow = () => {
           />
         );
 
-      case 'error':
+      case "error":
         return (
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="text-center">
               <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-muted-foreground dark:text-white">
                 Unable to Join Meeting
               </h1>
             </div>
@@ -311,7 +313,8 @@ const MeetingJoinFlow = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Join Failed</AlertTitle>
               <AlertDescription>
-                {error || 'An unexpected error occurred while trying to join the meeting.'}
+                {error ||
+                  "An unexpected error occurred while trying to join the meeting."}
               </AlertDescription>
             </Alert>
 
@@ -330,16 +333,19 @@ const MeetingJoinFlow = () => {
                     </>
                   )}
                 </Button>
-                
+
                 <Button variant="outline" onClick={handleBackToDashboard}>
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Dashboard
                 </Button>
               </div>
-              
+
               {retryCount > 2 && (
-                <div className="text-sm text-gray-500">
-                  <p>Still having trouble? Contact the meeting organizer for assistance.</p>
+                <div className="text-sm text-muted-foreground">
+                  <p>
+                    Still having trouble? Contact the meeting organizer for
+                    assistance.
+                  </p>
                 </div>
               )}
             </div>
@@ -353,7 +359,7 @@ const MeetingJoinFlow = () => {
               <div className="text-center">
                 <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium">Unknown State</h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   The meeting join process is in an unexpected state.
                 </p>
                 <Button onClick={handleRetryAccess} className="mt-4">
@@ -368,20 +374,24 @@ const MeetingJoinFlow = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-muted dark:bg-muted0">
       {/* Progress indicator - only show during multi-step processes */}
-      {!['in_meeting', 'error'].includes(currentStep) && (
-        <div className="bg-white dark:bg-gray-800 border-b">
+      {!["in_meeting", "error"].includes(currentStep) && (
+        <div className="bg-white dark:bg-muted0 border-b">
           <div className="max-w-4xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-muted-foreground">
                 <span>Meeting ID: {meetingId}</span>
                 {meetingData?.title && <span>• {meetingData.title}</span>}
               </div>
-              
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <div className={`w-2 h-2 rounded-full ${currentStep === 'validating' ? 'bg-blue-500' : currentStep === 'initializing' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
-                <span className="capitalize">{currentStep.replace('_', ' ')}</span>
+
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div
+                  className={`w-2 h-2 rounded-full ${currentStep === "validating" ? "bg-blue-500" : currentStep === "initializing" ? "bg-blue-500" : "bg-green-500"}`}
+                ></div>
+                <span className="capitalize">
+                  {currentStep.replace("_", " ")}
+                </span>
               </div>
             </div>
           </div>
@@ -389,12 +399,10 @@ const MeetingJoinFlow = () => {
       )}
 
       {/* Main content */}
-      <div className="container mx-auto px-4 py-6">
-        {renderCurrentStep()}
-      </div>
+      <div className="container mx-auto px-4 py-6">{renderCurrentStep()}</div>
 
       {/* Debug info in development */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === "development" && (
         <div className="fixed bottom-4 right-4 bg-black bg-opacity-75 text-white text-xs p-2 rounded">
           <div>Step: {currentStep}</div>
           <div>Retries: {retryCount}</div>

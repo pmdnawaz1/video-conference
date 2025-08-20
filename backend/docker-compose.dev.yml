@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   video-conference-backend:
@@ -8,7 +8,7 @@ services:
     container_name: video-conference-backend-dev
     ports:
       - "8081:8081"
-      - "9090:9090"  # Metrics port
+      - "9090:9090" # Metrics port
     volumes:
       - .:/app
       - /app/node_modules
@@ -30,7 +30,13 @@ services:
       mailhog:
         condition: service_started
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8081/health', (res) => { res.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:8081/health', (res) => { res.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -95,8 +101,8 @@ services:
     image: mailhog/mailhog:latest
     container_name: video-conference-mailhog-dev
     ports:
-      - "1025:1025"  # SMTP port
-      - "8025:8025"  # Web UI port
+      - "1025:1025" # SMTP port
+      - "8025:8025" # Web UI port
     networks:
       - video-conference-network
     restart: unless-stopped
@@ -121,7 +127,15 @@ services:
     depends_on:
       - video-conference-backend
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -138,12 +152,12 @@ services:
       - video-conference-network
     restart: unless-stopped
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
 
   grafana:
     image: grafana/grafana:latest

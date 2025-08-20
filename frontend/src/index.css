@@ -1,301 +1,409 @@
 @import "tailwindcss";
 
+/* ===== UNIFIED THEME SYSTEM ===== */
+/* Simple, semantic variables for consistent light/dark mode */
+
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
+  /* === CORE SEMANTIC COLORS === */
+  /* Light mode: black fonts everywhere */
+  --text-primary: 0 0% 0%;        /* Pure black for main text */
+  --text-secondary: 0 0% 25%;     /* Dark gray for secondary text */
+  --text-muted: 0 0% 40%;         /* Medium gray for muted text */
+  --text-on-dark: 0 0% 100%;      /* White text for dark backgrounds */
+  
+  /* === BACKGROUND COLORS === */
+  --bg-primary: 0 0% 100%;        /* White backgrounds */
+  --bg-secondary: 220 13% 98%;    /* Light gray backgrounds */
+  --bg-muted: 220 13% 95%;        /* Muted backgrounds */
+  --bg-card: 0 0% 100%;           /* Card backgrounds */
+  
+  /* === INTERACTIVE COLORS === */
+  --bg-button-primary: 213 94% 68%;     /* Blue primary buttons */
+  --bg-button-secondary: 220 13% 91%;   /* Gray secondary buttons */
+  --bg-button-success: 142 76% 36%;     /* Green success buttons */
+  --bg-button-destructive: 0 72% 51%;   /* Red destructive buttons */
+  --bg-button-warning: 43 96% 56%;      /* Yellow warning buttons */
+  
+  /* === BORDER & UI ELEMENTS === */
+  --border-primary: 220 13% 91%;
+  --border-secondary: 220 13% 85%;
+  --ring-color: 213 94% 68%;
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 84% 4.9%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 94.1%;
-}
-
-/* Fallback styles in case Tailwind doesn't load */
-.fallback-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.fallback-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.fallback-button {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.fallback-button:hover {
-  background: #2563eb;
-}
-
-.fallback-input {
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 8px 12px;
-  width: 100%;
-  margin-bottom: 8px;
-}
-
-/* PWA Specific Styles */
-.pwa-mode {
-  /* Add padding for device notches when in PWA mode */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  /* Improve touch targets */
-  button {
-    min-height: 44px;
-    min-width: 44px;
-  }
+  /* === CORE SEMANTIC COLORS === */
+  /* Dark mode: white fonts everywhere */
+  --text-primary: 0 0% 100%;       /* Pure white for main text */
+  --text-secondary: 0 0% 85%;      /* Light gray for secondary text */
+  --text-muted: 0 0% 70%;          /* Medium gray for muted text */
+  --text-on-dark: 0 0% 100%;       /* White text (same as primary) */
   
-  /* Better text readability */
-  body {
-    font-size: 16px; /* Prevents zoom on iOS */
-    -webkit-text-size-adjust: 100%;
-  }
+  /* === BACKGROUND COLORS === */
+  --bg-primary: 220 16% 18%;       /* Dark backgrounds */
+  --bg-secondary: 220 17% 22%;     /* Darker gray backgrounds */
+  --bg-muted: 220 17% 26%;         /* Muted dark backgrounds */
+  --bg-card: 220 17% 26%;          /* Card backgrounds */
   
-  /* Prevent horizontal scroll */
-  html, body {
-    overflow-x: hidden;
-    width: 100%;
-  }
-}
-
-/* PWA fullscreen mode */
-@media (display-mode: fullscreen) {
-  .app-header {
-    padding-top: env(safe-area-inset-top);
-  }
-}
-
-/* PWA standalone mode */
-@media (display-mode: standalone) {
-  /* Hide elements not needed in standalone mode */
-  .browser-only {
-    display: none;
-  }
+  /* === INTERACTIVE COLORS === */
+  /* Buttons keep same background colors but text is always white */
+  --bg-button-primary: 213 94% 68%;     /* Blue primary buttons */
+  --bg-button-secondary: 220 17% 35%;   /* Dark gray secondary buttons */
+  --bg-button-success: 142 76% 36%;     /* Green success buttons */
+  --bg-button-destructive: 0 72% 51%;   /* Red destructive buttons */
+  --bg-button-warning: 43 96% 56%;      /* Yellow warning buttons */
   
-  /* Adjust layout for standalone */
-  .app-container {
-    height: 100vh;
-    height: 100svh; /* Use small viewport height */
-  }
-  
-  /* Desktop PWA specific adjustments */
-  @media (min-width: 768px) {
-    .app-container {
-      min-width: 800px;
-      min-height: 600px;
-    }
-  }
+  /* === BORDER & UI ELEMENTS === */
+  --border-primary: 220 17% 35%;
+  --border-secondary: 220 17% 40%;
+  --ring-color: 213 94% 68%;
 }
 
-/* Window Controls Overlay for desktop PWA */
-@media (display-mode: window-controls-overlay) {
-  .app-header {
-    padding-left: env(titlebar-area-x);
-    padding-right: calc(100vw - env(titlebar-area-width) - env(titlebar-area-x));
-    padding-top: env(titlebar-area-y);
-    height: env(titlebar-area-height);
-  }
-  
-  .main-content {
-    margin-top: env(titlebar-area-height);
-  }
+/* ===== BASE STYLES ===== */
+* {
+  box-sizing: border-box;
 }
 
-/* Desktop PWA optimizations */
-@media (min-width: 768px) {
-  .pwa-mode {
-    /* Better desktop experience */
-    padding: 0;
-  }
-  
-  /* Desktop install prompt */
-  .pwa-install-banner {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    left: auto;
-    bottom: auto;
-    max-width: 350px;
-    border-radius: 12px;
-  }
-  
-  /* Desktop app controls */
-  .desktop-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-/* iOS PWA specific */
-@supports (-webkit-touch-callout: none) {
-  .pwa-mode {
-    /* iOS specific adjustments */
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-  }
+body {
+  background-color: hsl(var(--bg-primary));
+  color: hsl(var(--text-primary));
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Prevent pull-to-refresh in PWA */
-html.pwa-mode body {
-  overscroll-behavior-y: contain;
+/* ===== TEXT UTILITIES ===== */
+.text-primary {
+  color: hsl(var(--text-primary)) !important;
 }
 
-/* Video conference mobile optimizations */
-.video-container {
-  /* Prevent video overflow on mobile */
-  max-width: 100vw;
-  max-height: 100vh;
-  object-fit: cover;
+.text-secondary {
+  color: hsl(var(--text-secondary)) !important;
 }
 
-.mobile-controls {
-  /* Larger touch targets for mobile */
-  padding: 16px;
-  gap: 16px;
+.text-muted {
+  color: hsl(var(--text-muted)) !important;
 }
 
-@media (max-width: 768px) {
-  .mobile-controls button {
-    padding: 12px;
-    font-size: 14px;
-  }
-  
-  /* Stack video controls vertically on very small screens */
-  @media (max-width: 480px) {
-    .video-controls {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .video-controls button {
-      width: 100%;
-      margin-bottom: 8px;
-    }
-  }
+.text-on-dark {
+  color: hsl(var(--text-on-dark)) !important;
 }
 
-/* Loading spinner for PWA */
-.pwa-loading {
-  position: fixed;
-  inset: 0;
-  background: var(--background);
-  display: flex;
+/* ===== BACKGROUND UTILITIES ===== */
+.bg-primary {
+  background-color: hsl(var(--bg-primary));
+}
+
+.bg-secondary {
+  background-color: hsl(var(--bg-secondary));
+}
+
+.bg-muted {
+  background-color: hsl(var(--bg-muted));
+}
+
+.bg-card {
+  background-color: hsl(var(--bg-card));
+  border: 1px solid hsl(var(--border-primary));
+  border-radius: calc(var(--radius) + 2px);
+}
+
+/* ===== BUTTON SYSTEM ===== */
+/* All buttons follow the rule: dark background = white text, always */
+
+.btn-base {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-}
-
-.pwa-loading.hidden {
-  display: none;
-}
-
-/* Network status indicator */
-.network-status {
-  position: fixed;
-  top: env(safe-area-inset-top, 0);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  border-radius: 0 0 8px 8px;
-  padding: 8px 16px;
-  font-size: 14px;
+  border-radius: var(--radius);
   font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.network-status.online {
-  background: #10b981;
-  color: white;
-}
-
-.network-status.offline {
-  background: #f59e0b;
-  color: white;
-}
-
-/* PWA install button */
-.pwa-install-button {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  z-index: 1000;
-  background: var(--primary);
-  color: var(--primary-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 50%;
-  width: 56px;
-  height: 56px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  text-decoration: none;
 }
 
-.pwa-install-button:hover {
-  transform: scale(1.1);
+.btn-base:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.pwa-install-button.hidden {
-  display: none;
+.btn-base:focus-visible {
+  outline: 2px solid hsl(var(--ring-color));
+  outline-offset: 2px;
+}
+
+/* Primary buttons: Blue background, always white text */
+.btn-primary {
+  background-color: hsl(var(--bg-button-primary));
+  color: hsl(var(--text-on-dark));
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: hsl(var(--bg-button-primary) / 0.9);
+  color: hsl(var(--text-on-dark));
+}
+
+.btn-primary:focus:not(:disabled) {
+  background-color: hsl(var(--bg-button-primary) / 0.9);
+  color: hsl(var(--text-on-dark));
+}
+
+/* Secondary buttons: Theme-aware background, theme-aware text */
+.btn-secondary {
+  background-color: hsl(var(--bg-button-secondary));
+  color: hsl(var(--text-primary));
+  border: 1px solid hsl(var(--border-primary));
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: hsl(var(--bg-button-secondary) / 0.8);
+  color: hsl(var(--text-primary));
+}
+
+.btn-secondary:focus:not(:disabled) {
+  background-color: hsl(var(--bg-button-secondary) / 0.8);
+  color: hsl(var(--text-primary));
+}
+
+/* Success buttons: Green background, always white text */
+.btn-success {
+  background-color: hsl(var(--bg-button-success));
+  color: hsl(var(--text-on-dark));
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: hsl(var(--bg-button-success) / 0.9);
+  color: hsl(var(--text-on-dark));
+}
+
+.btn-success:focus:not(:disabled) {
+  background-color: hsl(var(--bg-button-success) / 0.9);
+  color: hsl(var(--text-on-dark));
+}
+
+/* Destructive buttons: Red background, always white text */
+.btn-destructive {
+  background-color: hsl(var(--bg-button-destructive));
+  color: hsl(var(--text-on-dark));
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background-color: hsl(var(--bg-button-destructive) / 0.9);
+  color: hsl(var(--text-on-dark));
+}
+
+.btn-destructive:focus:not(:disabled) {
+  background-color: hsl(var(--bg-button-destructive) / 0.9);
+  color: hsl(var(--text-on-dark));
+}
+
+/* Warning buttons: Yellow background, always dark text for contrast */
+.btn-warning {
+  background-color: hsl(var(--bg-button-warning));
+  color: hsl(0 0% 10%); /* Always dark text on yellow */
+}
+
+.btn-warning:hover:not(:disabled) {
+  background-color: hsl(var(--bg-button-warning) / 0.9);
+  color: hsl(0 0% 10%);
+}
+
+.btn-warning:focus:not(:disabled) {
+  background-color: hsl(var(--bg-button-warning) / 0.9);
+  color: hsl(0 0% 10%);
+}
+
+/* Ghost buttons: Transparent background, theme text */
+.btn-ghost {
+  background-color: transparent;
+  color: hsl(var(--text-primary));
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: hsl(var(--bg-muted));
+  color: hsl(var(--text-primary));
+}
+
+.btn-ghost:focus:not(:disabled) {
+  background-color: hsl(var(--bg-muted));
+  color: hsl(var(--text-primary));
+}
+
+/* Outline buttons: Transparent with border */
+.btn-outline {
+  background-color: transparent;
+  color: hsl(var(--text-primary));
+  border: 1px solid hsl(var(--border-primary));
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: hsl(var(--bg-muted));
+  color: hsl(var(--text-primary));
+}
+
+.btn-outline:focus:not(:disabled) {
+  background-color: hsl(var(--bg-muted));
+  color: hsl(var(--text-primary));
+}
+
+/* ===== FORM ELEMENTS ===== */
+input,
+textarea,
+select {
+  background-color: hsl(var(--bg-primary));
+  color: hsl(var(--text-primary));
+  border: 1px solid hsl(var(--border-primary));
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid hsl(var(--ring-color));
+  outline-offset: 2px;
+  border-color: hsl(var(--ring-color));
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--text-muted));
+}
+
+/* ===== CARD SYSTEM ===== */
+.card {
+  background-color: hsl(var(--bg-card));
+  color: hsl(var(--text-primary));
+  border: 1px solid hsl(var(--border-primary));
+  border-radius: calc(var(--radius) + 2px);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px hsl(0 0% 0% / 0.1);
+}
+
+.card-header {
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--text-primary));
+  margin-bottom: 0.5rem;
+}
+
+.card-description {
+  color: hsl(var(--text-muted));
+  font-size: 0.875rem;
+}
+
+.card-content {
+  color: hsl(var(--text-primary));
+}
+
+.card-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border-primary));
+}
+
+/* ===== NAVIGATION ===== */
+.nav-item {
+  color: hsl(var(--text-primary));
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+  background-color: hsl(var(--bg-muted));
+  color: hsl(var(--text-primary));
+}
+
+.nav-item.active {
+  background-color: hsl(var(--bg-button-primary));
+  color: hsl(var(--text-on-dark));
+}
+
+/* ===== UTILITIES ===== */
+.border {
+  border: 1px solid hsl(var(--border-primary));
+}
+
+.border-secondary {
+  border: 1px solid hsl(var(--border-secondary));
+}
+
+.shadow {
+  box-shadow: 0 1px 3px hsl(0 0% 0% / 0.1);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px hsl(0 0% 0% / 0.1), 0 4px 6px hsl(0 0% 0% / 0.05);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .card {
+    padding: 1rem;
+  }
+  
+  .btn-base {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* ===== ANIMATION ===== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus-visible for better keyboard navigation */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring-color));
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --text-primary: 0 0% 0%;
+    --text-secondary: 0 0% 0%;
+    --border-primary: 0 0% 0%;
+  }
+  
+  .dark {
+    --text-primary: 0 0% 100%;
+    --text-secondary: 0 0% 100%;
+    --border-primary: 0 0% 100%;
+  }
 }

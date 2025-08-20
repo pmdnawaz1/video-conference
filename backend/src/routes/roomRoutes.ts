@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
-import { roomManagementService } from '../services/roomManagementService';
-import { prisma } from '../services/prismaService';
+import { Router, Request, Response } from "express";
+import { roomManagementService } from "../services/roomManagementService";
+import { prisma } from "../services/prismaService";
 
 const router = Router();
 
@@ -8,20 +8,14 @@ const router = Router();
  * POST /api/rooms
  * Create a new room
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
-    const { 
-      name, 
-      clientId, 
-      createdBy, 
-      maxParticipants, 
-      meetingId, 
-      isPrivate 
-    } = req.body;
+    const { name, clientId, createdBy, maxParticipants, meetingId, isPrivate } =
+      req.body;
 
     if (!name) {
       return res.status(400).json({
-        error: 'Room name is required'
+        error: "Room name is required",
       });
     }
 
@@ -29,15 +23,15 @@ router.post('/', async (req: Request, res: Response) => {
     let actualClientId = clientId;
     if (!actualClientId) {
       const defaultClient = await prisma.client.findFirst({
-        where: { domain: 'localhost' }
+        where: { domain: "localhost" },
       });
       actualClientId = defaultClient?.id;
     }
 
     if (!actualClientId) {
       return res.status(400).json({
-        error: 'Client ID required',
-        message: 'No default client found. Please specify clientId.'
+        error: "Client ID required",
+        message: "No default client found. Please specify clientId.",
       });
     }
 
@@ -47,7 +41,7 @@ router.post('/', async (req: Request, res: Response) => {
       createdBy,
       maxParticipants,
       meetingId,
-      isPrivate
+      isPrivate,
     });
 
     res.status(201).json({
@@ -61,13 +55,13 @@ router.post('/', async (req: Request, res: Response) => {
         currentParticipants: room.currentParticipants,
         client: room.client,
         createdAt: room.createdAt,
-      }
+      },
     });
   } catch (error) {
-    console.error('Error creating room:', error);
+    console.error("Error creating room:", error);
     res.status(500).json({
-      error: 'Failed to create room',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to create room",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -76,7 +70,7 @@ router.post('/', async (req: Request, res: Response) => {
  * GET /api/rooms/:roomId/status
  * Get room status and basic information
  */
-router.get('/:roomId/status', async (req: Request, res: Response) => {
+router.get("/:roomId/status", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
 
@@ -97,21 +91,21 @@ router.get('/:roomId/status', async (req: Request, res: Response) => {
           select: {
             id: true,
             name: true,
-            domain: true
-          }
+            domain: true,
+          },
         },
         _count: {
           select: {
-            participants: { where: { isPresent: true } }
-          }
-        }
-      }
+            participants: { where: { isPresent: true } },
+          },
+        },
+      },
     });
 
     if (!room) {
       return res.status(404).json({
-        error: 'Room not found',
-        message: `Room with ID ${roomId} does not exist`
+        error: "Room not found",
+        message: `Room with ID ${roomId} does not exist`,
       });
     }
 
@@ -119,7 +113,7 @@ router.get('/:roomId/status', async (req: Request, res: Response) => {
       success: true,
       roomId: room.id,
       name: room.name,
-      status: room.isActive ? 'active' : 'inactive',
+      status: room.isActive ? "active" : "inactive",
       isActive: room.isActive,
       isLocked: room.isLocked,
       isRecording: room.isRecording,
@@ -129,14 +123,13 @@ router.get('/:roomId/status', async (req: Request, res: Response) => {
       availableSlots: room.maxParticipants - room._count.participants,
       client: room.client,
       createdAt: room.createdAt,
-      lastActivity: room.updatedAt
+      lastActivity: room.updatedAt,
     });
-
   } catch (error) {
-    console.error('Error getting room status:', error);
+    console.error("Error getting room status:", error);
     res.status(500).json({
-      error: 'Failed to get room status',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to get room status",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -145,10 +138,10 @@ router.get('/:roomId/status', async (req: Request, res: Response) => {
  * GET /api/rooms/:roomId/screen-share
  * Get screen sharing status for a room
  */
-router.get('/:roomId/screen-share', async (req: Request, res: Response) => {
+router.get("/:roomId/screen-share", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
-    
+
     // Get room from database
     const room = await prisma.room.findUnique({
       where: { id: roomId },
@@ -157,31 +150,31 @@ router.get('/:roomId/screen-share', async (req: Request, res: Response) => {
         name: true,
         screenShareUserId: true,
         isActive: true,
-      }
+      },
     });
 
     if (!room) {
       return res.status(404).json({
-        error: 'Room not found',
-        message: `Room with ID ${roomId} does not exist`
+        error: "Room not found",
+        message: `Room with ID ${roomId} does not exist`,
       });
     }
 
     // Get real-time screen sharing state from WebRTC signaling service
     const isScreenSharing = !!room.screenShareUserId;
-    
+
     res.json({
       roomId: room.id,
       roomName: room.name,
       isScreenSharing,
       screenShareUserId: room.screenShareUserId,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error getting screen share status:', error);
+    console.error("Error getting screen share status:", error);
     res.status(500).json({
-      error: 'Failed to get screen share status',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to get screen share status",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -190,10 +183,10 @@ router.get('/:roomId/screen-share', async (req: Request, res: Response) => {
  * GET /api/rooms/:roomId/users
  * Get users/participants in a room
  */
-router.get('/:roomId/users', async (req: Request, res: Response) => {
+router.get("/:roomId/users", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
-    const { includeInactive = 'false' } = req.query;
+    const { includeInactive = "false" } = req.query;
 
     // Get room participants from database
     const room = await prisma.room.findUnique({
@@ -203,7 +196,7 @@ router.get('/:roomId/users', async (req: Request, res: Response) => {
         name: true,
         isActive: true,
         participants: {
-          where: includeInactive === 'true' ? {} : { isPresent: true },
+          where: includeInactive === "true" ? {} : { isPresent: true },
           include: {
             user: {
               select: {
@@ -213,29 +206,29 @@ router.get('/:roomId/users', async (req: Request, res: Response) => {
                 displayName: true,
                 avatar: true,
                 role: true,
-              }
-            }
+              },
+            },
           },
-          orderBy: { joinedAt: 'asc' }
-        }
-      }
+          orderBy: { joinedAt: "asc" },
+        },
+      },
     });
 
     if (!room) {
       return res.status(404).json({
-        error: 'Room not found',
-        message: `Room with ID ${roomId} does not exist`
+        error: "Room not found",
+        message: `Room with ID ${roomId} does not exist`,
       });
     }
 
     if (!room.isActive) {
       return res.status(404).json({
-        error: 'Room not active',
-        message: `Room ${roomId} is no longer active`
+        error: "Room not active",
+        message: `Room ${roomId} is no longer active`,
       });
     }
 
-    const users = room.participants.map(p => ({
+    const users = room.participants.map((p) => ({
       id: p.user.id,
       name: p.user.displayName || `${p.user.firstName} ${p.user.lastName}`,
       firstName: p.user.firstName,
@@ -257,15 +250,14 @@ router.get('/:roomId/users', async (req: Request, res: Response) => {
       roomId: room.id,
       roomName: room.name,
       totalUsers: users.length,
-      activeUsers: users.filter(u => u.isPresent).length,
-      users: users
+      activeUsers: users.filter((u) => u.isPresent).length,
+      users: users,
     });
-
   } catch (error) {
-    console.error('Error getting room users:', error);
+    console.error("Error getting room users:", error);
     res.status(500).json({
-      error: 'Failed to get room users',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to get room users",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -274,7 +266,7 @@ router.get('/:roomId/users', async (req: Request, res: Response) => {
  * GET /api/rooms/:roomId
  * Get room details
  */
-router.get('/:roomId', async (req: Request, res: Response) => {
+router.get("/:roomId", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
 
@@ -282,8 +274,8 @@ router.get('/:roomId', async (req: Request, res: Response) => {
 
     if (!room) {
       return res.status(404).json({
-        error: 'Room not found',
-        message: `Room with ID ${roomId} does not exist`
+        error: "Room not found",
+        message: `Room with ID ${roomId} does not exist`,
       });
     }
 
@@ -300,7 +292,7 @@ router.get('/:roomId', async (req: Request, res: Response) => {
         screenShareUserId: room.screenShareUserId,
         client: room.client,
         meeting: room.meeting,
-        participants: room.participants.map(p => ({
+        participants: room.participants.map((p) => ({
           id: p.user.id,
           name: p.user.displayName || `${p.user.firstName} ${p.user.lastName}`,
           isModerator: p.isModerator,
@@ -314,13 +306,13 @@ router.get('/:roomId', async (req: Request, res: Response) => {
         recentMessages: room.chatMessages.slice(-10), // Last 10 messages
         createdAt: room.createdAt,
         updatedAt: room.updatedAt,
-      }
+      },
     });
   } catch (error) {
-    console.error('Error getting room details:', error);
+    console.error("Error getting room details:", error);
     res.status(500).json({
-      error: 'Failed to get room details',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to get room details",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -329,7 +321,7 @@ router.get('/:roomId', async (req: Request, res: Response) => {
  * PUT /api/rooms/:roomId
  * Update room settings
  */
-router.put('/:roomId', async (req: Request, res: Response) => {
+router.put("/:roomId", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
     const { isLocked, maxParticipants } = req.body;
@@ -349,13 +341,13 @@ router.put('/:roomId', async (req: Request, res: Response) => {
         maxParticipants: room.maxParticipants,
         currentParticipants: room.currentParticipants,
         updatedAt: room.updatedAt,
-      }
+      },
     });
   } catch (error) {
-    console.error('Error updating room:', error);
+    console.error("Error updating room:", error);
     res.status(500).json({
-      error: 'Failed to update room',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to update room",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -364,14 +356,14 @@ router.put('/:roomId', async (req: Request, res: Response) => {
  * POST /api/rooms/:roomId/join
  * Add user to room
  */
-router.post('/:roomId/join', async (req: Request, res: Response) => {
+router.post("/:roomId/join", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
     const { userId, meetingId, isModerator } = req.body;
 
     if (!userId) {
       return res.status(400).json({
-        error: 'User ID is required'
+        error: "User ID is required",
       });
     }
 
@@ -379,7 +371,7 @@ router.post('/:roomId/join', async (req: Request, res: Response) => {
       userId,
       roomId,
       meetingId,
-      isModerator
+      isModerator,
     });
 
     res.json({
@@ -390,13 +382,13 @@ router.post('/:roomId/join', async (req: Request, res: Response) => {
         isModerator: participant.isModerator,
         joinedAt: participant.joinedAt,
         user: participant.user,
-      }
+      },
     });
   } catch (error) {
-    console.error('Error joining room:', error);
+    console.error("Error joining room:", error);
     res.status(500).json({
-      error: 'Failed to join room',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to join room",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -405,28 +397,31 @@ router.post('/:roomId/join', async (req: Request, res: Response) => {
  * POST /api/rooms/:roomId/leave
  * Remove user from room
  */
-router.post('/:roomId/leave', async (req: Request, res: Response) => {
+router.post("/:roomId/leave", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
     const { userId } = req.body;
 
     if (!userId) {
       return res.status(400).json({
-        error: 'User ID is required'
+        error: "User ID is required",
       });
     }
 
-    const success = await roomManagementService.removeUserFromRoom(userId, roomId);
+    const success = await roomManagementService.removeUserFromRoom(
+      userId,
+      roomId,
+    );
 
     res.json({
       success,
-      message: success ? 'User left room successfully' : 'User was not in room'
+      message: success ? "User left room successfully" : "User was not in room",
     });
   } catch (error) {
-    console.error('Error leaving room:', error);
+    console.error("Error leaving room:", error);
     res.status(500).json({
-      error: 'Failed to leave room',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to leave room",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -435,7 +430,7 @@ router.post('/:roomId/leave', async (req: Request, res: Response) => {
  * POST /api/rooms/:roomId/end
  * End/close room
  */
-router.post('/:roomId/end', async (req: Request, res: Response) => {
+router.post("/:roomId/end", async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
     const { endedBy } = req.body;
@@ -450,13 +445,13 @@ router.post('/:roomId/end', async (req: Request, res: Response) => {
         isActive: room.isActive,
         currentParticipants: room.currentParticipants,
         updatedAt: room.updatedAt,
-      }
+      },
     });
   } catch (error) {
-    console.error('Error ending room:', error);
+    console.error("Error ending room:", error);
     res.status(500).json({
-      error: 'Failed to end room',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to end room",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -465,23 +460,26 @@ router.post('/:roomId/end', async (req: Request, res: Response) => {
  * GET /api/rooms/stats
  * Get room statistics
  */
-router.get('/stats', async (req: Request, res: Response) => {
+router.get("/stats", async (req: Request, res: Response) => {
   try {
     const { clientId } = req.query;
 
     const stats = await roomManagementService.getRoomStats(clientId as string);
-    const activity = await roomManagementService.getRecentActivity(clientId as string, 5);
+    const activity = await roomManagementService.getRecentActivity(
+      clientId as string,
+      5,
+    );
 
     res.json({
       success: true,
       stats,
-      recentActivity: activity
+      recentActivity: activity,
     });
   } catch (error) {
-    console.error('Error getting room stats:', error);
+    console.error("Error getting room stats:", error);
     res.status(500).json({
-      error: 'Failed to get room statistics',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to get room statistics",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });
@@ -490,14 +488,9 @@ router.get('/stats', async (req: Request, res: Response) => {
  * GET /api/rooms
  * List rooms with pagination and filtering
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
-    const { 
-      clientId, 
-      isActive, 
-      page = '1', 
-      limit = '20' 
-    } = req.query;
+    const { clientId, isActive, page = "1", limit = "20" } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -505,7 +498,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const whereClause: any = {};
     if (clientId) whereClause.clientId = clientId;
-    if (isActive !== undefined) whereClause.isActive = isActive === 'true';
+    if (isActive !== undefined) whereClause.isActive = isActive === "true";
 
     const [rooms, total] = await Promise.all([
       prisma.room.findMany({
@@ -515,31 +508,31 @@ router.get('/', async (req: Request, res: Response) => {
             select: {
               name: true,
               domain: true,
-            }
+            },
           },
           meeting: {
             select: {
               id: true,
               title: true,
               status: true,
-            }
+            },
           },
           _count: {
             select: {
-              participants: { where: { isPresent: true } }
-            }
-          }
+              participants: { where: { isPresent: true } },
+            },
+          },
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updatedAt: "desc" },
         skip,
         take: limitNum,
       }),
-      prisma.room.count({ where: whereClause })
+      prisma.room.count({ where: whereClause }),
     ]);
 
     res.json({
       success: true,
-      rooms: rooms.map(room => ({
+      rooms: rooms.map((room) => ({
         id: room.id,
         name: room.name,
         isActive: room.isActive,
@@ -558,13 +551,13 @@ router.get('/', async (req: Request, res: Response) => {
         limit: limitNum,
         total,
         pages: Math.ceil(total / limitNum),
-      }
+      },
     });
   } catch (error) {
-    console.error('Error listing rooms:', error);
+    console.error("Error listing rooms:", error);
     res.status(500).json({
-      error: 'Failed to list rooms',
-      message: error instanceof Error ? error.message : 'Internal server error'
+      error: "Failed to list rooms",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 });

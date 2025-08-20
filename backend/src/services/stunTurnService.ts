@@ -1,11 +1,11 @@
-import crypto from 'crypto';
-import { EventEmitter } from 'events';
-import config from '../config';
+import crypto from "crypto";
+import { EventEmitter } from "events";
+import config from "../config";
 
 export interface TurnCredentials {
   username: string;
   credential: string;
-  credentialType?: 'password' | 'token';
+  credentialType?: "password" | "token";
   validUntil?: number; // Unix timestamp
 }
 
@@ -13,7 +13,7 @@ export interface IceServer {
   urls: string | string[];
   username?: string;
   credential?: string;
-  credentialType?: 'password' | 'token';
+  credentialType?: "password" | "token";
 }
 
 export interface TurnProvider {
@@ -42,7 +42,7 @@ export interface TurnProvider {
 
 export interface ConnectionStats {
   serverId: string;
-  serverType: 'stun' | 'turn';
+  serverType: "stun" | "turn";
   connectionsCount: number;
   bytesTransferred: number;
   averageLatency: number;
@@ -75,16 +75,18 @@ export class StunTurnService extends EventEmitter {
     // Initialize STUN servers
     this.stunServers = [
       ...config.webrtc.stunServers,
-      'stun:stun1.l.google.com:19302',
-      'stun:stun2.l.google.com:19302',
-      'stun:stun.stunprotocol.org:3478',
-      'stun:global.stun.twilio.com:3478',
+      "stun:stun1.l.google.com:19302",
+      "stun:stun2.l.google.com:19302",
+      "stun:stun.stunprotocol.org:3478",
+      "stun:global.stun.twilio.com:3478",
     ];
 
     // Initialize default TURN providers
     this.addDefaultTurnProviders();
 
-    console.log(`🌐 STUN/TURN Service initialized with ${this.stunServers.length} STUN servers and ${this.turnProviders.size} TURN providers`);
+    console.log(
+      `🌐 STUN/TURN Service initialized with ${this.stunServers.length} STUN servers and ${this.turnProviders.size} TURN providers`,
+    );
   }
 
   /**
@@ -94,14 +96,14 @@ export class StunTurnService extends EventEmitter {
     // Google Cloud TURN servers (if configured)
     if (process.env.GOOGLE_TURN_SERVERS) {
       this.addTurnProvider({
-        id: 'google-cloud',
-        name: 'Google Cloud TURN',
-        urls: process.env.GOOGLE_TURN_SERVERS.split(','),
+        id: "google-cloud",
+        name: "Google Cloud TURN",
+        urls: process.env.GOOGLE_TURN_SERVERS.split(","),
         username: process.env.GOOGLE_TURN_USERNAME,
         credential: process.env.GOOGLE_TURN_CREDENTIAL,
         priority: 1,
         isActive: true,
-        region: 'global',
+        region: "global",
         maxBandwidth: 1000,
         maxConcurrentUsers: 10000,
         costPerGb: 0.05,
@@ -111,14 +113,14 @@ export class StunTurnService extends EventEmitter {
     // Twilio TURN servers (if configured)
     if (process.env.TWILIO_TURN_SERVERS) {
       this.addTurnProvider({
-        id: 'twilio',
-        name: 'Twilio TURN',
-        urls: process.env.TWILIO_TURN_SERVERS.split(','),
+        id: "twilio",
+        name: "Twilio TURN",
+        urls: process.env.TWILIO_TURN_SERVERS.split(","),
         sharedSecret: process.env.TWILIO_TURN_SECRET,
         ttl: 86400, // 24 hours
         priority: 2,
         isActive: true,
-        region: 'us-east',
+        region: "us-east",
         maxBandwidth: 500,
         maxConcurrentUsers: 5000,
         costPerGb: 0.08,
@@ -128,35 +130,35 @@ export class StunTurnService extends EventEmitter {
     // Xirsys TURN servers (if configured)
     if (process.env.XIRSYS_TURN_SERVERS) {
       this.addTurnProvider({
-        id: 'xirsys',
-        name: 'Xirsys TURN',
-        urls: process.env.XIRSYS_TURN_SERVERS.split(','),
+        id: "xirsys",
+        name: "Xirsys TURN",
+        urls: process.env.XIRSYS_TURN_SERVERS.split(","),
         username: process.env.XIRSYS_USERNAME,
         credential: process.env.XIRSYS_CREDENTIAL,
         priority: 3,
         isActive: true,
-        region: 'global',
+        region: "global",
         maxBandwidth: 200,
         maxConcurrentUsers: 2000,
-        costPerGb: 0.10,
+        costPerGb: 0.1,
       });
     }
 
     // Custom TURN servers from environment
     if (config.webrtc.turnServers.length > 0) {
       this.addTurnProvider({
-        id: 'custom',
-        name: 'Custom TURN',
+        id: "custom",
+        name: "Custom TURN",
         urls: config.webrtc.turnServers,
         username: process.env.TURN_USERNAME,
         credential: process.env.TURN_CREDENTIAL,
         sharedSecret: process.env.TURN_SHARED_SECRET,
-        ttl: parseInt(process.env.TURN_TTL || '3600'),
+        ttl: parseInt(process.env.TURN_TTL || "3600"),
         priority: 10,
         isActive: true,
-        region: 'custom',
-        maxBandwidth: parseInt(process.env.TURN_MAX_BANDWIDTH || '100'),
-        maxConcurrentUsers: parseInt(process.env.TURN_MAX_USERS || '1000'),
+        region: "custom",
+        maxBandwidth: parseInt(process.env.TURN_MAX_BANDWIDTH || "100"),
+        maxConcurrentUsers: parseInt(process.env.TURN_MAX_USERS || "1000"),
       });
     }
   }
@@ -166,13 +168,13 @@ export class StunTurnService extends EventEmitter {
    */
   addTurnProvider(provider: TurnProvider) {
     this.turnProviders.set(provider.id, provider);
-    
+
     // Initialize health check if configured
     if (provider.healthCheck) {
       this.initializeHealthCheck(provider);
     }
 
-    this.emit('providerAdded', provider);
+    this.emit("providerAdded", provider);
     console.log(`➕ Added TURN provider: ${provider.name} (${provider.id})`);
   }
 
@@ -186,22 +188,37 @@ export class StunTurnService extends EventEmitter {
     preferredProvider?: string;
     maxServers?: number;
   }): Promise<IceServer[]> {
-    const { region, bandwidthRequirement, preferredProvider, maxServers = 5 } = options || {};
-    
+    const {
+      region,
+      bandwidthRequirement,
+      preferredProvider,
+      maxServers = 5,
+    } = options || {};
+
     const iceServers: IceServer[] = [];
 
     // Always include STUN servers (lightweight, no auth needed)
     const stunServer: IceServer = {
-      urls: this.stunServers.slice(0, 2) // Limit to 2 STUN servers
+      urls: this.stunServers.slice(0, 2), // Limit to 2 STUN servers
     };
     iceServers.push(stunServer);
 
     // Get available TURN providers, sorted by priority and health
     const availableProviders = Array.from(this.turnProviders.values())
-      .filter(provider => {
+      .filter((provider) => {
         if (!provider.isActive) return false;
-        if (region && provider.region !== region && provider.region !== 'global') return false;
-        if (bandwidthRequirement && provider.maxBandwidth && provider.maxBandwidth < bandwidthRequirement) return false;
+        if (
+          region &&
+          provider.region !== region &&
+          provider.region !== "global"
+        )
+          return false;
+        if (
+          bandwidthRequirement &&
+          provider.maxBandwidth &&
+          provider.maxBandwidth < bandwidthRequirement
+        )
+          return false;
         return true;
       })
       .sort((a, b) => {
@@ -210,14 +227,14 @@ export class StunTurnService extends EventEmitter {
           if (a.id === preferredProvider) return -1;
           if (b.id === preferredProvider) return 1;
         }
-        
+
         // Sort by health, then priority
         const aHealthy = this.isProviderHealthy(a.id);
         const bHealthy = this.isProviderHealthy(b.id);
-        
+
         if (aHealthy && !bHealthy) return -1;
         if (!aHealthy && bHealthy) return 1;
-        
+
         return a.priority - b.priority;
       });
 
@@ -227,24 +244,32 @@ export class StunTurnService extends EventEmitter {
       if (addedServers >= maxServers - 1) break; // Reserve space for STUN
 
       try {
-        const credentials = await this.generateCredentials(provider, options?.userId);
-        
+        const credentials = await this.generateCredentials(
+          provider,
+          options?.userId,
+        );
+
         const turnServer: IceServer = {
           urls: provider.urls,
           username: credentials?.username || provider.username,
           credential: credentials?.credential || provider.credential,
-          credentialType: credentials?.credentialType || 'password',
+          credentialType: credentials?.credentialType || "password",
         };
 
         iceServers.push(turnServer);
         addedServers++;
 
         // Update usage stats
-        this.updateUsageStats(provider.id, 'turn');
-        
-        console.log(`🔄 Assigned TURN server: ${provider.name} for user ${options?.userId || 'anonymous'}`);
+        this.updateUsageStats(provider.id, "turn");
+
+        console.log(
+          `🔄 Assigned TURN server: ${provider.name} for user ${options?.userId || "anonymous"}`,
+        );
       } catch (error) {
-        console.error(`❌ Failed to generate credentials for ${provider.name}:`, error);
+        console.error(
+          `❌ Failed to generate credentials for ${provider.name}:`,
+          error,
+        );
         // Mark provider as unhealthy temporarily
         this.markProviderUnhealthy(provider.id);
       }
@@ -252,14 +277,16 @@ export class StunTurnService extends EventEmitter {
 
     // Fallback: if no TURN servers available, log warning
     if (addedServers === 0 && this.turnProviders.size > 0) {
-      console.warn('⚠️  No TURN servers available, connections may fail behind strict NATs');
+      console.warn(
+        "⚠️  No TURN servers available, connections may fail behind strict NATs",
+      );
     }
 
-    this.emit('iceServersGenerated', { 
-      servers: iceServers, 
+    this.emit("iceServersGenerated", {
+      servers: iceServers,
       userId: options?.userId,
       region,
-      providersUsed: addedServers 
+      providersUsed: addedServers,
     });
 
     return iceServers;
@@ -268,22 +295,25 @@ export class StunTurnService extends EventEmitter {
   /**
    * Generate time-limited credentials for TURN server
    */
-  private async generateCredentials(provider: TurnProvider, userId?: string): Promise<TurnCredentials | null> {
+  private async generateCredentials(
+    provider: TurnProvider,
+    userId?: string,
+  ): Promise<TurnCredentials | null> {
     if (provider.sharedSecret) {
       // Generate time-limited credentials using TURN REST API
       const ttl = provider.ttl || 3600; // 1 hour default
       const validUntil = Math.floor(Date.now() / 1000) + ttl;
-      const username = `${validUntil}:${userId || 'anonymous'}`;
-      
+      const username = `${validUntil}:${userId || "anonymous"}`;
+
       // Generate credential using HMAC-SHA1
-      const hmac = crypto.createHmac('sha1', provider.sharedSecret);
+      const hmac = crypto.createHmac("sha1", provider.sharedSecret);
       hmac.update(username);
-      const credential = hmac.digest('base64');
+      const credential = hmac.digest("base64");
 
       return {
         username,
         credential,
-        credentialType: 'password',
+        credentialType: "password",
         validUntil,
       };
     } else if (provider.username && provider.credential) {
@@ -291,7 +321,7 @@ export class StunTurnService extends EventEmitter {
       return {
         username: provider.username,
         credential: provider.credential,
-        credentialType: 'password',
+        credentialType: "password",
       };
     }
 
@@ -304,9 +334,9 @@ export class StunTurnService extends EventEmitter {
   private isProviderHealthy(providerId: string): boolean {
     const provider = this.turnProviders.get(providerId);
     if (!provider) return false;
-    
+
     if (!provider.healthCheck) return true; // Assume healthy if no health check
-    
+
     return provider.healthCheck.isHealthy !== false;
   }
 
@@ -324,7 +354,7 @@ export class StunTurnService extends EventEmitter {
   /**
    * Update usage statistics
    */
-  private updateUsageStats(providerId: string, serverType: 'stun' | 'turn') {
+  private updateUsageStats(providerId: string, serverType: "stun" | "turn") {
     const existing = this.connectionStats.get(providerId) || {
       serverId: providerId,
       serverType,
@@ -337,7 +367,7 @@ export class StunTurnService extends EventEmitter {
 
     existing.connectionsCount++;
     existing.lastUsed = new Date();
-    
+
     this.connectionStats.set(providerId, existing);
   }
 
@@ -371,22 +401,21 @@ export class StunTurnService extends EventEmitter {
       try {
         // Simple health check - in real implementation would test actual TURN connectivity
         const startTime = Date.now();
-        
+
         // Simulate health check (replace with actual implementation)
-        await new Promise(resolve => setTimeout(resolve, 10));
-        
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
         const responseTime = Date.now() - startTime;
-        
+
         provider.healthCheck.lastCheck = new Date();
         provider.healthCheck.isHealthy = true;
         provider.healthCheck.responseTime = responseTime;
-        
       } catch (error) {
         console.error(`❌ Health check failed for ${provider.name}:`, error);
         provider.healthCheck.isHealthy = false;
         provider.healthCheck.lastCheck = new Date();
-        
-        this.emit('providerUnhealthy', { providerId, provider, error });
+
+        this.emit("providerUnhealthy", { providerId, provider, error });
       }
     }
   }
@@ -395,22 +424,25 @@ export class StunTurnService extends EventEmitter {
    * Start stats cleanup (remove old stats)
    */
   private startStatsCleanup() {
-    this.statsCleanupInterval = setInterval(() => {
-      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
-      
-      for (const [key, stats] of this.connectionStats) {
-        if (stats.lastUsed < cutoff) {
-          this.connectionStats.delete(key);
+    this.statsCleanupInterval = setInterval(
+      () => {
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+
+        for (const [key, stats] of this.connectionStats) {
+          if (stats.lastUsed < cutoff) {
+            this.connectionStats.delete(key);
+          }
         }
-      }
-    }, 60 * 60 * 1000); // Cleanup every hour
+      },
+      60 * 60 * 1000,
+    ); // Cleanup every hour
   }
 
   /**
    * Get TURN provider statistics
    */
   getProviderStats(): Array<TurnProvider & { stats?: ConnectionStats }> {
-    return Array.from(this.turnProviders.values()).map(provider => ({
+    return Array.from(this.turnProviders.values()).map((provider) => ({
       ...provider,
       stats: this.connectionStats.get(provider.id),
     }));
@@ -434,8 +466,8 @@ export class StunTurnService extends EventEmitter {
 
     Object.assign(provider, updates);
     this.turnProviders.set(providerId, provider);
-    
-    this.emit('providerUpdated', provider);
+
+    this.emit("providerUpdated", provider);
     console.log(`🔄 Updated TURN provider: ${provider.name}`);
   }
 
@@ -447,8 +479,8 @@ export class StunTurnService extends EventEmitter {
     if (provider) {
       this.turnProviders.delete(providerId);
       this.connectionStats.delete(providerId);
-      
-      this.emit('providerRemoved', { providerId, provider });
+
+      this.emit("providerRemoved", { providerId, provider });
       console.log(`➖ Removed TURN provider: ${provider.name}`);
     }
   }
@@ -463,12 +495,15 @@ export class StunTurnService extends EventEmitter {
       try {
         // In a real implementation, this would test actual TURN connectivity
         // For now, just simulate the test
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         results[providerId] = true;
         console.log(`✅ Connectivity test passed for ${provider.name}`);
       } catch (error) {
         results[providerId] = false;
-        console.error(`❌ Connectivity test failed for ${provider.name}:`, error);
+        console.error(
+          `❌ Connectivity test failed for ${provider.name}:`,
+          error,
+        );
       }
     }
 
@@ -484,22 +519,28 @@ export class StunTurnService extends EventEmitter {
     latencyRequirement?: number;
     costOptimized?: boolean;
   }) {
-    const { userRegion, bandwidthRequirement, latencyRequirement, costOptimized } = options;
-    
-    let providers = Array.from(this.turnProviders.values())
-      .filter(p => p.isActive && this.isProviderHealthy(p.id));
+    const {
+      userRegion,
+      bandwidthRequirement,
+      latencyRequirement,
+      costOptimized,
+    } = options;
+
+    let providers = Array.from(this.turnProviders.values()).filter(
+      (p) => p.isActive && this.isProviderHealthy(p.id),
+    );
 
     // Filter by region if specified
     if (userRegion) {
-      providers = providers.filter(p => 
-        p.region === userRegion || p.region === 'global'
+      providers = providers.filter(
+        (p) => p.region === userRegion || p.region === "global",
       );
     }
 
     // Filter by bandwidth requirement
     if (bandwidthRequirement) {
-      providers = providers.filter(p => 
-        !p.maxBandwidth || p.maxBandwidth >= bandwidthRequirement
+      providers = providers.filter(
+        (p) => !p.maxBandwidth || p.maxBandwidth >= bandwidthRequirement,
       );
     }
 
@@ -508,24 +549,26 @@ export class StunTurnService extends EventEmitter {
       if (costOptimized && a.costPerGb && b.costPerGb) {
         return a.costPerGb - b.costPerGb; // Lower cost first
       }
-      
+
       // Default: sort by priority and health
       const aStats = this.connectionStats.get(a.id);
       const bStats = this.connectionStats.get(b.id);
-      
+
       if (aStats && bStats) {
         // Consider latency if available
         if (latencyRequirement) {
           const aLatency = aStats.averageLatency || 0;
           const bLatency = bStats.averageLatency || 0;
-          if (aLatency <= latencyRequirement && bLatency > latencyRequirement) return -1;
-          if (aLatency > latencyRequirement && bLatency <= latencyRequirement) return 1;
+          if (aLatency <= latencyRequirement && bLatency > latencyRequirement)
+            return -1;
+          if (aLatency > latencyRequirement && bLatency <= latencyRequirement)
+            return 1;
         }
-        
+
         // Consider success rate
         return bStats.successRate - aStats.successRate;
       }
-      
+
       return a.priority - b.priority;
     });
 
@@ -578,12 +621,12 @@ export class StunTurnService extends EventEmitter {
     if (this.statsCleanupInterval) {
       clearInterval(this.statsCleanupInterval);
     }
-    
+
     this.turnProviders.clear();
     this.connectionStats.clear();
     this.removeAllListeners();
-    
-    console.log('🔧 STUN/TURN Service destroyed');
+
+    console.log("🔧 STUN/TURN Service destroyed");
   }
 }
 

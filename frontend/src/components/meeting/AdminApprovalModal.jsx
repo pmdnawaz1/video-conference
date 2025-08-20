@@ -1,31 +1,50 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
-import { Button } from '../ui/button';
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
 // Simple Badge component inline to avoid dependency issues
-const Badge = ({ children, variant = 'default', className = '', ...props }) => {
-  const baseClasses = 'inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold';
+const Badge = ({ children, variant = "default", className = "", ...props }) => {
+  const baseClasses =
+    "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold";
   const variantClasses = {
-    default: 'border-transparent bg-blue-600 text-white',
-    outline: 'text-gray-700 border-gray-300 bg-transparent dark:text-gray-300 dark:border-gray-600'
+    default: "border-transparent bg-blue-600 text-white",
+    outline:
+      "text-muted-foreground border-gray-300 bg-transparent dark:text-muted-foreground dark:border-gray-600",
   };
-  
+
   return (
-    <div className={`${baseClasses} ${variantClasses[variant]} ${className}`} {...props}>
+    <div
+      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+      {...props}
+    >
       {children}
     </div>
   );
 };
-import { Card } from '../ui/card';
-import { Mic, Video, Monitor, Clock, User } from 'lucide-react';
+import { Card } from "../ui/card";
+import { Mic, Video, Monitor, Clock, User } from "lucide-react";
 
-const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprove, onDeny, onBulkAction }) => {
+const AdminApprovalModal = ({
+  isOpen,
+  onClose,
+  permissionRequests = [],
+  onApprove,
+  onDeny,
+  onBulkAction,
+}) => {
   const getPermissionIcon = (permission) => {
     switch (permission) {
-      case 'audio':
+      case "audio":
         return <Mic className="w-4 h-4" />;
-      case 'video':
+      case "video":
         return <Video className="w-4 h-4" />;
-      case 'screen':
+      case "screen":
         return <Monitor className="w-4 h-4" />;
       default:
         return null;
@@ -34,12 +53,12 @@ const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprov
 
   const getPermissionLabel = (permission) => {
     switch (permission) {
-      case 'audio':
-        return 'Microphone';
-      case 'video':
-        return 'Camera';
-      case 'screen':
-        return 'Screen Share';
+      case "audio":
+        return "Microphone";
+      case "video":
+        return "Camera";
+      case "screen":
+        return "Screen Share";
       default:
         return permission;
     }
@@ -60,11 +79,11 @@ const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprov
   };
 
   const handleBulkApprove = () => {
-    onBulkAction('approve');
+    onBulkAction("approve");
   };
 
   const handleBulkDeny = () => {
-    onBulkAction('deny');
+    onBulkAction("deny");
   };
 
   return (
@@ -93,20 +112,21 @@ const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprov
               {/* Bulk Actions */}
               <div className="flex items-center justify-between mb-4 pb-3 border-b">
                 <div className="text-sm text-muted-foreground">
-                  {permissionRequests.length} pending request{permissionRequests.length !== 1 ? 's' : ''}
+                  {permissionRequests.length} pending request
+                  {permissionRequests.length !== 1 ? "s" : ""}
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleBulkApprove}
                     className="text-green-600 border-green-300 hover:bg-green-50"
                   >
                     Approve All
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleBulkDeny}
                     className="text-red-600 border-red-300 hover:bg-red-50"
                   >
@@ -126,7 +146,9 @@ const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprov
                             {request.userName[0]}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium truncate">{request.userName}</h4>
+                            <h4 className="text-sm font-medium truncate">
+                              {request.userName}
+                            </h4>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Clock className="w-3 h-3" />
                               <span>{formatTimestamp(request.timestamp)}</span>
@@ -136,7 +158,11 @@ const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprov
 
                         <div className="flex flex-wrap gap-2 mb-3">
                           {request.permissions.map((permission) => (
-                            <Badge key={permission} variant="outline" className="flex items-center gap-1">
+                            <Badge
+                              key={permission}
+                              variant="outline"
+                              className="flex items-center gap-1"
+                            >
                               {getPermissionIcon(permission)}
                               {getPermissionLabel(permission)}
                             </Badge>
@@ -145,7 +171,9 @@ const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprov
 
                         {request.message && (
                           <div className="bg-muted/50 rounded-md p-2 text-sm">
-                            <p className="text-muted-foreground text-xs mb-1">Message:</p>
+                            <p className="text-muted-foreground text-xs mb-1">
+                              Message:
+                            </p>
                             <p>"{request.message}"</p>
                           </div>
                         )}
@@ -154,7 +182,13 @@ const AdminApprovalModal = ({ isOpen, onClose, permissionRequests = [], onApprov
                       <div className="flex flex-col gap-2 shrink-0">
                         <Button
                           size="sm"
-                          onClick={() => handleApprove(request.id, request.userId, request.permissions)}
+                          onClick={() =>
+                            handleApprove(
+                              request.id,
+                              request.userId,
+                              request.permissions,
+                            )
+                          }
                           className="bg-green-600 hover:bg-green-700 text-white"
                         >
                           Approve

@@ -1,32 +1,34 @@
-import { PrismaClient } from '@prisma/client';
-import config from '../config';
+import { PrismaClient } from "@prisma/client";
+import config from "../config";
 
 class PrismaService {
   public client: PrismaClient;
 
   constructor() {
     this.client = new PrismaClient({
-      log: config.server.nodeEnv === 'development' 
-        ? ['query', 'info', 'warn', 'error']
-        : ['warn', 'error'],
-      errorFormat: 'pretty',
+      log:
+        config.server.nodeEnv === "development"
+          ? ["info", "warn", "error"]
+          : ["warn", "error"],
+      errorFormat: "pretty",
     });
 
     // Connection event handlers
-    this.client.$connect()
+    this.client
+      .$connect()
       .then(() => {
-        console.log('✅ Database connected successfully');
+        console.log("✅ Database connected successfully");
       })
       .catch((error) => {
-        console.error('❌ Database connection failed:', error);
+        console.error("❌ Database connection failed:", error);
         process.exit(1);
       });
   }
 
   async onApplicationShutdown() {
-    console.log('📝 Disconnecting from database...');
+    console.log("📝 Disconnecting from database...");
     await this.client.$disconnect();
-    console.log('✅ Database disconnected');
+    console.log("✅ Database disconnected");
   }
 
   // Health check method
@@ -35,7 +37,7 @@ class PrismaService {
       await this.client.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
-      console.error('Database health check failed:', error);
+      console.error("Database health check failed:", error);
       return false;
     }
   }
@@ -158,7 +160,7 @@ class PrismaService {
       isVideoMuted?: boolean;
       isScreenSharing?: boolean;
       connectionQuality?: string;
-    }
+    },
   ) {
     return this.client.meetingParticipant.update({
       where: {
@@ -187,7 +189,7 @@ class PrismaService {
   }
 
   async findClient(identifier: string | { id: string } | { domain: string }) {
-    if (typeof identifier === 'string') {
+    if (typeof identifier === "string") {
       // Assume it's an ID if it's a string
       return this.client.client.findUnique({
         where: { id: identifier },
@@ -217,7 +219,7 @@ export const prismaService = new PrismaService();
 export const prisma = prismaService.client;
 
 // Graceful shutdown handler
-process.on('beforeExit', async () => {
+process.on("beforeExit", async () => {
   await prismaService.onApplicationShutdown();
 });
 

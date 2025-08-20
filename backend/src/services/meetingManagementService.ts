@@ -1,7 +1,7 @@
-import { prisma } from './prismaService';
-import { roomManagementService } from './roomManagementService';
-import { EventEmitter } from 'events';
-import { MeetingStatus, MeetingType, UserRole } from '@prisma/client';
+import { prisma } from "./prismaService";
+import { roomManagementService } from "./roomManagementService";
+import { EventEmitter } from "events";
+import { MeetingStatus, MeetingType, UserRole } from "@prisma/client";
 
 export interface CreateMeetingData {
   title: string;
@@ -66,7 +66,7 @@ export class MeetingManagementService extends EventEmitter {
           title: data.title,
           description: data.description,
           meetingType: data.meetingType,
-          status: data.meetingType === 'INSTANT' ? 'ACTIVE' : 'SCHEDULED',
+          status: data.meetingType === "INSTANT" ? "ACTIVE" : "SCHEDULED",
           createdBy: data.createdBy,
           clientId: data.clientId,
           scheduledStartTime: data.scheduledStartTime,
@@ -81,7 +81,7 @@ export class MeetingManagementService extends EventEmitter {
           meetingPassword: data.meetingPassword,
           recurrencePattern: data.recurrencePattern,
           parentMeetingId: data.parentMeetingId,
-          actualStartTime: data.meetingType === 'INSTANT' ? new Date() : null,
+          actualStartTime: data.meetingType === "INSTANT" ? new Date() : null,
         },
         include: {
           creator: {
@@ -91,19 +91,19 @@ export class MeetingManagementService extends EventEmitter {
               lastName: true,
               displayName: true,
               email: true,
-            }
+            },
           },
           client: {
             select: {
               name: true,
               domain: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // Create room for instant meetings
-      if (data.meetingType === 'INSTANT') {
+      if (data.meetingType === "INSTANT") {
         const room = await roomManagementService.createRoom({
           name: meeting.title,
           clientId: meeting.clientId,
@@ -115,20 +115,22 @@ export class MeetingManagementService extends EventEmitter {
         // Link room to meeting
         await prisma.meeting.update({
           where: { id: meeting.id },
-          data: { roomId: room.id }
+          data: { roomId: room.id },
         });
       }
 
       // Schedule meeting start/end if it's a scheduled meeting
-      if (data.meetingType === 'SCHEDULED' && data.scheduledStartTime) {
+      if (data.meetingType === "SCHEDULED" && data.scheduledStartTime) {
         this.scheduleMeetingStart(meeting.id, data.scheduledStartTime);
-        
+
         if (data.scheduledEndTime) {
           this.scheduleMeetingEnd(meeting.id, data.scheduledEndTime);
         }
 
         // Schedule reminder 5 minutes before
-        const reminderTime = new Date(data.scheduledStartTime.getTime() - 5 * 60 * 1000);
+        const reminderTime = new Date(
+          data.scheduledStartTime.getTime() - 5 * 60 * 1000,
+        );
         if (reminderTime > new Date()) {
           this.scheduleReminder(meeting.id, reminderTime);
         }
@@ -139,12 +141,14 @@ export class MeetingManagementService extends EventEmitter {
         await this.generateRecurringMeetings(meeting.id, data);
       }
 
-      this.emit('meetingCreated', { meeting });
-      
-      console.log(`📅 Meeting created: ${meeting.title} (${meeting.id}) by ${meeting.creator.displayName}`);
+      this.emit("meetingCreated", { meeting });
+
+      console.log(
+        `📅 Meeting created: ${meeting.title} (${meeting.id}) by ${meeting.creator.displayName}`,
+      );
       return meeting;
     } catch (error) {
-      console.error('Error creating meeting:', error);
+      console.error("Error creating meeting:", error);
       throw error;
     }
   }
@@ -165,14 +169,14 @@ export class MeetingManagementService extends EventEmitter {
               displayName: true,
               email: true,
               avatar: true,
-            }
+            },
           },
           client: {
             select: {
               name: true,
               domain: true,
               features: true,
-            }
+            },
           },
           room: {
             select: {
@@ -182,7 +186,7 @@ export class MeetingManagementService extends EventEmitter {
               isLocked: true,
               currentParticipants: true,
               screenShareUserId: true,
-            }
+            },
           },
           participants: {
             include: {
@@ -194,14 +198,14 @@ export class MeetingManagementService extends EventEmitter {
                   displayName: true,
                   avatar: true,
                   role: true,
-                }
-              }
+                },
+              },
             },
-            orderBy: { joinedAt: 'asc' }
+            orderBy: { joinedAt: "asc" },
           },
           chatMessages: {
             take: 100,
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             include: {
               user: {
                 select: {
@@ -209,9 +213,9 @@ export class MeetingManagementService extends EventEmitter {
                   lastName: true,
                   displayName: true,
                   avatar: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
           recordings: {
             select: {
@@ -223,10 +227,10 @@ export class MeetingManagementService extends EventEmitter {
               status: true,
               thumbnailUrl: true,
               createdAt: true,
-            }
+            },
           },
           analytics: true,
-        }
+        },
       });
 
       if (!meeting) {
@@ -237,7 +241,7 @@ export class MeetingManagementService extends EventEmitter {
       if (userId && !meeting.isPublic) {
         const hasAccess = await this.checkMeetingAccess(meetingId, userId);
         if (!hasAccess) {
-          throw new Error('Access denied to this meeting');
+          throw new Error("Access denied to this meeting");
         }
       }
 
@@ -250,7 +254,7 @@ export class MeetingManagementService extends EventEmitter {
         chatMessages: meeting.chatMessages.reverse(), // Show oldest first
       };
     } catch (error) {
-      console.error('Error getting meeting details:', error);
+      console.error("Error getting meeting details:", error);
       throw error;
     }
   }
@@ -258,27 +262,31 @@ export class MeetingManagementService extends EventEmitter {
   /**
    * Update meeting details
    */
-  async updateMeeting(meetingId: string, updates: Partial<CreateMeetingData>, updatedBy: string) {
+  async updateMeeting(
+    meetingId: string,
+    updates: Partial<CreateMeetingData>,
+    updatedBy: string,
+  ) {
     try {
       // Check if user can update this meeting
       const meeting = await prisma.meeting.findUnique({
         where: { id: meetingId },
-        select: { createdBy: true, status: true }
+        select: { createdBy: true, status: true },
       });
 
       if (!meeting) {
-        throw new Error('Meeting not found');
+        throw new Error("Meeting not found");
       }
 
       if (meeting.createdBy !== updatedBy) {
         // Check if user is admin
         const user = await prisma.user.findUnique({
           where: { id: updatedBy },
-          select: { role: true }
+          select: { role: true },
         });
 
-        if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
-          throw new Error('Insufficient permissions to update meeting');
+        if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+          throw new Error("Insufficient permissions to update meeting");
         }
       }
 
@@ -297,27 +305,29 @@ export class MeetingManagementService extends EventEmitter {
           creator: {
             select: {
               displayName: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // Update scheduling if times changed
-      if (updates.scheduledStartTime && meeting.status === 'SCHEDULED') {
+      if (updates.scheduledStartTime && meeting.status === "SCHEDULED") {
         this.clearMeetingTimers(meetingId);
         this.scheduleMeetingStart(meetingId, updates.scheduledStartTime);
-        
+
         if (updates.scheduledEndTime) {
           this.scheduleMeetingEnd(meetingId, updates.scheduledEndTime);
         }
       }
 
-      this.emit('meetingUpdated', { meeting: updatedMeeting, updatedBy });
-      
-      console.log(`📅 Meeting updated: ${updatedMeeting.title} by ${updatedBy}`);
+      this.emit("meetingUpdated", { meeting: updatedMeeting, updatedBy });
+
+      console.log(
+        `📅 Meeting updated: ${updatedMeeting.title} by ${updatedBy}`,
+      );
       return updatedMeeting;
     } catch (error) {
-      console.error('Error updating meeting:', error);
+      console.error("Error updating meeting:", error);
       throw error;
     }
   }
@@ -332,19 +342,19 @@ export class MeetingManagementService extends EventEmitter {
         include: {
           room: true,
           client: true,
-        }
+        },
       });
 
       if (!meeting) {
-        throw new Error('Meeting not found');
+        throw new Error("Meeting not found");
       }
 
-      if (meeting.status === 'ACTIVE') {
-        throw new Error('Meeting is already active');
+      if (meeting.status === "ACTIVE") {
+        throw new Error("Meeting is already active");
       }
 
-      if (meeting.status === 'ENDED') {
-        throw new Error('Meeting has already ended');
+      if (meeting.status === "ENDED") {
+        throw new Error("Meeting has already ended");
       }
 
       // Create room if it doesn't exist
@@ -361,7 +371,7 @@ export class MeetingManagementService extends EventEmitter {
         // Link room to meeting
         await prisma.meeting.update({
           where: { id: meetingId },
-          data: { roomId: room.id }
+          data: { roomId: room.id },
         });
       }
 
@@ -369,24 +379,26 @@ export class MeetingManagementService extends EventEmitter {
       const updatedMeeting = await prisma.meeting.update({
         where: { id: meetingId },
         data: {
-          status: 'ACTIVE',
+          status: "ACTIVE",
           actualStartTime: new Date(),
         },
         include: {
           creator: {
             select: {
               displayName: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
-      this.emit('meetingStarted', { meeting: updatedMeeting, startedBy, room });
-      
-      console.log(`▶️  Meeting started: ${updatedMeeting.title} (${meetingId})`);
+      this.emit("meetingStarted", { meeting: updatedMeeting, startedBy, room });
+
+      console.log(
+        `▶️  Meeting started: ${updatedMeeting.title} (${meetingId})`,
+      );
       return { meeting: updatedMeeting, room };
     } catch (error) {
-      console.error('Error starting meeting:', error);
+      console.error("Error starting meeting:", error);
       throw error;
     }
   }
@@ -401,15 +413,15 @@ export class MeetingManagementService extends EventEmitter {
         include: {
           room: true,
           participants: { where: { isPresent: true } },
-        }
+        },
       });
 
       if (!meeting) {
-        throw new Error('Meeting not found');
+        throw new Error("Meeting not found");
       }
 
-      if (meeting.status === 'ENDED') {
-        throw new Error('Meeting has already ended');
+      if (meeting.status === "ENDED") {
+        throw new Error("Meeting has already ended");
       }
 
       // End all active participants
@@ -425,14 +437,19 @@ export class MeetingManagementService extends EventEmitter {
       });
 
       // Calculate meeting duration
-      const startTime = meeting.actualStartTime || meeting.scheduledStartTime || meeting.createdAt;
-      const duration = Math.round((new Date().getTime() - startTime.getTime()) / 1000 / 60); // minutes
+      const startTime =
+        meeting.actualStartTime ||
+        meeting.scheduledStartTime ||
+        meeting.createdAt;
+      const duration = Math.round(
+        (new Date().getTime() - startTime.getTime()) / 1000 / 60,
+      ); // minutes
 
       // Update meeting status
       const updatedMeeting = await prisma.meeting.update({
         where: { id: meetingId },
         data: {
-          status: 'ENDED',
+          status: "ENDED",
           actualEndTime: new Date(),
           duration,
         },
@@ -440,9 +457,9 @@ export class MeetingManagementService extends EventEmitter {
           creator: {
             select: {
               displayName: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // End associated room
@@ -456,12 +473,14 @@ export class MeetingManagementService extends EventEmitter {
       // Clear any scheduled timers
       this.clearMeetingTimers(meetingId);
 
-      this.emit('meetingEnded', { meeting: updatedMeeting, endedBy });
-      
-      console.log(`⏹️  Meeting ended: ${updatedMeeting.title} (${meetingId}), Duration: ${duration}min`);
+      this.emit("meetingEnded", { meeting: updatedMeeting, endedBy });
+
+      console.log(
+        `⏹️  Meeting ended: ${updatedMeeting.title} (${meetingId}), Duration: ${duration}min`,
+      );
       return updatedMeeting;
     } catch (error) {
-      console.error('Error ending meeting:', error);
+      console.error("Error ending meeting:", error);
       throw error;
     }
   }
@@ -479,22 +498,22 @@ export class MeetingManagementService extends EventEmitter {
           requiresApproval: true,
           _count: {
             select: {
-              participants: { where: { isPresent: true } }
-            }
-          }
-        }
+              participants: { where: { isPresent: true } },
+            },
+          },
+        },
       });
 
       if (!meeting) {
-        throw new Error('Meeting not found');
+        throw new Error("Meeting not found");
       }
 
-      if (meeting.status === 'ENDED') {
-        throw new Error('Meeting has ended');
+      if (meeting.status === "ENDED") {
+        throw new Error("Meeting has ended");
       }
 
       if (meeting._count.participants >= meeting.maxParticipants) {
-        throw new Error('Meeting is full');
+        throw new Error("Meeting is full");
       }
 
       const participant = await prisma.meetingParticipant.upsert({
@@ -525,19 +544,23 @@ export class MeetingManagementService extends EventEmitter {
               lastName: true,
               displayName: true,
               avatar: true,
-            }
+            },
           },
           meeting: {
             select: {
               title: true,
               roomId: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // Add to room if meeting is active and has a room
-      if (meeting.status === 'ACTIVE' && participant.meeting.roomId && !meeting.requiresApproval) {
+      if (
+        meeting.status === "ACTIVE" &&
+        participant.meeting.roomId &&
+        !meeting.requiresApproval
+      ) {
         await roomManagementService.addUserToRoom({
           userId: data.userId,
           roomId: participant.meeting.roomId,
@@ -546,12 +569,17 @@ export class MeetingManagementService extends EventEmitter {
         });
       }
 
-      this.emit('participantAdded', { participant, requiresApproval: meeting.requiresApproval });
-      
-      console.log(`👤 Participant added to meeting: ${participant.user.displayName} -> ${participant.meeting.title}`);
+      this.emit("participantAdded", {
+        participant,
+        requiresApproval: meeting.requiresApproval,
+      });
+
+      console.log(
+        `👤 Participant added to meeting: ${participant.user.displayName} -> ${participant.meeting.title}`,
+      );
       return participant;
     } catch (error) {
-      console.error('Error adding participant:', error);
+      console.error("Error adding participant:", error);
       throw error;
     }
   }
@@ -559,7 +587,11 @@ export class MeetingManagementService extends EventEmitter {
   /**
    * Remove participant from meeting
    */
-  async removeParticipant(userId: string, meetingId: string, removedBy?: string) {
+  async removeParticipant(
+    userId: string,
+    meetingId: string,
+    removedBy?: string,
+  ) {
     try {
       const participant = await prisma.meetingParticipant.findUnique({
         where: {
@@ -569,15 +601,15 @@ export class MeetingManagementService extends EventEmitter {
           user: {
             select: {
               displayName: true,
-            }
+            },
           },
           meeting: {
             select: {
               title: true,
               roomId: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       if (!participant) {
@@ -597,15 +629,20 @@ export class MeetingManagementService extends EventEmitter {
 
       // Remove from room if meeting has one
       if (participant.meeting.roomId) {
-        await roomManagementService.removeUserFromRoom(userId, participant.meeting.roomId);
+        await roomManagementService.removeUserFromRoom(
+          userId,
+          participant.meeting.roomId,
+        );
       }
 
-      this.emit('participantRemoved', { participant, removedBy });
-      
-      console.log(`👤 Participant removed: ${participant.user.displayName} from ${participant.meeting.title}`);
+      this.emit("participantRemoved", { participant, removedBy });
+
+      console.log(
+        `👤 Participant removed: ${participant.user.displayName} from ${participant.meeting.title}`,
+      );
       return true;
     } catch (error) {
-      console.error('Error removing participant:', error);
+      console.error("Error removing participant:", error);
       throw error;
     }
   }
@@ -613,7 +650,11 @@ export class MeetingManagementService extends EventEmitter {
   /**
    * Approve participant (for meetings requiring approval)
    */
-  async approveParticipant(userId: string, meetingId: string, approvedBy: string) {
+  async approveParticipant(
+    userId: string,
+    meetingId: string,
+    approvedBy: string,
+  ) {
     try {
       const participant = await prisma.meetingParticipant.update({
         where: {
@@ -627,20 +668,23 @@ export class MeetingManagementService extends EventEmitter {
           user: {
             select: {
               displayName: true,
-            }
+            },
           },
           meeting: {
             select: {
               title: true,
               roomId: true,
               status: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // Add to room if meeting is active
-      if (participant.meeting.status === 'ACTIVE' && participant.meeting.roomId) {
+      if (
+        participant.meeting.status === "ACTIVE" &&
+        participant.meeting.roomId
+      ) {
         await roomManagementService.addUserToRoom({
           userId,
           roomId: participant.meeting.roomId,
@@ -649,12 +693,14 @@ export class MeetingManagementService extends EventEmitter {
         });
       }
 
-      this.emit('participantApproved', { participant, approvedBy });
-      
-      console.log(`✅ Participant approved: ${participant.user.displayName} for ${participant.meeting.title}`);
+      this.emit("participantApproved", { participant, approvedBy });
+
+      console.log(
+        `✅ Participant approved: ${participant.user.displayName} for ${participant.meeting.title}`,
+      );
       return participant;
     } catch (error) {
-      console.error('Error approving participant:', error);
+      console.error("Error approving participant:", error);
       throw error;
     }
   }
@@ -662,12 +708,15 @@ export class MeetingManagementService extends EventEmitter {
   /**
    * Get user's meetings
    */
-  async getUserMeetings(userId: string, filters?: {
-    status?: MeetingStatus;
-    timeRange?: 'upcoming' | 'past' | 'today';
-    limit?: number;
-    offset?: number;
-  }) {
+  async getUserMeetings(
+    userId: string,
+    filters?: {
+      status?: MeetingStatus;
+      timeRange?: "upcoming" | "past" | "today";
+      limit?: number;
+      offset?: number;
+    },
+  ) {
     try {
       const { status, timeRange, limit = 20, offset = 0 } = filters || {};
 
@@ -676,48 +725,45 @@ export class MeetingManagementService extends EventEmitter {
 
       if (timeRange) {
         switch (timeRange) {
-          case 'upcoming':
+          case "upcoming":
             dateFilter = {
-              OR: [
-                { scheduledStartTime: { gte: now } },
-                { status: 'ACTIVE' }
-              ]
+              OR: [{ scheduledStartTime: { gte: now } }, { status: "ACTIVE" }],
             };
             break;
-          case 'past':
+          case "past":
             dateFilter = {
               AND: [
-                { status: 'ENDED' },
+                { status: "ENDED" },
                 {
                   OR: [
                     { actualEndTime: { lt: now } },
-                    { scheduledEndTime: { lt: now } }
-                  ]
-                }
-              ]
+                    { scheduledEndTime: { lt: now } },
+                  ],
+                },
+              ],
             };
             break;
-          case 'today':
+          case "today":
             const startOfDay = new Date(now);
             startOfDay.setHours(0, 0, 0, 0);
             const endOfDay = new Date(now);
             endOfDay.setHours(23, 59, 59, 999);
-            
+
             dateFilter = {
               OR: [
                 {
                   scheduledStartTime: {
                     gte: startOfDay,
                     lte: endOfDay,
-                  }
+                  },
                 },
                 {
                   actualStartTime: {
                     gte: startOfDay,
                     lte: endOfDay,
-                  }
-                }
-              ]
+                  },
+                },
+              ],
             };
             break;
         }
@@ -731,9 +777,9 @@ export class MeetingManagementService extends EventEmitter {
               some: {
                 userId,
                 isPresent: true,
-              }
-            }
-          }
+              },
+            },
+          },
         ],
         ...(status && { status }),
         ...dateFilter,
@@ -749,23 +795,23 @@ export class MeetingManagementService extends EventEmitter {
                 lastName: true,
                 displayName: true,
                 avatar: true,
-              }
+              },
             },
             _count: {
               select: {
-                participants: { where: { isPresent: true } }
-              }
-            }
+                participants: { where: { isPresent: true } },
+              },
+            },
           },
           orderBy: [
-            { status: 'desc' }, // Active first
-            { scheduledStartTime: 'desc' },
-            { createdAt: 'desc' }
+            { status: "desc" }, // Active first
+            { scheduledStartTime: "desc" },
+            { createdAt: "desc" },
           ],
           take: limit,
           skip: offset,
         }),
-        prisma.meeting.count({ where: whereClause })
+        prisma.meeting.count({ where: whereClause }),
       ]);
 
       return {
@@ -775,10 +821,10 @@ export class MeetingManagementService extends EventEmitter {
           limit,
           offset,
           hasMore: offset + limit < total,
-        }
+        },
       };
     } catch (error) {
-      console.error('Error getting user meetings:', error);
+      console.error("Error getting user meetings:", error);
       throw error;
     }
   }
@@ -786,7 +832,10 @@ export class MeetingManagementService extends EventEmitter {
   /**
    * Check if user has access to meeting
    */
-  async checkMeetingAccess(meetingId: string, userId: string): Promise<boolean> {
+  async checkMeetingAccess(
+    meetingId: string,
+    userId: string,
+  ): Promise<boolean> {
     try {
       const meeting = await prisma.meeting.findUnique({
         where: { id: meetingId },
@@ -795,9 +844,9 @@ export class MeetingManagementService extends EventEmitter {
           createdBy: true,
           participants: {
             where: { userId },
-            select: { id: true }
-          }
-        }
+            select: { id: true },
+          },
+        },
       });
 
       if (!meeting) {
@@ -821,7 +870,7 @@ export class MeetingManagementService extends EventEmitter {
 
       return false;
     } catch (error) {
-      console.error('Error checking meeting access:', error);
+      console.error("Error checking meeting access:", error);
       return false;
     }
   }
@@ -829,14 +878,11 @@ export class MeetingManagementService extends EventEmitter {
   /**
    * Calculate meeting analytics
    */
-  async calculateMeetingAnalytics(meetingId: string): Promise<MeetingAnalytics> {
+  async calculateMeetingAnalytics(
+    meetingId: string,
+  ): Promise<MeetingAnalytics> {
     try {
-      const [
-        meeting,
-        participants,
-        messages,
-        recordings
-      ] = await Promise.all([
+      const [meeting, participants, messages, recordings] = await Promise.all([
         prisma.meeting.findUnique({
           where: { id: meetingId },
           select: {
@@ -844,7 +890,7 @@ export class MeetingManagementService extends EventEmitter {
             actualEndTime: true,
             scheduledStartTime: true,
             createdAt: true,
-          }
+          },
         }),
         prisma.meetingParticipant.findMany({
           where: { meetingId },
@@ -852,58 +898,73 @@ export class MeetingManagementService extends EventEmitter {
             joinedAt: true,
             leftAt: true,
             duration: true,
-          }
+          },
         }),
         prisma.chatMessage.count({
-          where: { meetingId }
+          where: { meetingId },
         }),
         prisma.recording.findMany({
           where: { meetingId },
-          select: { duration: true }
-        })
+          select: { duration: true },
+        }),
       ]);
 
       if (!meeting) {
-        throw new Error('Meeting not found');
+        throw new Error("Meeting not found");
       }
 
       // Calculate total duration
-      const startTime = meeting.actualStartTime || meeting.scheduledStartTime || meeting.createdAt;
+      const startTime =
+        meeting.actualStartTime ||
+        meeting.scheduledStartTime ||
+        meeting.createdAt;
       const endTime = meeting.actualEndTime || new Date();
-      const totalDuration = Math.round((endTime.getTime() - startTime.getTime()) / 1000 / 60); // minutes
+      const totalDuration = Math.round(
+        (endTime.getTime() - startTime.getTime()) / 1000 / 60,
+      ); // minutes
 
       // Calculate participant metrics
       const participantCount = participants.length;
-      
+
       // Calculate average participation time
       const totalParticipationTime = participants.reduce((sum, p) => {
         if (p.duration) return sum + p.duration;
         if (p.joinedAt && p.leftAt) {
-          return sum + Math.round((p.leftAt.getTime() - p.joinedAt.getTime()) / 1000 / 60);
+          return (
+            sum +
+            Math.round((p.leftAt.getTime() - p.joinedAt.getTime()) / 1000 / 60)
+          );
         }
         return sum;
       }, 0);
 
-      const averageParticipationTime = participantCount > 0 
-        ? Math.round(totalParticipationTime / participantCount) 
-        : 0;
+      const averageParticipationTime =
+        participantCount > 0
+          ? Math.round(totalParticipationTime / participantCount)
+          : 0;
 
       // Calculate max concurrent participants (simplified - would need real-time tracking)
       const maxConcurrentParticipants = participantCount;
 
       // Calculate total recording duration
-      const recordingDuration = recordings.reduce((sum, r) => sum + (r.duration || 0), 0);
+      const recordingDuration = recordings.reduce(
+        (sum, r) => sum + (r.duration || 0),
+        0,
+      );
 
       return {
         totalDuration,
         participantCount,
         maxConcurrentParticipants,
         messageCount: messages,
-        recordingDuration: recordingDuration > 0 ? Math.round(recordingDuration / 60) : undefined,
+        recordingDuration:
+          recordingDuration > 0
+            ? Math.round(recordingDuration / 60)
+            : undefined,
         averageParticipationTime,
       };
     } catch (error) {
-      console.error('Error calculating meeting analytics:', error);
+      console.error("Error calculating meeting analytics:", error);
       throw error;
     }
   }
@@ -914,7 +975,7 @@ export class MeetingManagementService extends EventEmitter {
   private async generateMeetingAnalytics(meetingId: string) {
     try {
       const analytics = await this.calculateMeetingAnalytics(meetingId);
-      
+
       await prisma.meetingAnalytics.upsert({
         where: { meetingId },
         create: {
@@ -938,7 +999,7 @@ export class MeetingManagementService extends EventEmitter {
 
       console.log(`📊 Analytics generated for meeting ${meetingId}`);
     } catch (error) {
-      console.error('Error generating meeting analytics:', error);
+      console.error("Error generating meeting analytics:", error);
     }
   }
 
@@ -948,16 +1009,19 @@ export class MeetingManagementService extends EventEmitter {
   private validateMeetingData(data: Partial<CreateMeetingData>) {
     if (data.scheduledStartTime && data.scheduledEndTime) {
       if (data.scheduledEndTime <= data.scheduledStartTime) {
-        throw new Error('End time must be after start time');
+        throw new Error("End time must be after start time");
       }
     }
 
     if (data.scheduledStartTime && data.scheduledStartTime < new Date()) {
-      throw new Error('Cannot schedule meeting in the past');
+      throw new Error("Cannot schedule meeting in the past");
     }
 
-    if (data.maxParticipants && (data.maxParticipants < 1 || data.maxParticipants > 1000)) {
-      throw new Error('Max participants must be between 1 and 1000');
+    if (
+      data.maxParticipants &&
+      (data.maxParticipants < 1 || data.maxParticipants > 1000)
+    ) {
+      throw new Error("Max participants must be between 1 and 1000");
     }
   }
 
@@ -971,7 +1035,7 @@ export class MeetingManagementService extends EventEmitter {
     if (delay > 0) {
       const timer = setTimeout(async () => {
         try {
-          await this.startMeeting(meetingId, 'system-scheduler');
+          await this.startMeeting(meetingId, "system-scheduler");
         } catch (error) {
           console.error(`Error auto-starting meeting ${meetingId}:`, error);
         }
@@ -991,7 +1055,7 @@ export class MeetingManagementService extends EventEmitter {
     if (delay > 0) {
       const timer = setTimeout(async () => {
         try {
-          await this.endMeeting(meetingId, 'system-scheduler');
+          await this.endMeeting(meetingId, "system-scheduler");
         } catch (error) {
           console.error(`Error auto-ending meeting ${meetingId}:`, error);
         }
@@ -1010,7 +1074,7 @@ export class MeetingManagementService extends EventEmitter {
 
     if (delay > 0) {
       const timer = setTimeout(() => {
-        this.emit('meetingReminder', { meetingId, reminderTime });
+        this.emit("meetingReminder", { meetingId, reminderTime });
       }, delay);
 
       this.reminderTimers.set(meetingId, timer);
@@ -1044,29 +1108,36 @@ export class MeetingManagementService extends EventEmitter {
   /**
    * Generate recurring meetings
    */
-  private async generateRecurringMeetings(parentId: string, data: CreateMeetingData) {
+  private async generateRecurringMeetings(
+    parentId: string,
+    data: CreateMeetingData,
+  ) {
     // This is a simplified implementation - would need more sophisticated recurrence handling
-    if (!data.recurrencePattern || !data.scheduledStartTime || !data.scheduledEndTime) {
+    if (
+      !data.recurrencePattern ||
+      !data.scheduledStartTime ||
+      !data.scheduledEndTime
+    ) {
       return;
     }
 
     try {
       const { frequency, interval, count } = data.recurrencePattern;
-      
-      if (frequency === 'daily' && count && count > 1) {
+
+      if (frequency === "daily" && count && count > 1) {
         for (let i = 1; i < count; i++) {
           const nextStart = new Date(data.scheduledStartTime);
-          nextStart.setDate(nextStart.getDate() + (i * interval));
-          
+          nextStart.setDate(nextStart.getDate() + i * interval);
+
           const nextEnd = new Date(data.scheduledEndTime);
-          nextEnd.setDate(nextEnd.getDate() + (i * interval));
+          nextEnd.setDate(nextEnd.getDate() + i * interval);
 
           await prisma.meeting.create({
             data: {
               title: `${data.title} (${i + 1}/${count})`,
               description: data.description,
               meetingType: data.meetingType,
-              status: 'SCHEDULED',
+              status: "SCHEDULED",
               createdBy: data.createdBy,
               clientId: data.clientId,
               scheduledStartTime: nextStart,
@@ -1079,7 +1150,7 @@ export class MeetingManagementService extends EventEmitter {
               allowChat: data.allowChat !== false,
               isPublic: data.isPublic || false,
               parentMeetingId: parentId,
-            }
+            },
           });
 
           // Schedule this recurring meeting
@@ -1090,7 +1161,7 @@ export class MeetingManagementService extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error('Error generating recurring meetings:', error);
+      console.error("Error generating recurring meetings:", error);
     }
   }
 
@@ -1099,20 +1170,23 @@ export class MeetingManagementService extends EventEmitter {
    */
   private initializePeriodicTasks() {
     // Clean up old meetings and generate analytics every hour
-    setInterval(async () => {
-      try {
-        await this.performPeriodicMaintenance();
-      } catch (error) {
-        console.error('Error in periodic maintenance:', error);
-      }
-    }, 60 * 60 * 1000); // 1 hour
+    setInterval(
+      async () => {
+        try {
+          await this.performPeriodicMaintenance();
+        } catch (error) {
+          console.error("Error in periodic maintenance:", error);
+        }
+      },
+      60 * 60 * 1000,
+    ); // 1 hour
 
     // Check for meetings that should be started every minute
     setInterval(async () => {
       try {
         await this.checkScheduledMeetings();
       } catch (error) {
-        console.error('Error checking scheduled meetings:', error);
+        console.error("Error checking scheduled meetings:", error);
       }
     }, 60 * 1000); // 1 minute
   }
@@ -1121,26 +1195,28 @@ export class MeetingManagementService extends EventEmitter {
    * Periodic maintenance tasks
    */
   private async performPeriodicMaintenance() {
-    console.log('🔧 Performing meeting maintenance...');
+    console.log("🔧 Performing meeting maintenance...");
 
     // End meetings that are past their scheduled end time
     const overduesMeetings = await prisma.meeting.findMany({
       where: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         scheduledEndTime: { lt: new Date() },
       },
-      select: { id: true, title: true }
+      select: { id: true, title: true },
     });
 
     for (const meeting of overduesMeetings) {
       try {
-        await this.endMeeting(meeting.id, 'system-maintenance');
+        await this.endMeeting(meeting.id, "system-maintenance");
       } catch (error) {
         console.error(`Error ending overdue meeting ${meeting.id}:`, error);
       }
     }
 
-    console.log(`🔧 Maintenance completed. Ended ${overduesMeetings.length} overdue meetings`);
+    console.log(
+      `🔧 Maintenance completed. Ended ${overduesMeetings.length} overdue meetings`,
+    );
   }
 
   /**
@@ -1152,13 +1228,13 @@ export class MeetingManagementService extends EventEmitter {
 
     const upcomingMeetings = await prisma.meeting.findMany({
       where: {
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
         scheduledStartTime: {
           gte: now,
           lte: fiveMinutesFromNow,
         },
       },
-      select: { id: true, scheduledStartTime: true }
+      select: { id: true, scheduledStartTime: true },
     });
 
     for (const meeting of upcomingMeetings) {

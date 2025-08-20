@@ -11,16 +11,16 @@ rule_files:
 
 scrape_configs:
   # Prometheus itself
-  - job_name: 'prometheus'
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["localhost:9090"]
     scrape_interval: 60s
     metrics_path: /metrics
 
   # Video Conference Backend with service discovery
-  - job_name: 'video-conference-backend'
+  - job_name: "video-conference-backend"
     static_configs:
-      - targets: ['video-conference-backend-prod:9090']
+      - targets: ["video-conference-backend-prod:9090"]
     scrape_interval: 30s
     metrics_path: /metrics
     scrape_timeout: 15s
@@ -34,57 +34,57 @@ scrape_configs:
         - process
 
   # Node.js application metrics
-  - job_name: 'nodejs-app'
+  - job_name: "nodejs-app"
     static_configs:
-      - targets: ['video-conference-backend-prod:8081']
+      - targets: ["video-conference-backend-prod:8081"]
     scrape_interval: 30s
     metrics_path: /metrics
     scrape_timeout: 15s
 
   # Database metrics (External PostgreSQL)
-  - job_name: 'postgres'
+  - job_name: "postgres"
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ["postgres-exporter:9187"]
     scrape_interval: 60s
     metrics_path: /metrics
     scrape_timeout: 15s
 
   # Redis metrics (External Redis)
-  - job_name: 'redis'
+  - job_name: "redis"
     static_configs:
-      - targets: ['redis-exporter:9121']
+      - targets: ["redis-exporter:9121"]
     scrape_interval: 60s
     metrics_path: /metrics
     scrape_timeout: 15s
 
   # Nginx metrics
-  - job_name: 'nginx'
+  - job_name: "nginx"
     static_configs:
-      - targets: ['nginx-exporter:9113']
+      - targets: ["nginx-exporter:9113"]
     scrape_interval: 30s
     metrics_path: /metrics
     scrape_timeout: 15s
 
   # System metrics
-  - job_name: 'node-exporter'
+  - job_name: "node-exporter"
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ["node-exporter:9100"]
     scrape_interval: 60s
     metrics_path: /metrics
     scrape_timeout: 15s
 
   # Custom business metrics
-  - job_name: 'business-metrics'
+  - job_name: "business-metrics"
     static_configs:
-      - targets: ['video-conference-backend-prod:8081']
+      - targets: ["video-conference-backend-prod:8081"]
     scrape_interval: 60s
     metrics_path: /api/metrics/business
     scrape_timeout: 15s
 
   # Health check monitoring
-  - job_name: 'health-checks'
+  - job_name: "health-checks"
     static_configs:
-      - targets: ['video-conference-backend-prod:8081']
+      - targets: ["video-conference-backend-prod:8081"]
     scrape_interval: 30s
     metrics_path: /health/prometheus
     scrape_timeout: 10s
@@ -94,7 +94,7 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - alertmanager:9093
+            - alertmanager:9093
       timeout: 10s
       api_version: v2
 

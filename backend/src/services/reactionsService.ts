@@ -1,5 +1,5 @@
-import { Server as SocketIOServer } from 'socket.io';
-import { prisma } from './prismaService';
+import { Server as SocketIOServer } from "socket.io";
+import { prisma } from "./prismaService";
 
 export interface EmojiReaction {
   id: string;
@@ -20,7 +20,7 @@ export interface RaisedHand {
 export interface ParticipantStatus {
   userId: string;
   userName: string;
-  status: 'online' | 'away' | 'presenting' | 'muted' | 'speaking';
+  status: "online" | "away" | "presenting" | "muted" | "speaking";
   timestamp: Date;
   meetingId: string;
 }
@@ -41,7 +41,8 @@ export class ReactionsService {
   private io: SocketIOServer;
   private activeReactions: Map<string, EmojiReaction[]> = new Map(); // meetingId -> reactions
   private raisedHands: Map<string, Map<string, RaisedHand>> = new Map(); // meetingId -> userId -> hand
-  private participantStatuses: Map<string, Map<string, ParticipantStatus>> = new Map(); // meetingId -> userId -> status
+  private participantStatuses: Map<string, Map<string, ParticipantStatus>> =
+    new Map(); // meetingId -> userId -> status
   private reactionTimers: Map<string, NodeJS.Timeout> = new Map(); // reactionId -> timeout
 
   constructor(io: SocketIOServer) {
@@ -53,92 +54,110 @@ export class ReactionsService {
    * Initialize Socket.IO event handlers for reactions
    */
   private initializeEventHandlers() {
-    this.io.on('connection', (socket) => {
+    this.io.on("connection", (socket) => {
       // Emoji reaction events
-      socket.on('emoji-reaction', async (data: {
-        meetingId: string;
-        userId: string;
-        userName: string;
-        emoji: string;
-        duration?: number;
-      }) => {
-        await this.handleEmojiReaction(socket, data);
-      });
+      socket.on(
+        "emoji-reaction",
+        async (data: {
+          meetingId: string;
+          userId: string;
+          userName: string;
+          emoji: string;
+          duration?: number;
+        }) => {
+          await this.handleEmojiReaction(socket, data);
+        },
+      );
 
       // Raise hand events
-      socket.on('raise-hand', async (data: {
-        meetingId: string;
-        userId: string;
-        userName: string;
-      }) => {
-        await this.handleRaiseHand(socket, data);
-      });
+      socket.on(
+        "raise-hand",
+        async (data: {
+          meetingId: string;
+          userId: string;
+          userName: string;
+        }) => {
+          await this.handleRaiseHand(socket, data);
+        },
+      );
 
-      socket.on('lower-hand', async (data: {
-        meetingId: string;
-        userId: string;
-      }) => {
-        await this.handleLowerHand(socket, data);
-      });
+      socket.on(
+        "lower-hand",
+        async (data: { meetingId: string; userId: string }) => {
+          await this.handleLowerHand(socket, data);
+        },
+      );
 
       // Participant status events
-      socket.on('update-status', async (data: {
-        meetingId: string;
-        userId: string;
-        userName: string;
-        status: 'online' | 'away' | 'presenting' | 'muted' | 'speaking';
-      }) => {
-        await this.handleStatusUpdate(socket, data);
-      });
+      socket.on(
+        "update-status",
+        async (data: {
+          meetingId: string;
+          userId: string;
+          userName: string;
+          status: "online" | "away" | "presenting" | "muted" | "speaking";
+        }) => {
+          await this.handleStatusUpdate(socket, data);
+        },
+      );
 
       // Get current reactions and status
-      socket.on('get-reactions', async (data: { meetingId: string }) => {
+      socket.on("get-reactions", async (data: { meetingId: string }) => {
         await this.sendCurrentReactions(socket, data.meetingId);
       });
 
-      socket.on('get-raised-hands', async (data: { meetingId: string }) => {
+      socket.on("get-raised-hands", async (data: { meetingId: string }) => {
         await this.sendRaisedHands(socket, data.meetingId);
       });
 
-      socket.on('get-participant-statuses', async (data: { meetingId: string }) => {
-        await this.sendParticipantStatuses(socket, data.meetingId);
-      });
+      socket.on(
+        "get-participant-statuses",
+        async (data: { meetingId: string }) => {
+          await this.sendParticipantStatuses(socket, data.meetingId);
+        },
+      );
 
       // Moderator controls
-      socket.on('clear-reactions', async (data: {
-        meetingId: string;
-        moderatorId: string;
-      }) => {
-        await this.handleClearReactions(socket, data);
-      });
+      socket.on(
+        "clear-reactions",
+        async (data: { meetingId: string; moderatorId: string }) => {
+          await this.handleClearReactions(socket, data);
+        },
+      );
 
-      socket.on('lower-all-hands', async (data: {
-        meetingId: string;
-        moderatorId: string;
-      }) => {
-        await this.handleLowerAllHands(socket, data);
-      });
+      socket.on(
+        "lower-all-hands",
+        async (data: { meetingId: string; moderatorId: string }) => {
+          await this.handleLowerAllHands(socket, data);
+        },
+      );
 
       // Reaction analytics
-      socket.on('get-reaction-stats', async (data: {
-        meetingId: string;
-        timeframe?: 'live' | 'session' | 'all';
-      }) => {
-        await this.sendReactionStats(socket, data);
-      });
+      socket.on(
+        "get-reaction-stats",
+        async (data: {
+          meetingId: string;
+          timeframe?: "live" | "session" | "all";
+        }) => {
+          await this.sendReactionStats(socket, data);
+        },
+      );
     });
   }
 
   /**
    * Handle emoji reaction
    */
-  private async handleEmojiReaction(socket: any, data: {
-    meetingId: string;
-    userId: string;
-    userName: string;
-    emoji: string;
-    duration?: number;
-  }) {
+  private async handleEmojiReaction(
+    socket: any,
+    data: {
+      meetingId: string;
+      userId: string;
+      userName: string;
+      emoji: string;
+      duration?: number;
+    },
+  ) {
     try {
       const reaction: EmojiReaction = {
         id: `${data.userId}_${Date.now()}_${Math.random()}`,
@@ -173,18 +192,19 @@ export class ReactionsService {
           },
         });
       } catch (dbError) {
-        console.warn('Failed to persist reaction to database:', dbError);
+        console.warn("Failed to persist reaction to database:", dbError);
       }
 
       // Broadcast to all participants in the meeting
-      socket.to(data.meetingId).emit('reaction-added', reaction);
-      socket.emit('reaction-added', reaction);
+      socket.to(data.meetingId).emit("reaction-added", reaction);
+      socket.emit("reaction-added", reaction);
 
-      console.log(`😊 Reaction added: ${data.emoji} by ${data.userName} in meeting ${data.meetingId}`);
-
+      console.log(
+        `😊 Reaction added: ${data.emoji} by ${data.userName} in meeting ${data.meetingId}`,
+      );
     } catch (error) {
-      console.error('Error handling emoji reaction:', error);
-      socket.emit('error', { message: 'Failed to add reaction' });
+      console.error("Error handling emoji reaction:", error);
+      socket.emit("error", { message: "Failed to add reaction" });
     }
   }
 
@@ -194,13 +214,13 @@ export class ReactionsService {
   private removeReaction(meetingId: string, reactionId: string) {
     const reactions = this.activeReactions.get(meetingId);
     if (reactions) {
-      const index = reactions.findIndex(r => r.id === reactionId);
+      const index = reactions.findIndex((r) => r.id === reactionId);
       if (index !== -1) {
         reactions.splice(index, 1);
-        
+
         // Broadcast removal
-        this.io.to(meetingId).emit('reaction-removed', { reactionId });
-        
+        this.io.to(meetingId).emit("reaction-removed", { reactionId });
+
         // Clear timer
         const timer = this.reactionTimers.get(reactionId);
         if (timer) {
@@ -214,11 +234,14 @@ export class ReactionsService {
   /**
    * Handle raise hand
    */
-  private async handleRaiseHand(socket: any, data: {
-    meetingId: string;
-    userId: string;
-    userName: string;
-  }) {
+  private async handleRaiseHand(
+    socket: any,
+    data: {
+      meetingId: string;
+      userId: string;
+      userName: string;
+    },
+  ) {
     try {
       const raisedHand: RaisedHand = {
         userId: data.userId,
@@ -239,32 +262,36 @@ export class ReactionsService {
           data: {
             meetingId: data.meetingId,
             userId: data.userId,
-            type: 'HAND_RAISED',
+            type: "HAND_RAISED",
             timestamp: raisedHand.timestamp,
           },
         });
       } catch (dbError) {
-        console.warn('Failed to persist hand raise to database:', dbError);
+        console.warn("Failed to persist hand raise to database:", dbError);
       }
 
       // Broadcast to all participants
-      this.io.to(data.meetingId).emit('hand-raised', raisedHand);
+      this.io.to(data.meetingId).emit("hand-raised", raisedHand);
 
-      console.log(`✋ Hand raised by ${data.userName} in meeting ${data.meetingId}`);
-
+      console.log(
+        `✋ Hand raised by ${data.userName} in meeting ${data.meetingId}`,
+      );
     } catch (error) {
-      console.error('Error handling raise hand:', error);
-      socket.emit('error', { message: 'Failed to raise hand' });
+      console.error("Error handling raise hand:", error);
+      socket.emit("error", { message: "Failed to raise hand" });
     }
   }
 
   /**
    * Handle lower hand
    */
-  private async handleLowerHand(socket: any, data: {
-    meetingId: string;
-    userId: string;
-  }) {
+  private async handleLowerHand(
+    socket: any,
+    data: {
+      meetingId: string;
+      userId: string;
+    },
+  ) {
     try {
       // Remove from memory
       const hands = this.raisedHands.get(data.meetingId);
@@ -277,38 +304,42 @@ export class ReactionsService {
             data: {
               meetingId: data.meetingId,
               userId: data.userId,
-              type: 'HAND_LOWERED',
+              type: "HAND_LOWERED",
               timestamp: new Date(),
             },
           });
         } catch (dbError) {
-          console.warn('Failed to persist hand lower to database:', dbError);
+          console.warn("Failed to persist hand lower to database:", dbError);
         }
 
         // Broadcast to all participants
-        this.io.to(data.meetingId).emit('hand-lowered', {
+        this.io.to(data.meetingId).emit("hand-lowered", {
           userId: data.userId,
           meetingId: data.meetingId,
         });
 
-        console.log(`✋ Hand lowered by ${data.userId} in meeting ${data.meetingId}`);
+        console.log(
+          `✋ Hand lowered by ${data.userId} in meeting ${data.meetingId}`,
+        );
       }
-
     } catch (error) {
-      console.error('Error handling lower hand:', error);
-      socket.emit('error', { message: 'Failed to lower hand' });
+      console.error("Error handling lower hand:", error);
+      socket.emit("error", { message: "Failed to lower hand" });
     }
   }
 
   /**
    * Handle participant status update
    */
-  private async handleStatusUpdate(socket: any, data: {
-    meetingId: string;
-    userId: string;
-    userName: string;
-    status: 'online' | 'away' | 'presenting' | 'muted' | 'speaking';
-  }) {
+  private async handleStatusUpdate(
+    socket: any,
+    data: {
+      meetingId: string;
+      userId: string;
+      userName: string;
+      status: "online" | "away" | "presenting" | "muted" | "speaking";
+    },
+  ) {
     try {
       const status: ParticipantStatus = {
         userId: data.userId,
@@ -325,16 +356,17 @@ export class ReactionsService {
       this.participantStatuses.get(data.meetingId)!.set(data.userId, status);
 
       // Broadcast to all participants
-      this.io.to(data.meetingId).emit('participant-status-updated', status);
+      this.io.to(data.meetingId).emit("participant-status-updated", status);
 
       // Don't log speaking status changes (too noisy)
-      if (data.status !== 'speaking') {
-        console.log(`👤 Status updated: ${data.userName} is now ${data.status} in meeting ${data.meetingId}`);
+      if (data.status !== "speaking") {
+        console.log(
+          `👤 Status updated: ${data.userName} is now ${data.status} in meeting ${data.meetingId}`,
+        );
       }
-
     } catch (error) {
-      console.error('Error handling status update:', error);
-      socket.emit('error', { message: 'Failed to update status' });
+      console.error("Error handling status update:", error);
+      socket.emit("error", { message: "Failed to update status" });
     }
   }
 
@@ -343,7 +375,7 @@ export class ReactionsService {
    */
   private async sendCurrentReactions(socket: any, meetingId: string) {
     const reactions = this.activeReactions.get(meetingId) || [];
-    socket.emit('current-reactions', { meetingId, reactions });
+    socket.emit("current-reactions", { meetingId, reactions });
   }
 
   /**
@@ -352,7 +384,7 @@ export class ReactionsService {
   private async sendRaisedHands(socket: any, meetingId: string) {
     const hands = this.raisedHands.get(meetingId);
     const raisedHandsList = hands ? Array.from(hands.values()) : [];
-    socket.emit('raised-hands', { meetingId, raisedHands: raisedHandsList });
+    socket.emit("raised-hands", { meetingId, raisedHands: raisedHandsList });
   }
 
   /**
@@ -361,27 +393,33 @@ export class ReactionsService {
   private async sendParticipantStatuses(socket: any, meetingId: string) {
     const statuses = this.participantStatuses.get(meetingId);
     const statusList = statuses ? Array.from(statuses.values()) : [];
-    socket.emit('participant-statuses', { meetingId, statuses: statusList });
+    socket.emit("participant-statuses", { meetingId, statuses: statusList });
   }
 
   /**
    * Handle moderator clearing all reactions
    */
-  private async handleClearReactions(socket: any, data: {
-    meetingId: string;
-    moderatorId: string;
-  }) {
+  private async handleClearReactions(
+    socket: any,
+    data: {
+      meetingId: string;
+      moderatorId: string;
+    },
+  ) {
     try {
       // Verify moderator permissions
-      const isModerator = await this.verifyModeratorPermissions(data.moderatorId, data.meetingId);
+      const isModerator = await this.verifyModeratorPermissions(
+        data.moderatorId,
+        data.meetingId,
+      );
       if (!isModerator) {
-        socket.emit('error', { message: 'Insufficient permissions' });
+        socket.emit("error", { message: "Insufficient permissions" });
         return;
       }
 
       // Clear all reactions for the meeting
       const reactions = this.activeReactions.get(data.meetingId) || [];
-      reactions.forEach(reaction => {
+      reactions.forEach((reaction) => {
         const timer = this.reactionTimers.get(reaction.id);
         if (timer) {
           clearTimeout(timer);
@@ -392,31 +430,38 @@ export class ReactionsService {
       this.activeReactions.set(data.meetingId, []);
 
       // Broadcast to all participants
-      this.io.to(data.meetingId).emit('reactions-cleared', {
+      this.io.to(data.meetingId).emit("reactions-cleared", {
         meetingId: data.meetingId,
         moderatorId: data.moderatorId,
       });
 
-      console.log(`🧹 All reactions cleared by moderator ${data.moderatorId} in meeting ${data.meetingId}`);
-
+      console.log(
+        `🧹 All reactions cleared by moderator ${data.moderatorId} in meeting ${data.meetingId}`,
+      );
     } catch (error) {
-      console.error('Error clearing reactions:', error);
-      socket.emit('error', { message: 'Failed to clear reactions' });
+      console.error("Error clearing reactions:", error);
+      socket.emit("error", { message: "Failed to clear reactions" });
     }
   }
 
   /**
    * Handle moderator lowering all hands
    */
-  private async handleLowerAllHands(socket: any, data: {
-    meetingId: string;
-    moderatorId: string;
-  }) {
+  private async handleLowerAllHands(
+    socket: any,
+    data: {
+      meetingId: string;
+      moderatorId: string;
+    },
+  ) {
     try {
       // Verify moderator permissions
-      const isModerator = await this.verifyModeratorPermissions(data.moderatorId, data.meetingId);
+      const isModerator = await this.verifyModeratorPermissions(
+        data.moderatorId,
+        data.meetingId,
+      );
       if (!isModerator) {
-        socket.emit('error', { message: 'Insufficient permissions' });
+        socket.emit("error", { message: "Insufficient permissions" });
         return;
       }
 
@@ -424,47 +469,54 @@ export class ReactionsService {
       this.raisedHands.set(data.meetingId, new Map());
 
       // Broadcast to all participants
-      this.io.to(data.meetingId).emit('all-hands-lowered', {
+      this.io.to(data.meetingId).emit("all-hands-lowered", {
         meetingId: data.meetingId,
         moderatorId: data.moderatorId,
       });
 
-      console.log(`✋ All hands lowered by moderator ${data.moderatorId} in meeting ${data.meetingId}`);
-
+      console.log(
+        `✋ All hands lowered by moderator ${data.moderatorId} in meeting ${data.meetingId}`,
+      );
     } catch (error) {
-      console.error('Error lowering all hands:', error);
-      socket.emit('error', { message: 'Failed to lower all hands' });
+      console.error("Error lowering all hands:", error);
+      socket.emit("error", { message: "Failed to lower all hands" });
     }
   }
 
   /**
    * Send reaction statistics
    */
-  private async sendReactionStats(socket: any, data: {
-    meetingId: string;
-    timeframe?: 'live' | 'session' | 'all';
-  }) {
+  private async sendReactionStats(
+    socket: any,
+    data: {
+      meetingId: string;
+      timeframe?: "live" | "session" | "all";
+    },
+  ) {
     try {
       const stats = await this.getReactionStats(data.meetingId, data.timeframe);
-      socket.emit('reaction-stats', stats);
-
+      socket.emit("reaction-stats", stats);
     } catch (error) {
-      console.error('Error getting reaction stats:', error);
-      socket.emit('error', { message: 'Failed to get reaction stats' });
+      console.error("Error getting reaction stats:", error);
+      socket.emit("error", { message: "Failed to get reaction stats" });
     }
   }
 
   /**
    * Get reaction statistics for a meeting
    */
-  async getReactionStats(meetingId: string, timeframe: 'live' | 'session' | 'all' = 'live'): Promise<ReactionStats> {
+  async getReactionStats(
+    meetingId: string,
+    timeframe: "live" | "session" | "all" = "live",
+  ): Promise<ReactionStats> {
     const liveReactions = this.activeReactions.get(meetingId) || [];
-    
+
     // For live stats, use in-memory data
-    if (timeframe === 'live') {
+    if (timeframe === "live") {
       const reactionCounts: { [emoji: string]: number } = {};
-      liveReactions.forEach(reaction => {
-        reactionCounts[reaction.emoji] = (reactionCounts[reaction.emoji] || 0) + 1;
+      liveReactions.forEach((reaction) => {
+        reactionCounts[reaction.emoji] =
+          (reactionCounts[reaction.emoji] || 0) + 1;
       });
 
       return {
@@ -491,14 +543,18 @@ export class ReactionsService {
       });
 
       const reactionCounts: { [emoji: string]: number } = {};
-      const userCounts: { [userId: string]: { name: string; count: number } } = {};
+      const userCounts: { [userId: string]: { name: string; count: number } } =
+        {};
 
-      reactions.forEach(reaction => {
+      reactions.forEach((reaction) => {
         // Count by emoji
-        reactionCounts[reaction.emoji] = (reactionCounts[reaction.emoji] || 0) + 1;
-        
+        reactionCounts[reaction.emoji] =
+          (reactionCounts[reaction.emoji] || 0) + 1;
+
         // Count by user
-        const userName = `${reaction.user?.firstName || ''} ${reaction.user?.lastName || ''}`.trim() || 'Unknown';
+        const userName =
+          `${reaction.user?.firstName || ""} ${reaction.user?.lastName || ""}`.trim() ||
+          "Unknown";
         if (!userCounts[reaction.userId]) {
           userCounts[reaction.userId] = { name: userName, count: 0 };
         }
@@ -506,7 +562,11 @@ export class ReactionsService {
       });
 
       const topReactors = Object.entries(userCounts)
-        .map(([userId, data]) => ({ userId, userName: data.name, count: data.count }))
+        .map(([userId, data]) => ({
+          userId,
+          userName: data.name,
+          count: data.count,
+        }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
@@ -517,9 +577,8 @@ export class ReactionsService {
         topReactors,
         peakReactionTime: null, // Could be calculated from timestamp analysis
       };
-
     } catch (error) {
-      console.error('Error querying reaction stats from database:', error);
+      console.error("Error querying reaction stats from database:", error);
       return {
         meetingId,
         totalReactions: 0,
@@ -533,7 +592,10 @@ export class ReactionsService {
   /**
    * Verify if user has moderator permissions
    */
-  private async verifyModeratorPermissions(userId: string, meetingId: string): Promise<boolean> {
+  private async verifyModeratorPermissions(
+    userId: string,
+    meetingId: string,
+  ): Promise<boolean> {
     try {
       const participant = await prisma.meetingParticipant.findFirst({
         where: {
@@ -542,11 +604,10 @@ export class ReactionsService {
           isModerator: true,
         },
       });
-      
-      return !!participant;
 
+      return !!participant;
     } catch (error) {
-      console.error('Error verifying moderator permissions:', error);
+      console.error("Error verifying moderator permissions:", error);
       return false;
     }
   }
@@ -578,7 +639,9 @@ export class ReactionsService {
     return {
       reactions: this.activeReactions.get(meetingId) || [],
       raisedHands: Array.from(this.raisedHands.get(meetingId)?.values() || []),
-      participantStatuses: Array.from(this.participantStatuses.get(meetingId)?.values() || []),
+      participantStatuses: Array.from(
+        this.participantStatuses.get(meetingId)?.values() || [],
+      ),
     };
   }
 }
@@ -586,7 +649,9 @@ export class ReactionsService {
 // Export singleton instance
 let reactionsService: ReactionsService | null = null;
 
-export function initializeReactionsService(io: SocketIOServer): ReactionsService {
+export function initializeReactionsService(
+  io: SocketIOServer,
+): ReactionsService {
   if (!reactionsService) {
     reactionsService = new ReactionsService(io);
   }

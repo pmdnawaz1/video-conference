@@ -6,11 +6,11 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectInterval = 1000;
     this.heartbeatInterval = null;
-    this.connectionState = 'disconnected';
+    this.connectionState = "disconnected";
     this.messageQueue = [];
     this.lastPingTime = null;
     this.currentLatency = null;
-    this.connectionQuality = 'good';
+    this.connectionQuality = "good";
   }
 
   // Enhanced connection with automatic reconnection
@@ -18,15 +18,15 @@ class WebSocketService {
     return new Promise((resolve, reject) => {
       try {
         this.connection = new WebSocket(url, protocols);
-        this.connectionState = 'connecting';
+        this.connectionState = "connecting";
 
         this.connection.onopen = (event) => {
-          console.log('🟢 WebSocket connected');
-          this.connectionState = 'connected';
+          console.log("🟢 WebSocket connected");
+          this.connectionState = "connected";
           this.reconnectAttempts = 0;
           this.startHeartbeat();
           this.processMessageQueue();
-          this.notifyHandlers('connectionStateChange', { state: 'connected' });
+          this.notifyHandlers("connectionStateChange", { state: "connected" });
           resolve(event);
         };
 
@@ -35,25 +35,29 @@ class WebSocketService {
         };
 
         this.connection.onclose = (event) => {
-          console.log('🔴 WebSocket closed:', event.code, event.reason);
-          this.connectionState = 'disconnected';
+          console.log("🔴 WebSocket closed:", event.code, event.reason);
+          this.connectionState = "disconnected";
           this.stopHeartbeat();
-          this.notifyHandlers('connectionStateChange', { state: 'disconnected' });
-          
+          this.notifyHandlers("connectionStateChange", {
+            state: "disconnected",
+          });
+
           if (event.code !== 1000 && event.code !== 1001) {
             this.attemptReconnect(url, protocols);
           }
         };
 
         this.connection.onerror = (error) => {
-          console.error('❌ WebSocket error:', error);
-          this.connectionState = 'error';
-          this.notifyHandlers('connectionStateChange', { state: 'error', error });
+          console.error("❌ WebSocket error:", error);
+          this.connectionState = "error";
+          this.notifyHandlers("connectionStateChange", {
+            state: "error",
+            error,
+          });
           reject(error);
         };
-
       } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
+        console.error("Failed to create WebSocket connection:", error);
         reject(error);
       }
     });
@@ -67,22 +71,21 @@ class WebSocketService {
 
       // Handle system messages
       switch (type) {
-        case 'pong':
+        case "pong":
           this.handlePong(payload);
           break;
-        case 'heartbeat':
+        case "heartbeat":
           this.handleHeartbeat(payload);
           break;
-        case 'connectionQuality':
+        case "connectionQuality":
           this.handleConnectionQuality(payload);
           break;
         default:
           this.notifyHandlers(type, payload || message);
           break;
       }
-
     } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
+      console.error("Error parsing WebSocket message:", error);
     }
   }
 
@@ -92,7 +95,7 @@ class WebSocketService {
       type,
       payload,
       timestamp: Date.now(),
-      ...options
+      ...options,
     };
 
     if (this.isConnected()) {
@@ -100,7 +103,7 @@ class WebSocketService {
         this.connection.send(JSON.stringify(message));
         return true;
       } catch (error) {
-        console.error('Error sending message:', error);
+        console.error("Error sending message:", error);
         if (options.queue !== false) {
           this.queueMessage(message);
         }
@@ -118,7 +121,7 @@ class WebSocketService {
   queueMessage(message) {
     this.messageQueue.push({
       ...message,
-      queuedAt: Date.now()
+      queuedAt: Date.now(),
     });
 
     // Limit queue size
@@ -130,11 +133,11 @@ class WebSocketService {
   // Process queued messages
   processMessageQueue() {
     const now = Date.now();
-    const validMessages = this.messageQueue.filter(msg => 
-      now - msg.queuedAt < 30000 // 30 second expiry
+    const validMessages = this.messageQueue.filter(
+      (msg) => now - msg.queuedAt < 30000, // 30 second expiry
     );
 
-    validMessages.forEach(message => {
+    validMessages.forEach((message) => {
       this.send(message.type, message.payload, { queue: false });
     });
 
@@ -146,7 +149,7 @@ class WebSocketService {
     this.heartbeatInterval = setInterval(() => {
       if (this.isConnected()) {
         this.lastPingTime = Date.now();
-        this.send('ping', { timestamp: this.lastPingTime }, { queue: false });
+        this.send("ping", { timestamp: this.lastPingTime }, { queue: false });
       }
     }, 30000); // 30 seconds
   }
@@ -162,34 +165,34 @@ class WebSocketService {
     if (this.lastPingTime && payload?.timestamp) {
       this.currentLatency = Date.now() - payload.timestamp;
       this.updateConnectionQuality();
-      this.notifyHandlers('latencyUpdate', { latency: this.currentLatency });
+      this.notifyHandlers("latencyUpdate", { latency: this.currentLatency });
     }
   }
 
   handleHeartbeat(payload) {
     // Server-initiated heartbeat
-    this.send('heartbeatResponse', { timestamp: Date.now() }, { queue: false });
+    this.send("heartbeatResponse", { timestamp: Date.now() }, { queue: false });
   }
 
   handleConnectionQuality(payload) {
-    this.connectionQuality = payload.quality || 'good';
-    this.notifyHandlers('connectionQuality', payload);
+    this.connectionQuality = payload.quality || "good";
+    this.notifyHandlers("connectionQuality", payload);
   }
 
   updateConnectionQuality() {
-    let quality = 'good';
-    
+    let quality = "good";
+
     if (this.currentLatency > 500) {
-      quality = 'poor';
+      quality = "poor";
     } else if (this.currentLatency > 200) {
-      quality = 'fair';
+      quality = "fair";
     }
 
     if (quality !== this.connectionQuality) {
       this.connectionQuality = quality;
-      this.notifyHandlers('connectionQuality', { 
-        quality, 
-        latency: this.currentLatency 
+      this.notifyHandlers("connectionQuality", {
+        quality,
+        latency: this.currentLatency,
       });
     }
   }
@@ -197,25 +200,28 @@ class WebSocketService {
   // Automatic reconnection
   attemptReconnect(url, protocols) {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
-      this.notifyHandlers('reconnectionFailed', { attempts: this.reconnectAttempts });
+      console.error("Max reconnection attempts reached");
+      this.notifyHandlers("reconnectionFailed", {
+        attempts: this.reconnectAttempts,
+      });
       return;
     }
 
     this.reconnectAttempts++;
-    this.connectionState = 'reconnecting';
-    this.notifyHandlers('connectionStateChange', { 
-      state: 'reconnecting', 
-      attempt: this.reconnectAttempts 
+    this.connectionState = "reconnecting";
+    this.notifyHandlers("connectionStateChange", {
+      state: "reconnecting",
+      attempt: this.reconnectAttempts,
     });
 
     setTimeout(() => {
-      console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      this.connect(url, protocols)
-        .catch(error => {
-          console.error('Reconnection failed:', error);
-          this.attemptReconnect(url, protocols);
-        });
+      console.log(
+        `🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+      );
+      this.connect(url, protocols).catch((error) => {
+        console.error("Reconnection failed:", error);
+        this.attemptReconnect(url, protocols);
+      });
     }, this.reconnectInterval * this.reconnectAttempts);
   }
 
@@ -241,7 +247,7 @@ class WebSocketService {
   notifyHandlers(messageType, data) {
     const handlers = this.messageHandlers.get(messageType);
     if (handlers) {
-      handlers.forEach(handler => {
+      handlers.forEach((handler) => {
         try {
           handler(data);
         } catch (error) {
@@ -274,73 +280,77 @@ class WebSocketService {
       roomId: payload.roomId,
       userId: payload.userId,
       timestamp: Date.now(),
-      ...payload
+      ...payload,
     });
   }
 
   // Admin control messages
   sendAdminControl(action, targetUserId, roomId, adminId, data = {}) {
-    return this.send('participantControl', {
+    return this.send("participantControl", {
       action,
       targetUserId,
       roomId,
       adminId,
       timestamp: Date.now(),
-      ...data
+      ...data,
     });
   }
 
   // Permission management
-  sendPermissionRequest(permissionType, roomId, userId, reason = '') {
-    return this.send('permissionRequest', {
+  sendPermissionRequest(permissionType, roomId, userId, reason = "") {
+    return this.send("permissionRequest", {
       permissionType,
       roomId,
       userId,
       reason,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
   sendPermissionResponse(requestId, approved, roomId, adminId) {
-    return this.send('permissionResponse', {
+    return this.send("permissionResponse", {
       requestId,
       approved,
       roomId,
       adminId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
   // State synchronization
   requestStateSync(roomId, userId) {
-    return this.send('requestStateSync', {
+    return this.send("requestStateSync", {
       roomId,
       userId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
   // Speaking detection
   updateSpeakingStatus(roomId, userId, isSpeaking, audioLevel = 0) {
-    return this.send('speakingUpdate', {
-      roomId,
-      userId,
-      isSpeaking,
-      audioLevel,
-      timestamp: Date.now()
-    }, { queue: false }); // Don't queue speaking updates
+    return this.send(
+      "speakingUpdate",
+      {
+        roomId,
+        userId,
+        isSpeaking,
+        audioLevel,
+        timestamp: Date.now(),
+      },
+      { queue: false },
+    ); // Don't queue speaking updates
   }
 
   // Cleanup
   disconnect() {
     this.stopHeartbeat();
-    
+
     if (this.connection) {
-      this.connection.close(1000, 'Client initiated disconnect');
+      this.connection.close(1000, "Client initiated disconnect");
       this.connection = null;
     }
-    
-    this.connectionState = 'disconnected';
+
+    this.connectionState = "disconnected";
     this.messageHandlers.clear();
     this.messageQueue = [];
     this.reconnectAttempts = 0;

@@ -1,53 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Textarea } from '../ui/textarea';
-import { Checkbox } from '../ui/checkbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { ScrollArea } from '../ui/scroll-area';
-import { Loader2, Mail, Users, UserPlus, Download, Upload, Trash2, Copy, Check, X, AlertCircle, Info } from 'lucide-react';
-import userInvitationService from '../../services/UserInvitationService';
-import useAdminStore from '../../stores/adminStore';
-import useAuthStore from '../../stores/authStore';
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Textarea } from "../ui/textarea";
+import { Checkbox } from "../ui/checkbox";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { ScrollArea } from "../ui/scroll-area";
+import {
+  Loader2,
+  Mail,
+  Users,
+  UserPlus,
+  Download,
+  Upload,
+  Trash2,
+  Copy,
+  Check,
+  X,
+  AlertCircle,
+  Info,
+} from "lucide-react";
+import userInvitationService from "../../services/UserInvitationService";
+import useAdminStore from "../../stores/adminStore";
+import useAuthStore from "../../stores/authStore";
 
 const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
   const { user } = useAuthStore();
-  const { organizations, currentOrganization, userGroups, fetchUserGroups } = useAdminStore();
-  
+  const { organizations, currentOrganization, userGroups, fetchUserGroups } =
+    useAdminStore();
+
   // Form states
-  const [activeTab, setActiveTab] = useState('single');
+  const [activeTab, setActiveTab] = useState("single");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(null);
 
   // Single invitation form state
   const [singleForm, setSingleForm] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-    role: 'user',
-    department: '',
-    customMessage: '',
+    email: "",
+    firstName: "",
+    lastName: "",
+    role: "user",
+    department: "",
+    customMessage: "",
     sendEmail: true,
     groups: [],
     permissions: [],
-    expiryDays: 7
+    expiryDays: 7,
   });
 
   // Bulk invitation state
   const [bulkForm, setBulkForm] = useState({
     invitations: [],
-    defaultRole: 'user',
-    defaultDepartment: '',
-    customMessage: '',
+    defaultRole: "user",
+    defaultDepartment: "",
+    customMessage: "",
     sendEmails: true,
     defaultGroups: [],
-    expiryDays: 7
+    expiryDays: 7,
   });
 
   const [csvFile, setCsvFile] = useState(null);
@@ -56,16 +89,36 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
 
   // Available roles and permissions
   const availableRoles = [
-    { value: 'user', label: 'User', description: 'Standard user access' },
-    { value: 'admin', label: 'Admin', description: 'Administrative access' },
-    { value: 'manager', label: 'Manager', description: 'Department manager access' }
+    { value: "user", label: "User", description: "Standard user access" },
+    { value: "admin", label: "Admin", description: "Administrative access" },
+    {
+      value: "manager",
+      label: "Manager",
+      description: "Department manager access",
+    },
   ];
 
   const availablePermissions = [
-    { id: 'create_meetings', label: 'Create Meetings', description: 'Can create and schedule meetings' },
-    { id: 'manage_recordings', label: 'Manage Recordings', description: 'Can access and manage recordings' },
-    { id: 'view_analytics', label: 'View Analytics', description: 'Can view meeting analytics' },
-    { id: 'export_data', label: 'Export Data', description: 'Can export meeting data and reports' }
+    {
+      id: "create_meetings",
+      label: "Create Meetings",
+      description: "Can create and schedule meetings",
+    },
+    {
+      id: "manage_recordings",
+      label: "Manage Recordings",
+      description: "Can access and manage recordings",
+    },
+    {
+      id: "view_analytics",
+      label: "View Analytics",
+      description: "Can view meeting analytics",
+    },
+    {
+      id: "export_data",
+      label: "Export Data",
+      description: "Can export meeting data and reports",
+    },
   ];
 
   useEffect(() => {
@@ -77,26 +130,26 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
 
   const resetForms = () => {
     setSingleForm({
-      email: '',
-      firstName: '',
-      lastName: '',
-      role: 'user',
-      department: '',
-      customMessage: '',
+      email: "",
+      firstName: "",
+      lastName: "",
+      role: "user",
+      department: "",
+      customMessage: "",
       sendEmail: true,
       groups: [],
       permissions: [],
-      expiryDays: 7
+      expiryDays: 7,
     });
 
     setBulkForm({
       invitations: [],
-      defaultRole: 'user',
-      defaultDepartment: '',
-      customMessage: '',
+      defaultRole: "user",
+      defaultDepartment: "",
+      customMessage: "",
       sendEmails: true,
       defaultGroups: [],
-      expiryDays: 7
+      expiryDays: 7,
     });
 
     setCsvFile(null);
@@ -108,9 +161,9 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
 
   // Single invitation handlers
   const handleSingleFormChange = (field, value) => {
-    setSingleForm(prev => ({ ...prev, [field]: value }));
+    setSingleForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
+      setErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
 
@@ -118,21 +171,21 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
     const newErrors = {};
 
     if (!singleForm.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!userInvitationService.validateEmail(singleForm.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!singleForm.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
+      newErrors.firstName = "First name is required";
     }
 
     if (!singleForm.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
+      newErrors.lastName = "Last name is required";
     }
 
     if (singleForm.expiryDays < 1 || singleForm.expiryDays > 30) {
-      newErrors.expiryDays = 'Expiry must be between 1 and 30 days';
+      newErrors.expiryDays = "Expiry must be between 1 and 30 days";
     }
 
     setErrors(newErrors);
@@ -161,34 +214,34 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
         sendEmail: singleForm.sendEmail,
         customMessage: singleForm.customMessage || null,
         permissions: singleForm.permissions,
-        groups: singleForm.groups
+        groups: singleForm.groups,
       });
 
       if (result.success) {
         setSuccess({
-          type: 'single',
+          type: "single",
           message: `Invitation sent successfully to ${singleForm.email}`,
           invitation: result.invitation,
-          token: result.token
+          token: result.token,
         });
-        
+
         if (onSuccess) {
           onSuccess(result.invitation);
         }
-        
+
         // Reset form for next invitation
-        setSingleForm(prev => ({
+        setSingleForm((prev) => ({
           ...prev,
-          email: '',
-          firstName: '',
-          lastName: '',
-          department: ''
+          email: "",
+          firstName: "",
+          lastName: "",
+          department: "",
         }));
       } else {
         setErrors({ submit: result.error });
       }
     } catch (error) {
-      setErrors({ submit: 'Failed to send invitation. Please try again.' });
+      setErrors({ submit: "Failed to send invitation. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -199,8 +252,8 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv')) {
-      setErrors({ csv: 'Please upload a CSV file' });
+    if (!file.name.endsWith(".csv")) {
+      setErrors({ csv: "Please upload a CSV file" });
       return;
     }
 
@@ -211,23 +264,28 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target.result;
-      const rows = text.split('').map(row => row.split(',').map(cell => cell.trim()));
-      
+      const rows = text
+        .split("")
+        .map((row) => row.split(",").map((cell) => cell.trim()));
+
       // Skip header row and empty rows
-      const dataRows = rows.slice(1).filter(row => row.some(cell => cell.length > 0));
-      
+      const dataRows = rows
+        .slice(1)
+        .filter((row) => row.some((cell) => cell.length > 0));
+
       const parsed = dataRows.map((row, index) => ({
         id: index,
-        email: row[0] || '',
-        firstName: row[1] || '',
-        lastName: row[2] || '',
+        email: row[0] || "",
+        firstName: row[1] || "",
+        lastName: row[2] || "",
         department: row[3] || bulkForm.defaultDepartment,
         role: row[4] || bulkForm.defaultRole,
-        isValid: userInvitationService.validateEmail(row[0]) && row[1] && row[2]
+        isValid:
+          userInvitationService.validateEmail(row[0]) && row[1] && row[2],
       }));
 
       setCsvPreview(parsed);
-      setBulkForm(prev => ({ ...prev, invitations: parsed }));
+      setBulkForm((prev) => ({ ...prev, invitations: parsed }));
     };
 
     reader.readAsText(file);
@@ -235,13 +293,13 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
 
   const handleBulkInvitations = async () => {
     if (bulkForm.invitations.length === 0) {
-      setErrors({ bulk: 'No invitations to send' });
+      setErrors({ bulk: "No invitations to send" });
       return;
     }
 
-    const validInvitations = bulkForm.invitations.filter(inv => inv.isValid);
+    const validInvitations = bulkForm.invitations.filter((inv) => inv.isValid);
     if (validInvitations.length === 0) {
-      setErrors({ bulk: 'No valid invitations found' });
+      setErrors({ bulk: "No valid invitations found" });
       return;
     }
 
@@ -252,7 +310,7 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + bulkForm.expiryDays);
 
-      const invitationsData = validInvitations.map(invitation => ({
+      const invitationsData = validInvitations.map((invitation) => ({
         email: invitation.email,
         firstName: invitation.firstName,
         lastName: invitation.lastName,
@@ -264,17 +322,18 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
         sendEmail: bulkForm.sendEmails,
         customMessage: bulkForm.customMessage || null,
         permissions: [],
-        groups: bulkForm.defaultGroups
+        groups: bulkForm.defaultGroups,
       }));
 
-      const result = await userInvitationService.createBulkUserInvitations(invitationsData);
+      const result =
+        await userInvitationService.createBulkUserInvitations(invitationsData);
 
       if (result.success) {
         setBulkResults(result);
         setSuccess({
-          type: 'bulk',
+          type: "bulk",
           message: `Successfully sent ${result.successful} of ${validInvitations.length} invitations`,
-          results: result
+          results: result,
         });
 
         if (onSuccess) {
@@ -284,22 +343,23 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
         setErrors({ bulk: result.error });
       }
     } catch (error) {
-      setErrors({ bulk: 'Failed to send bulk invitations. Please try again.' });
+      setErrors({ bulk: "Failed to send bulk invitations. Please try again." });
     } finally {
       setIsLoading(false);
     }
   };
 
   const downloadCsvTemplate = () => {
-    const csvContent = 'email,first_name,last_name,department,roleexample@company.com,John,Doe,Engineering,user';
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    
+    const csvContent =
+      "email,first_name,last_name,department,roleexample@company.com,John,Doe,Engineering,user";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'user_invitation_template.csv');
-      link.style.visibility = 'hidden';
+      link.setAttribute("href", url);
+      link.setAttribute("download", "user_invitation_template.csv");
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -309,9 +369,9 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
   const copyInvitationUrl = (token) => {
     const url = userInvitationService.generateInvitationUrl(token);
     navigator.clipboard.writeText(url).then(() => {
-      setSuccess(prev => ({ ...prev, copied: true }));
+      setSuccess((prev) => ({ ...prev, copied: true }));
       setTimeout(() => {
-        setSuccess(prev => ({ ...prev, copied: false }));
+        setSuccess((prev) => ({ ...prev, copied: false }));
       }, 2000);
     });
   };
@@ -351,11 +411,13 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                   type="email"
                   placeholder="user@example.com"
                   value={singleForm.email}
-                  onChange={(e) => handleSingleFormChange('email', e.target.value)}
-                  className={errors.email ? 'border-red-500' : ''}
+                  onChange={(e) =>
+                    handleSingleFormChange("email", e.target.value)
+                  }
+                  className={errors.email ? "border-red-500" : ""}
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email}</p>
+                  <p className="text-sm text-destructive">{errors.email}</p>
                 )}
               </div>
 
@@ -365,11 +427,13 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                   id="firstName"
                   placeholder="John"
                   value={singleForm.firstName}
-                  onChange={(e) => handleSingleFormChange('firstName', e.target.value)}
-                  className={errors.firstName ? 'border-red-500' : ''}
+                  onChange={(e) =>
+                    handleSingleFormChange("firstName", e.target.value)
+                  }
+                  className={errors.firstName ? "border-red-500" : ""}
                 />
                 {errors.firstName && (
-                  <p className="text-sm text-red-500">{errors.firstName}</p>
+                  <p className="text-sm text-destructive">{errors.firstName}</p>
                 )}
               </div>
 
@@ -379,11 +443,13 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                   id="lastName"
                   placeholder="Doe"
                   value={singleForm.lastName}
-                  onChange={(e) => handleSingleFormChange('lastName', e.target.value)}
-                  className={errors.lastName ? 'border-red-500' : ''}
+                  onChange={(e) =>
+                    handleSingleFormChange("lastName", e.target.value)
+                  }
+                  className={errors.lastName ? "border-red-500" : ""}
                 />
                 {errors.lastName && (
-                  <p className="text-sm text-red-500">{errors.lastName}</p>
+                  <p className="text-sm text-destructive">{errors.lastName}</p>
                 )}
               </div>
 
@@ -393,22 +459,31 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                   id="department"
                   placeholder="Engineering"
                   value={singleForm.department}
-                  onChange={(e) => handleSingleFormChange('department', e.target.value)}
+                  onChange={(e) =>
+                    handleSingleFormChange("department", e.target.value)
+                  }
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={singleForm.role} onValueChange={(value) => handleSingleFormChange('role', value)}>
+                <Select
+                  value={singleForm.role}
+                  onValueChange={(value) =>
+                    handleSingleFormChange("role", value)
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRoles.map(role => (
+                    {availableRoles.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
                         <div>
                           <div className="font-medium">{role.label}</div>
-                          <div className="text-sm text-muted-foreground">{role.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {role.description}
+                          </div>
                         </div>
                       </SelectItem>
                     ))}
@@ -424,11 +499,18 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                   min="1"
                   max="30"
                   value={singleForm.expiryDays}
-                  onChange={(e) => handleSingleFormChange('expiryDays', parseInt(e.target.value))}
-                  className={errors.expiryDays ? 'border-red-500' : ''}
+                  onChange={(e) =>
+                    handleSingleFormChange(
+                      "expiryDays",
+                      parseInt(e.target.value),
+                    )
+                  }
+                  className={errors.expiryDays ? "border-red-500" : ""}
                 />
                 {errors.expiryDays && (
-                  <p className="text-sm text-red-500">{errors.expiryDays}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.expiryDays}
+                  </p>
                 )}
               </div>
             </div>
@@ -438,7 +520,7 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
               <div className="space-y-2">
                 <Label>User Groups</Label>
                 <div className="flex flex-wrap gap-2">
-                  {userGroups.map(group => (
+                  {userGroups.map((group) => (
                     <div key={group.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`group-${group.id}`}
@@ -446,8 +528,8 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                         onCheckedChange={(checked) => {
                           const newGroups = checked
                             ? [...singleForm.groups, group.id]
-                            : singleForm.groups.filter(id => id !== group.id);
-                          handleSingleFormChange('groups', newGroups);
+                            : singleForm.groups.filter((id) => id !== group.id);
+                          handleSingleFormChange("groups", newGroups);
                         }}
                       />
                       <Label htmlFor={`group-${group.id}`} className="text-sm">
@@ -462,20 +544,28 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
             <div className="space-y-2">
               <Label>Permissions</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {availablePermissions.map(permission => (
-                  <div key={permission.id} className="flex items-start space-x-2">
+                {availablePermissions.map((permission) => (
+                  <div
+                    key={permission.id}
+                    className="flex items-start space-x-2"
+                  >
                     <Checkbox
                       id={`permission-${permission.id}`}
                       checked={singleForm.permissions.includes(permission.id)}
                       onCheckedChange={(checked) => {
                         const newPermissions = checked
                           ? [...singleForm.permissions, permission.id]
-                          : singleForm.permissions.filter(id => id !== permission.id);
-                        handleSingleFormChange('permissions', newPermissions);
+                          : singleForm.permissions.filter(
+                              (id) => id !== permission.id,
+                            );
+                        handleSingleFormChange("permissions", newPermissions);
                       }}
                     />
                     <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor={`permission-${permission.id}`} className="text-sm font-medium">
+                      <Label
+                        htmlFor={`permission-${permission.id}`}
+                        className="text-sm font-medium"
+                      >
                         {permission.label}
                       </Label>
                       <p className="text-xs text-muted-foreground">
@@ -493,7 +583,9 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                 id="customMessage"
                 placeholder="Add a personal message to the invitation email..."
                 value={singleForm.customMessage}
-                onChange={(e) => handleSingleFormChange('customMessage', e.target.value)}
+                onChange={(e) =>
+                  handleSingleFormChange("customMessage", e.target.value)
+                }
                 rows={3}
               />
             </div>
@@ -502,7 +594,9 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
               <Checkbox
                 id="sendEmail"
                 checked={singleForm.sendEmail}
-                onCheckedChange={(checked) => handleSingleFormChange('sendEmail', checked)}
+                onCheckedChange={(checked) =>
+                  handleSingleFormChange("sendEmail", checked)
+                }
               />
               <Label htmlFor="sendEmail" className="text-sm">
                 Send invitation email immediately
@@ -510,25 +604,29 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
             </div>
 
             {errors.submit && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <p className="text-sm text-red-700">{errors.submit}</p>
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <AlertCircle className="w-4 h-4 text-destructive" />
+                <p className="text-sm text-destructive">{errors.submit}</p>
               </div>
             )}
 
-            {success?.type === 'single' && (
-              <Card className="border-green-200 bg-green-50">
+            {success?.type === "single" && (
+              <Card className="border-success/20 bg-success/10">
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <p className="text-sm text-green-700 font-medium">{success.message}</p>
+                    <Check className="w-4 h-4 text-success" />
+                    <p className="text-sm text-success font-medium">
+                      {success.message}
+                    </p>
                   </div>
                   {success.token && (
                     <div className="space-y-2">
                       <Label className="text-sm">Invitation Link:</Label>
                       <div className="flex gap-2">
                         <Input
-                          value={userInvitationService.generateInvitationUrl(success.token)}
+                          value={userInvitationService.generateInvitationUrl(
+                            success.token,
+                          )}
                           readOnly
                           className="text-sm"
                         />
@@ -537,7 +635,11 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                           variant="outline"
                           onClick={() => copyInvitationUrl(success.token)}
                         >
-                          {success.copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          {success.copied ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -556,7 +658,8 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                   Upload CSV File
                 </CardTitle>
                 <CardDescription>
-                  Upload a CSV file with user information. Download the template to get started.
+                  Upload a CSV file with user information. Download the template
+                  to get started.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -580,21 +683,32 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                 </div>
 
                 {errors.csv && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <AlertCircle className="w-4 h-4 text-red-500" />
-                    <p className="text-sm text-red-700">{errors.csv}</p>
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                    <p className="text-sm text-destructive">{errors.csv}</p>
                   </div>
                 )}
 
                 {csvPreview.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Preview ({csvPreview.length} entries)</h4>
-                      <Badge variant={csvPreview.filter(inv => inv.isValid).length === csvPreview.length ? 'default' : 'destructive'}>
-                        {csvPreview.filter(inv => inv.isValid).length} valid, {csvPreview.filter(inv => !inv.isValid).length} invalid
+                      <h4 className="font-medium">
+                        Preview ({csvPreview.length} entries)
+                      </h4>
+                      <Badge
+                        variant={
+                          csvPreview.filter((inv) => inv.isValid).length ===
+                          csvPreview.length
+                            ? "default"
+                            : "destructive"
+                        }
+                      >
+                        {csvPreview.filter((inv) => inv.isValid).length} valid,{" "}
+                        {csvPreview.filter((inv) => !inv.isValid).length}{" "}
+                        invalid
                       </Badge>
                     </div>
-                    
+
                     <ScrollArea className="h-64 border rounded-md">
                       <div className="p-4">
                         <table className="w-full text-sm">
@@ -609,12 +723,15 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                           </thead>
                           <tbody>
                             {csvPreview.map((invitation, index) => (
-                              <tr key={index} className={`border-b ${invitation.isValid ? '' : 'bg-red-50'}`}>
+                              <tr
+                                key={index}
+                                className={`border-b ${invitation.isValid ? "" : "bg-red-50"}`}
+                              >
                                 <td className="p-2">
                                   {invitation.isValid ? (
-                                    <Check className="w-4 h-4 text-green-500" />
+                                    <Check className="w-4 h-4 text-success" />
                                   ) : (
-                                    <X className="w-4 h-4 text-red-500" />
+                                    <X className="w-4 h-4 text-destructive" />
                                   )}
                                 </td>
                                 <td className="p-2">{invitation.email}</td>
@@ -632,15 +749,20 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="bulkDefaultRole">Default Role</Label>
-                        <Select 
-                          value={bulkForm.defaultRole} 
-                          onValueChange={(value) => setBulkForm(prev => ({ ...prev, defaultRole: value }))}
+                        <Select
+                          value={bulkForm.defaultRole}
+                          onValueChange={(value) =>
+                            setBulkForm((prev) => ({
+                              ...prev,
+                              defaultRole: value,
+                            }))
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableRoles.map(role => (
+                            {availableRoles.map((role) => (
                               <SelectItem key={role.value} value={role.value}>
                                 {role.label}
                               </SelectItem>
@@ -650,35 +772,56 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="bulkDefaultDepartment">Default Department</Label>
+                        <Label htmlFor="bulkDefaultDepartment">
+                          Default Department
+                        </Label>
                         <Input
                           id="bulkDefaultDepartment"
                           placeholder="Engineering"
                           value={bulkForm.defaultDepartment}
-                          onChange={(e) => setBulkForm(prev => ({ ...prev, defaultDepartment: e.target.value }))}
+                          onChange={(e) =>
+                            setBulkForm((prev) => ({
+                              ...prev,
+                              defaultDepartment: e.target.value,
+                            }))
+                          }
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="bulkExpiryDays">Expires in (days)</Label>
+                        <Label htmlFor="bulkExpiryDays">
+                          Expires in (days)
+                        </Label>
                         <Input
                           id="bulkExpiryDays"
                           type="number"
                           min="1"
                           max="30"
                           value={bulkForm.expiryDays}
-                          onChange={(e) => setBulkForm(prev => ({ ...prev, expiryDays: parseInt(e.target.value) }))}
+                          onChange={(e) =>
+                            setBulkForm((prev) => ({
+                              ...prev,
+                              expiryDays: parseInt(e.target.value),
+                            }))
+                          }
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="bulkCustomMessage">Custom Message (Optional)</Label>
+                      <Label htmlFor="bulkCustomMessage">
+                        Custom Message (Optional)
+                      </Label>
                       <Textarea
                         id="bulkCustomMessage"
                         placeholder="Add a message to all invitation emails..."
                         value={bulkForm.customMessage}
-                        onChange={(e) => setBulkForm(prev => ({ ...prev, customMessage: e.target.value }))}
+                        onChange={(e) =>
+                          setBulkForm((prev) => ({
+                            ...prev,
+                            customMessage: e.target.value,
+                          }))
+                        }
                         rows={3}
                       />
                     </div>
@@ -687,7 +830,12 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
                       <Checkbox
                         id="sendBulkEmails"
                         checked={bulkForm.sendEmails}
-                        onCheckedChange={(checked) => setBulkForm(prev => ({ ...prev, sendEmails: checked }))}
+                        onCheckedChange={(checked) =>
+                          setBulkForm((prev) => ({
+                            ...prev,
+                            sendEmails: checked,
+                          }))
+                        }
                       />
                       <Label htmlFor="sendBulkEmails" className="text-sm">
                         Send invitation emails immediately
@@ -699,40 +847,51 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
             </Card>
 
             {errors.bulk && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <p className="text-sm text-red-700">{errors.bulk}</p>
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <AlertCircle className="w-4 h-4 text-destructive" />
+                <p className="text-sm text-destructive">{errors.bulk}</p>
               </div>
             )}
 
             {bulkResults && (
-              <Card className="border-green-200 bg-green-50">
+              <Card className="border-success/20 bg-success/10">
                 <CardHeader>
-                  <CardTitle className="text-lg text-green-700">Bulk Invitation Results</CardTitle>
+                  <CardTitle className="text-lg text-success">
+                    Bulk Invitation Results
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{bulkResults.successful}</div>
-                      <div className="text-sm text-green-700">Successful</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {bulkResults.successful}
+                      </div>
+                      <div className="text-sm text-success">Successful</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">{bulkResults.failed}</div>
-                      <div className="text-sm text-red-700">Failed</div>
+                      <div className="text-2xl font-bold text-red-600">
+                        {bulkResults.failed}
+                      </div>
+                      <div className="text-sm text-destructive">Failed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{bulkResults.successful + bulkResults.failed}</div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {bulkResults.successful + bulkResults.failed}
+                      </div>
                       <div className="text-sm text-blue-700">Total</div>
                     </div>
                   </div>
-                  
+
                   {bulkResults.errors && bulkResults.errors.length > 0 && (
                     <div className="space-y-2">
-                      <h4 className="font-medium text-red-700">Errors:</h4>
+                      <h4 className="font-medium text-destructive">Errors:</h4>
                       <ScrollArea className="h-32">
                         <div className="space-y-1">
                           {bulkResults.errors.map((error, index) => (
-                            <div key={index} className="text-sm text-red-600 bg-white p-2 rounded border">
+                            <div
+                              key={index}
+                              className="text-sm text-red-600 bg-white p-2 rounded border"
+                            >
                               <strong>{error.email}:</strong> {error.error}
                             </div>
                           ))}
@@ -750,12 +909,20 @@ const UserInvitationForm = ({ open, onOpenChange, onSuccess }) => {
           <Button variant="outline" onClick={onOpenChange}>
             Cancel
           </Button>
-          <Button 
-            onClick={activeTab === 'single' ? handleSingleInvitation : handleBulkInvitations}
-            disabled={isLoading || (activeTab === 'bulk' && csvPreview.length === 0)}
+          <Button
+            onClick={
+              activeTab === "single"
+                ? handleSingleInvitation
+                : handleBulkInvitations
+            }
+            disabled={
+              isLoading || (activeTab === "bulk" && csvPreview.length === 0)
+            }
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {activeTab === 'single' ? 'Send Invitation' : 'Send Bulk Invitations'}
+            {activeTab === "single"
+              ? "Send Invitation"
+              : "Send Bulk Invitations"}
           </Button>
         </DialogFooter>
       </DialogContent>

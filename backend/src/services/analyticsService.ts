@@ -1,6 +1,6 @@
-import { prisma } from './prismaService';
-import { ChatMessageType, MeetingStatus, UserRole } from '@prisma/client';
-import { Server as SocketIOServer } from 'socket.io';
+import { prisma } from "./prismaService";
+import { ChatMessageType, MeetingStatus, UserRole } from "@prisma/client";
+import { Server as SocketIOServer } from "socket.io";
 
 export interface MeetingMetrics {
   meetingId: string;
@@ -42,7 +42,7 @@ export interface AnalyticsQuery {
   userId?: string;
   startDate?: Date;
   endDate?: Date;
-  period?: 'daily' | 'weekly' | 'monthly';
+  period?: "daily" | "weekly" | "monthly";
   limit?: number;
 }
 
@@ -69,11 +69,11 @@ export interface AnalyticsDashboard {
     engagement: Array<{ date: string; messages: number; participants: number }>;
   };
   insights: Array<{
-    type: 'growth' | 'engagement' | 'quality' | 'usage';
+    type: "growth" | "engagement" | "quality" | "usage";
     message: string;
     value: number;
     change: number;
-    trend: 'up' | 'down' | 'stable';
+    trend: "up" | "down" | "stable";
   }>;
 }
 
@@ -96,11 +96,14 @@ export class AnalyticsService {
    */
   private startMetricsAggregation() {
     // Aggregate metrics every 5 minutes
-    this.aggregationInterval = setInterval(async () => {
-      await this.aggregateMetrics();
-    }, 5 * 60 * 1000);
+    this.aggregationInterval = setInterval(
+      async () => {
+        await this.aggregateMetrics();
+      },
+      5 * 60 * 1000,
+    );
 
-    console.log('📊 Analytics service started with automated aggregation');
+    console.log("📊 Analytics service started with automated aggregation");
   }
 
   /**
@@ -140,7 +143,7 @@ export class AnalyticsService {
 
       console.log(`📊 Meeting analytics started: ${meetingId}`);
     } catch (error) {
-      console.error('Error tracking meeting start:', error);
+      console.error("Error tracking meeting start:", error);
     }
   }
 
@@ -160,8 +163,11 @@ export class AnalyticsService {
 
       if (!meeting) return;
 
-      const duration = meeting.actualStartTime 
-        ? Math.round((endTime.getTime() - meeting.actualStartTime.getTime()) / (1000 * 60))
+      const duration = meeting.actualStartTime
+        ? Math.round(
+            (endTime.getTime() - meeting.actualStartTime.getTime()) /
+              (1000 * 60),
+          )
         : 0;
 
       // Update meeting with end time and duration
@@ -178,21 +184,32 @@ export class AnalyticsService {
       const metrics = this.metricsBuffer.get(`meeting:${meetingId}`);
       const totalParticipants = meeting.participants.length;
       const totalMessages = meeting.chatMessages.length;
-      
-      // Calculate advanced metrics
-      const presentParticipants = meeting.participants.filter(p => p.isPresent);
-      const averageParticipationTime = presentParticipants.length > 0
-        ? presentParticipants.reduce((sum, p) => {
-            if (p.joinedAt && p.leftAt) {
-              return sum + Math.round((p.leftAt.getTime() - p.joinedAt.getTime()) / (1000 * 60));
-            }
-            return sum;
-          }, 0) / presentParticipants.length
-        : 0;
 
-      const dropoutRate = totalParticipants > 0 
-        ? ((totalParticipants - presentParticipants.length) / totalParticipants) * 100
-        : 0;
+      // Calculate advanced metrics
+      const presentParticipants = meeting.participants.filter(
+        (p) => p.isPresent,
+      );
+      const averageParticipationTime =
+        presentParticipants.length > 0
+          ? presentParticipants.reduce((sum, p) => {
+              if (p.joinedAt && p.leftAt) {
+                return (
+                  sum +
+                  Math.round(
+                    (p.leftAt.getTime() - p.joinedAt.getTime()) / (1000 * 60),
+                  )
+                );
+              }
+              return sum;
+            }, 0) / presentParticipants.length
+          : 0;
+
+      const dropoutRate =
+        totalParticipants > 0
+          ? ((totalParticipants - presentParticipants.length) /
+              totalParticipants) *
+            100
+          : 0;
 
       const peakParticipants = metrics?.peakParticipants || totalParticipants;
 
@@ -204,7 +221,9 @@ export class AnalyticsService {
           totalParticipants,
           totalMessages,
           screenSharesCount: metrics?.screenShares || 0,
-          averageConnectionQuality: this.calculateAverageQuality(metrics?.qualityReports || []),
+          averageConnectionQuality: this.calculateAverageQuality(
+            metrics?.qualityReports || [],
+          ),
           dropoutRate,
           averageParticipationTime: Math.round(averageParticipationTime),
           peakParticipants,
@@ -214,9 +233,11 @@ export class AnalyticsService {
       // Clean up metrics buffer
       this.metricsBuffer.delete(`meeting:${meetingId}`);
 
-      console.log(`📊 Meeting analytics completed: ${meetingId} (${duration}min, ${totalParticipants} participants)`);
+      console.log(
+        `📊 Meeting analytics completed: ${meetingId} (${duration}min, ${totalParticipants} participants)`,
+      );
     } catch (error) {
-      console.error('Error tracking meeting end:', error);
+      console.error("Error tracking meeting end:", error);
     }
   }
 
@@ -247,13 +268,16 @@ export class AnalyticsService {
       const metrics = this.metricsBuffer.get(`meeting:${meetingId}`);
       if (metrics) {
         metrics.participants.add(userId);
-        metrics.peakParticipants = Math.max(metrics.peakParticipants, metrics.participants.size);
+        metrics.peakParticipants = Math.max(
+          metrics.peakParticipants,
+          metrics.participants.size,
+        );
         this.metricsBuffer.set(`meeting:${meetingId}`, metrics);
       }
 
       console.log(`📊 User joined tracked: ${userId} -> ${meetingId}`);
     } catch (error) {
-      console.error('Error tracking user join:', error);
+      console.error("Error tracking user join:", error);
     }
   }
 
@@ -263,7 +287,7 @@ export class AnalyticsService {
   async trackUserLeave(meetingId: string, userId: string): Promise<void> {
     try {
       const leftAt = new Date();
-      
+
       // Update participant record
       const participant = await prisma.meetingParticipant.findUnique({
         where: {
@@ -272,8 +296,10 @@ export class AnalyticsService {
       });
 
       if (participant && participant.joinedAt) {
-        const duration = Math.round((leftAt.getTime() - participant.joinedAt.getTime()) / (1000 * 60));
-        
+        const duration = Math.round(
+          (leftAt.getTime() - participant.joinedAt.getTime()) / (1000 * 60),
+        );
+
         await prisma.meetingParticipant.update({
           where: {
             userId_meetingId: { userId, meetingId },
@@ -295,14 +321,18 @@ export class AnalyticsService {
 
       console.log(`📊 User leave tracked: ${userId} <- ${meetingId}`);
     } catch (error) {
-      console.error('Error tracking user leave:', error);
+      console.error("Error tracking user leave:", error);
     }
   }
 
   /**
    * Track chat message
    */
-  async trackMessage(meetingId: string, userId: string, messageType: ChatMessageType = ChatMessageType.TEXT): Promise<void> {
+  async trackMessage(
+    meetingId: string,
+    userId: string,
+    messageType: ChatMessageType = ChatMessageType.TEXT,
+  ): Promise<void> {
     try {
       // Update real-time metrics
       const metrics = this.metricsBuffer.get(`meeting:${meetingId}`);
@@ -313,16 +343,20 @@ export class AnalyticsService {
 
       console.log(`📊 Message tracked: ${messageType} in ${meetingId}`);
     } catch (error) {
-      console.error('Error tracking message:', error);
+      console.error("Error tracking message:", error);
     }
   }
 
   /**
    * Track screen share
    */
-  async trackScreenShare(meetingId: string, userId: string, action: 'start' | 'stop'): Promise<void> {
+  async trackScreenShare(
+    meetingId: string,
+    userId: string,
+    action: "start" | "stop",
+  ): Promise<void> {
     try {
-      if (action === 'start') {
+      if (action === "start") {
         const metrics = this.metricsBuffer.get(`meeting:${meetingId}`);
         if (metrics) {
           metrics.screenShares++;
@@ -330,16 +364,23 @@ export class AnalyticsService {
         }
       }
 
-      console.log(`📊 Screen share tracked: ${action} by ${userId} in ${meetingId}`);
+      console.log(
+        `📊 Screen share tracked: ${action} by ${userId} in ${meetingId}`,
+      );
     } catch (error) {
-      console.error('Error tracking screen share:', error);
+      console.error("Error tracking screen share:", error);
     }
   }
 
   /**
    * Track connection quality
    */
-  async trackConnectionQuality(meetingId: string, userId: string, quality: string, stats?: any): Promise<void> {
+  async trackConnectionQuality(
+    meetingId: string,
+    userId: string,
+    quality: string,
+    stats?: any,
+  ): Promise<void> {
     try {
       // Update participant connection quality
       await prisma.meetingParticipant.updateMany({
@@ -357,20 +398,30 @@ export class AnalyticsService {
       // Add to real-time metrics
       const metrics = this.metricsBuffer.get(`meeting:${meetingId}`);
       if (metrics) {
-        metrics.qualityReports.push({ userId, quality, timestamp: new Date(), stats });
+        metrics.qualityReports.push({
+          userId,
+          quality,
+          timestamp: new Date(),
+          stats,
+        });
         this.metricsBuffer.set(`meeting:${meetingId}`, metrics);
       }
 
-      console.log(`📊 Connection quality tracked: ${quality} for ${userId} in ${meetingId}`);
+      console.log(
+        `📊 Connection quality tracked: ${quality} for ${userId} in ${meetingId}`,
+      );
     } catch (error) {
-      console.error('Error tracking connection quality:', error);
+      console.error("Error tracking connection quality:", error);
     }
   }
 
   /**
    * Generate user analytics for a specific period
    */
-  async generateUserAnalytics(userId: string, period: 'daily' | 'weekly' | 'monthly' = 'daily'): Promise<void> {
+  async generateUserAnalytics(
+    userId: string,
+    period: "daily" | "weekly" | "monthly" = "daily",
+  ): Promise<void> {
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -404,25 +455,33 @@ export class AnalyticsService {
       const date = this.getStartOfPeriod(period);
       const meetingsCreated = user.createdMeetings.length;
       const meetingsJoined = user.meetingParticipants.length;
-      const totalMeetingDuration = user.meetingParticipants.reduce((sum, p) => sum + (p.duration || 0), 0);
+      const totalMeetingDuration = user.meetingParticipants.reduce(
+        (sum, p) => sum + (p.duration || 0),
+        0,
+      );
       const messagesSet = user.chatMessages.length;
-      const screenSharesCount = user.meetingParticipants.filter(p => p.isScreenSharing).length;
+      const screenSharesCount = user.meetingParticipants.filter(
+        (p) => p.isScreenSharing,
+      ).length;
 
       // Calculate average join time
       const joinTimes = user.meetingParticipants
-        .filter(p => p.joinedAt && p.meetingId)
-        .map(p => {
+        .filter((p) => p.joinedAt && p.meetingId)
+        .map((p) => {
           // This would need meeting start time - simplified for now
           return 0; // TODO: Calculate actual join delay
         });
-      const averageJoinTime = joinTimes.length > 0 
-        ? Math.round(joinTimes.reduce((sum, time) => sum + time, 0) / joinTimes.length)
-        : 0;
+      const averageJoinTime =
+        joinTimes.length > 0
+          ? Math.round(
+              joinTimes.reduce((sum, time) => sum + time, 0) / joinTimes.length,
+            )
+          : 0;
 
       // Calculate average connection quality
       const qualityValues = user.meetingParticipants
-        .map(p => p.connectionQuality)
-        .filter(q => q);
+        .map((p) => p.connectionQuality)
+        .filter((q) => q);
       const connectionQualityAvg = this.calculateAverageQuality(qualityValues);
 
       await prisma.userAnalytics.upsert({
@@ -459,14 +518,17 @@ export class AnalyticsService {
 
       console.log(`📊 User analytics generated: ${userId} (${period})`);
     } catch (error) {
-      console.error('Error generating user analytics:', error);
+      console.error("Error generating user analytics:", error);
     }
   }
 
   /**
    * Get comprehensive dashboard analytics
    */
-  async getDashboardAnalytics(clientId: string, days: number = 30): Promise<AnalyticsDashboard> {
+  async getDashboardAnalytics(
+    clientId: string,
+    days: number = 30,
+  ): Promise<AnalyticsDashboard> {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -479,18 +541,22 @@ export class AnalyticsService {
         activeMeetings,
         recentMeetings,
         userAnalytics,
-        meetingAnalytics
+        meetingAnalytics,
       ] = await Promise.all([
         prisma.user.count({ where: { clientId, isActive: true } }),
         prisma.user.count({
           where: {
             clientId,
             isActive: true,
-            lastLoginAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+            lastLoginAt: {
+              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            },
           },
         }),
         prisma.meeting.count({ where: { clientId } }),
-        prisma.meeting.count({ where: { clientId, status: MeetingStatus.ACTIVE } }),
+        prisma.meeting.count({
+          where: { clientId, status: MeetingStatus.ACTIVE },
+        }),
         prisma.meeting.findMany({
           where: {
             clientId,
@@ -500,14 +566,14 @@ export class AnalyticsService {
             analytics: true,
             _count: { select: { participants: true } },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 10,
         }),
         prisma.userAnalytics.findMany({
           where: {
             clientId,
             date: { gte: startDate },
-            period: 'daily',
+            period: "daily",
           },
           include: {
             user: {
@@ -537,11 +603,18 @@ export class AnalyticsService {
       ]);
 
       // Calculate overview metrics
-      const totalDuration = meetingAnalytics.reduce((sum, ma) => sum + ma.actualDuration, 0);
-      const totalMessages = meetingAnalytics.reduce((sum, ma) => sum + ma.totalMessages, 0);
-      const averageMeetingDuration = meetingAnalytics.length > 0 
-        ? Math.round(totalDuration / meetingAnalytics.length)
-        : 0;
+      const totalDuration = meetingAnalytics.reduce(
+        (sum, ma) => sum + ma.actualDuration,
+        0,
+      );
+      const totalMessages = meetingAnalytics.reduce(
+        (sum, ma) => sum + ma.totalMessages,
+        0,
+      );
+      const averageMeetingDuration =
+        meetingAnalytics.length > 0
+          ? Math.round(totalDuration / meetingAnalytics.length)
+          : 0;
 
       // User growth rate (comparing last 7 days to previous 7 days)
       const lastWeekUsers = await prisma.user.count({
@@ -559,21 +632,24 @@ export class AnalyticsService {
           createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
         },
       });
-      const userGrowthRate = lastWeekUsers > 0 
-        ? Math.round(((thisWeekUsers - lastWeekUsers) / lastWeekUsers) * 100)
-        : 100;
+      const userGrowthRate =
+        lastWeekUsers > 0
+          ? Math.round(((thisWeekUsers - lastWeekUsers) / lastWeekUsers) * 100)
+          : 100;
 
       // Engagement rate (active users / total users)
-      const engagementRate = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
+      const engagementRate =
+        totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
 
       // Top users by total duration
       const userEngagementMap = new Map();
-      userAnalytics.forEach(ua => {
+      userAnalytics.forEach((ua) => {
         const userId = ua.userId;
         if (!userEngagementMap.has(userId)) {
           userEngagementMap.set(userId, {
             userId,
-            name: ua.user.displayName || `${ua.user.firstName} ${ua.user.lastName}`,
+            name:
+              ua.user.displayName || `${ua.user.firstName} ${ua.user.lastName}`,
             totalDuration: 0,
             meetingCount: 0,
             messagesCount: 0,
@@ -586,7 +662,7 @@ export class AnalyticsService {
       });
 
       const topUsers = Array.from(userEngagementMap.values())
-        .map(user => ({
+        .map((user) => ({
           ...user,
           engagementScore: this.calculateEngagementScore(user),
         }))
@@ -597,17 +673,20 @@ export class AnalyticsService {
       const trends = this.generateTrends(meetingAnalytics, userAnalytics, days);
 
       // Generate insights
-      const insights = this.generateInsights({
-        totalUsers,
-        activeUsers,
-        totalMeetings,
-        activeMeetings,
-        totalDuration,
-        totalMessages,
-        averageMeetingDuration,
-        userGrowthRate,
-        engagementRate,
-      }, trends);
+      const insights = this.generateInsights(
+        {
+          totalUsers,
+          activeUsers,
+          totalMeetings,
+          activeMeetings,
+          totalDuration,
+          totalMessages,
+          averageMeetingDuration,
+          userGrowthRate,
+          engagementRate,
+        },
+        trends,
+      );
 
       return {
         overview: {
@@ -621,7 +700,7 @@ export class AnalyticsService {
           userGrowthRate,
           engagementRate,
         },
-        recentMeetings: recentMeetings.map(meeting => ({
+        recentMeetings: recentMeetings.map((meeting) => ({
           id: meeting.id,
           title: meeting.title,
           status: meeting.status,
@@ -634,7 +713,7 @@ export class AnalyticsService {
         insights,
       };
     } catch (error) {
-      console.error('Error getting dashboard analytics:', error);
+      console.error("Error getting dashboard analytics:", error);
       throw error;
     }
   }
@@ -654,55 +733,64 @@ export class AnalyticsService {
       });
 
       for (const user of activeUsers) {
-        await this.generateUserAnalytics(user.id, 'daily');
+        await this.generateUserAnalytics(user.id, "daily");
       }
 
       console.log(`📊 Aggregated metrics for ${activeUsers.length} users`);
     } catch (error) {
-      console.error('Error aggregating metrics:', error);
+      console.error("Error aggregating metrics:", error);
     }
   }
 
   /**
    * Helper methods
    */
-  private getStartOfPeriod(period: 'daily' | 'weekly' | 'monthly'): Date {
+  private getStartOfPeriod(period: "daily" | "weekly" | "monthly"): Date {
     const date = new Date();
-    
-    if (period === 'daily') {
+
+    if (period === "daily") {
       date.setHours(0, 0, 0, 0);
-    } else if (period === 'weekly') {
+    } else if (period === "weekly") {
       const dayOfWeek = date.getDay();
       date.setDate(date.getDate() - dayOfWeek);
       date.setHours(0, 0, 0, 0);
-    } else if (period === 'monthly') {
+    } else if (period === "monthly") {
       date.setDate(1);
       date.setHours(0, 0, 0, 0);
     }
-    
+
     return date;
   }
 
   private calculateAverageQuality(qualityReports: any[]): string {
-    if (qualityReports.length === 0) return 'good';
-    
+    if (qualityReports.length === 0) return "good";
+
     const qualityMap = { poor: 1, fair: 2, good: 3, excellent: 4 };
-    const reverseMap = { 1: 'poor', 2: 'fair', 3: 'good', 4: 'excellent' };
-    
-    const average = qualityReports.reduce((sum, report) => {
-      const quality = typeof report === 'string' ? report : report.quality;
-      return sum + (qualityMap[quality as keyof typeof qualityMap] || 3);
-    }, 0) / qualityReports.length;
-    
-    return reverseMap[Math.round(average) as keyof typeof reverseMap] || 'good';
+    const reverseMap = { 1: "poor", 2: "fair", 3: "good", 4: "excellent" };
+
+    const average =
+      qualityReports.reduce((sum, report) => {
+        const quality = typeof report === "string" ? report : report.quality;
+        return sum + (qualityMap[quality as keyof typeof qualityMap] || 3);
+      }, 0) / qualityReports.length;
+
+    return reverseMap[Math.round(average) as keyof typeof reverseMap] || "good";
   }
 
   private calculateEngagementScore(user: any): number {
     // Simple engagement score based on activity
-    return user.totalDuration * 0.5 + user.meetingCount * 10 + user.messagesCount * 0.1;
+    return (
+      user.totalDuration * 0.5 +
+      user.meetingCount * 10 +
+      user.messagesCount * 0.1
+    );
   }
 
-  private generateTrends(meetingAnalytics: any[], userAnalytics: any[], days: number): any {
+  private generateTrends(
+    meetingAnalytics: any[],
+    userAnalytics: any[],
+    days: number,
+  ): any {
     // Generate daily trends for the specified period
     const trends = {
       meetings: [] as any[],
@@ -713,11 +801,11 @@ export class AnalyticsService {
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = date.toISOString().split("T")[0];
 
       // Meeting trends
-      const dayMeetings = meetingAnalytics.filter(ma => 
-        ma.meeting.createdAt.toISOString().split('T')[0] === dateStr
+      const dayMeetings = meetingAnalytics.filter(
+        (ma) => ma.meeting.createdAt.toISOString().split("T")[0] === dateStr,
       );
       trends.meetings.push({
         date: dateStr,
@@ -726,8 +814,8 @@ export class AnalyticsService {
       });
 
       // User trends
-      const dayUsers = userAnalytics.filter(ua => 
-        ua.date.toISOString().split('T')[0] === dateStr
+      const dayUsers = userAnalytics.filter(
+        (ua) => ua.date.toISOString().split("T")[0] === dateStr,
       );
       trends.users.push({
         date: dateStr,
@@ -736,8 +824,14 @@ export class AnalyticsService {
       });
 
       // Engagement trends
-      const dayMessages = dayMeetings.reduce((sum, ma) => sum + ma.totalMessages, 0);
-      const dayParticipants = dayMeetings.reduce((sum, ma) => sum + ma.totalParticipants, 0);
+      const dayMessages = dayMeetings.reduce(
+        (sum, ma) => sum + ma.totalMessages,
+        0,
+      );
+      const dayParticipants = dayMeetings.reduce(
+        (sum, ma) => sum + ma.totalParticipants,
+        0,
+      );
       trends.engagement.push({
         date: dateStr,
         messages: dayMessages,
@@ -754,49 +848,49 @@ export class AnalyticsService {
     // User growth insight
     if (overview.userGrowthRate > 10) {
       insights.push({
-        type: 'growth',
+        type: "growth",
         message: `User growth is strong at ${overview.userGrowthRate}% this week`,
         value: overview.userGrowthRate,
         change: overview.userGrowthRate,
-        trend: 'up',
+        trend: "up",
       });
     } else if (overview.userGrowthRate < -5) {
       insights.push({
-        type: 'growth',
+        type: "growth",
         message: `User growth is declining by ${Math.abs(overview.userGrowthRate)}% this week`,
         value: overview.userGrowthRate,
         change: overview.userGrowthRate,
-        trend: 'down',
+        trend: "down",
       });
     }
 
     // Engagement insight
     if (overview.engagementRate > 70) {
       insights.push({
-        type: 'engagement',
+        type: "engagement",
         message: `High user engagement at ${overview.engagementRate}%`,
         value: overview.engagementRate,
         change: 0, // Would need historical data
-        trend: 'up',
+        trend: "up",
       });
     } else if (overview.engagementRate < 30) {
       insights.push({
-        type: 'engagement',
+        type: "engagement",
         message: `Low user engagement at ${overview.engagementRate}% - consider engagement strategies`,
         value: overview.engagementRate,
         change: 0,
-        trend: 'down',
+        trend: "down",
       });
     }
 
     // Meeting quality insight
     if (overview.averageMeetingDuration > 60) {
       insights.push({
-        type: 'usage',
+        type: "usage",
         message: `Meetings are long on average (${overview.averageMeetingDuration} min) - consider meeting efficiency`,
         value: overview.averageMeetingDuration,
         change: 0,
-        trend: 'stable',
+        trend: "stable",
       });
     }
 
@@ -808,11 +902,11 @@ export class AnalyticsService {
    */
   async exportAnalytics(
     query: AnalyticsQuery,
-    format: 'json' | 'csv' | 'excel' = 'json'
+    format: "json" | "csv" | "excel" = "json",
   ): Promise<any> {
     try {
       const { clientId, startDate, endDate } = query;
-      
+
       const meetings = await prisma.meeting.findMany({
         where: {
           clientId,
@@ -829,14 +923,14 @@ export class AnalyticsService {
         },
       });
 
-      if (format === 'json') {
+      if (format === "json") {
         return meetings;
       }
-      
+
       // For CSV/Excel, we'd need additional formatting logic
       return meetings;
     } catch (error) {
-      console.error('Error exporting analytics:', error);
+      console.error("Error exporting analytics:", error);
       throw error;
     }
   }
@@ -853,7 +947,7 @@ export class AnalyticsService {
    */
   broadcastAnalyticsUpdate(clientId: string, data: any): void {
     if (this.io) {
-      this.io.to(`client-${clientId}`).emit('analytics-update', data);
+      this.io.to(`client-${clientId}`).emit("analytics-update", data);
     }
   }
 }
@@ -861,14 +955,18 @@ export class AnalyticsService {
 // Singleton instance
 let analyticsServiceInstance: AnalyticsService | null = null;
 
-export const initializeAnalyticsService = (io?: SocketIOServer): AnalyticsService => {
+export const initializeAnalyticsService = (
+  io?: SocketIOServer,
+): AnalyticsService => {
   analyticsServiceInstance = new AnalyticsService(io);
   return analyticsServiceInstance;
 };
 
 export const getAnalyticsService = (): AnalyticsService => {
   if (!analyticsServiceInstance) {
-    throw new Error('Analytics service not initialized. Call initializeAnalyticsService first.');
+    throw new Error(
+      "Analytics service not initialized. Call initializeAnalyticsService first.",
+    );
   }
   return analyticsServiceInstance;
 };

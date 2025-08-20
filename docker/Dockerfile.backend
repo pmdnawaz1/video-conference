@@ -1,0 +1,99 @@
+# Multi-stage Dockerfile for Node.js backend
+FROM node:18-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    ffmpeg \
+    && rm -rf /var/cache/apk/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY backend/package*.json ./
+COPY backend/prisma ./prisma/
+
+# Development stage
+FROM base AS development
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY backend/src ./src/
+COPY backend/tests ./tests/
+COPY backend/tsconfig*.json ./
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Expose port
+EXPOSE 8181
+
+# Start development server
+CMD ["npm", "run", "dev"]
+
+# Build stage
+FROM base AS builder
+
+# Install all dependencies
+RUN npm ci
+
+# Copy source code
+COPY backend/src ./src/
+COPY backend/tsconfig*.json ./
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install system dependencies for production
+RUN apk add --no-cache \
+    ffmpeg \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Create app user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY backend/package*.json ./
+COPY backend/prisma ./prisma/
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist/
+
+# Create necessary directories
+RUN mkdir -p uploads recordings logs && \
+    chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
+# Expose port
+EXPOSE 8181
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8181/health || exit 1
+
+# Start application
+CMD ["node", "dist/index.js"]

@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import useAdminStore from '../../stores/adminStore';
-import useAuthStore from '../../stores/authStore';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import useAdminStore from "../../stores/adminStore";
+import useAuthStore from "../../stores/authStore";
 
 // Icons
 const Icons = {
@@ -19,7 +25,7 @@ const Icons = {
   Calendar: () => <span className="text-lg">📅</span>,
   Shield: () => <span className="text-lg">🛡️</span>,
   Check: () => <span className="text-lg">✅</span>,
-  X: () => <span className="text-lg">❌</span>
+  X: () => <span className="text-lg">❌</span>,
 };
 
 const UserManagement = () => {
@@ -31,33 +37,40 @@ const UserManagement = () => {
     fetchAllUsers,
     fetchUserGroups,
     inviteUser,
-    createUserGroup
+    createUserGroup,
   } = useAdminStore();
-  
+
   const { user: currentUser } = useAuthStore();
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showUserDetails, setShowUserDetails] = useState(null);
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(20);
+
+  // Invite modal state
+  const [inviteData, setInviteData] = useState({
+    email: "",
+    name: "",
+    role: "user",
+    send_welcome_email: true,
+    expires_in_hours: 72,
+  });
+  const [isInviting, setIsInviting] = useState(false);
 
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        await Promise.all([
-          fetchAllUsers(),
-          fetchUserGroups()
-        ]);
+        await Promise.all([fetchAllUsers(), fetchUserGroups()]);
       } catch (error) {
-        console.error('Error loading user management data:', error);
+        console.error("Error loading user management data:", error);
       }
     };
 
@@ -66,24 +79,26 @@ const UserManagement = () => {
 
   // Filter and sort users
   const filteredUsers = users
-    .filter(user => {
-      const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-      const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
-      
+    .filter((user) => {
+      const matchesSearch =
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = selectedRole === "all" || user.role === selectedRole;
+      const matchesStatus =
+        selectedStatus === "all" || user.status === selectedStatus;
+
       return matchesSearch && matchesRole && matchesStatus;
     })
     .sort((a, b) => {
-      let aVal = a[sortBy] || '';
-      let bVal = b[sortBy] || '';
-      
-      if (typeof aVal === 'string') {
+      let aVal = a[sortBy] || "";
+      let bVal = b[sortBy] || "";
+
+      if (typeof aVal === "string") {
         aVal = aVal.toLowerCase();
         bVal = bVal.toLowerCase();
       }
-      
-      if (sortOrder === 'asc') {
+
+      if (sortOrder === "asc") {
         return aVal > bVal ? 1 : -1;
       } else {
         return aVal < bVal ? 1 : -1;
@@ -94,14 +109,14 @@ const UserManagement = () => {
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * usersPerPage,
-    currentPage * usersPerPage
+    currentPage * usersPerPage,
   );
 
   const handleSelectUser = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
+    setSelectedUsers((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   };
 
@@ -109,64 +124,59 @@ const UserManagement = () => {
     if (selectedUsers.length === paginatedUsers.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(paginatedUsers.map(user => user.id));
+      setSelectedUsers(paginatedUsers.map((user) => user.id));
     }
   };
 
   const getUserStatusBadge = (status) => {
     const variants = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      suspended: 'bg-red-100 text-red-800'
+      active: "badge-success",
+      inactive: "badge-secondary",
+      pending: "badge-warning",
+      suspended: "badge-destructive",
     };
-    
+
     return (
-      <Badge className={variants[status] || variants.inactive}>
-        {status}
-      </Badge>
+      <Badge className={variants[status] || variants.inactive}>{status}</Badge>
     );
   };
 
   const getRoleBadge = (role) => {
     const variants = {
-      super_admin: 'bg-purple-100 text-purple-800',
-      admin: 'bg-blue-100 text-blue-800',
-      user: 'bg-gray-100 text-gray-800',
-      guest: 'bg-orange-100 text-orange-800'
+      super_admin: "badge-primary",
+      admin: "badge-primary",
+      user: "badge-secondary",
+      guest: "badge-warning",
     };
-    
+
     return (
       <Badge className={variants[role] || variants.user}>
-        {role.replace('_', ' ')}
+        {role.replace("_", " ")}
       </Badge>
     );
   };
 
   const renderUserInviteModal = () => {
-    const [inviteData, setInviteData] = useState({
-      email: '',
-      name: '',
-      role: 'user',
-      send_welcome_email: true,
-      expires_in_hours: 72
-    });
-    const [isInviting, setIsInviting] = useState(false);
-
     const handleInvite = async (e) => {
       e.preventDefault();
       setIsInviting(true);
-      
+
       try {
         const result = await inviteUser(inviteData);
         if (result.success) {
           setShowInviteModal(false);
-          setInviteData({ email: '', name: '', role: 'user', send_welcome_email: true, expires_in_hours: 72 });
+          setInviteData({
+            email: "",
+            name: "",
+            role: "user",
+            send_welcome_email: true,
+            expires_in_hours: 72,
+          });
           // Refresh user list
           fetchAllUsers();
         }
       } catch (error) {
-        console.error('Error inviting user:', error);
+        console.error("Error inviting user:", error);
       } finally {
         setIsInviting(false);
       }
@@ -179,7 +189,9 @@ const UserManagement = () => {
         <Card className="w-full max-w-md mx-4">
           <CardHeader>
             <CardTitle>Invite New User</CardTitle>
-            <CardDescription>Send an invitation to join the platform</CardDescription>
+            <CardDescription>
+              Send an invitation to join the platform
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleInvite} className="space-y-4">
@@ -189,44 +201,60 @@ const UserManagement = () => {
                   type="email"
                   required
                   value={inviteData.email}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) =>
+                    setInviteData((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="user@example.com"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <input
                   type="text"
                   value={inviteData.name}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) =>
+                    setInviteData((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="User's full name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select
                   value={inviteData.role}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, role: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) =>
+                    setInviteData((prev) => ({ ...prev, role: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
-                  {currentUser?.role === 'super_admin' && (
+                  {currentUser?.role === "super_admin" && (
                     <option value="super_admin">Super Admin</option>
                   )}
                 </select>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">Expires In</label>
+                <label className="block text-sm font-medium mb-1">
+                  Expires In
+                </label>
                 <select
                   value={inviteData.expires_in_hours}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, expires_in_hours: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) =>
+                    setInviteData((prev) => ({
+                      ...prev,
+                      expires_in_hours: parseInt(e.target.value),
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value={24}>24 hours</option>
                   <option value={48}>48 hours</option>
@@ -234,20 +262,25 @@ const UserManagement = () => {
                   <option value={168}>1 week</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="send_welcome_email"
                   checked={inviteData.send_welcome_email}
-                  onChange={(e) => setInviteData(prev => ({ ...prev, send_welcome_email: e.target.checked }))}
+                  onChange={(e) =>
+                    setInviteData((prev) => ({
+                      ...prev,
+                      send_welcome_email: e.target.checked,
+                    }))
+                  }
                   className="mr-2"
                 />
                 <label htmlFor="send_welcome_email" className="text-sm">
                   Send welcome email
                 </label>
               </div>
-              
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   type="button"
@@ -257,7 +290,7 @@ const UserManagement = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isInviting}>
-                  {isInviting ? 'Inviting...' : 'Send Invitation'}
+                  {isInviting ? "Inviting..." : "Send Invitation"}
                 </Button>
               </div>
             </form>
@@ -269,8 +302,8 @@ const UserManagement = () => {
 
   const renderUserDetails = () => {
     if (!showUserDetails) return null;
-    
-    const user = users.find(u => u.id === showUserDetails);
+
+    const user = users.find((u) => u.id === showUserDetails);
     if (!user) return null;
 
     return (
@@ -278,7 +311,9 @@ const UserManagement = () => {
         <Card className="w-full max-w-2xl mx-4 max-h-[80vh] overflow-auto">
           <CardHeader>
             <CardTitle>User Details</CardTitle>
-            <CardDescription>Detailed information for {user.name}</CardDescription>
+            <CardDescription>
+              Detailed information for {user.name}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -288,11 +323,15 @@ const UserManagement = () => {
                 <div className="space-y-2">
                   <div>
                     <span className="text-sm font-medium">Name:</span>
-                    <p className="text-sm text-gray-600">{user.name || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {user.name || "N/A"}
+                    </p>
                   </div>
                   <div>
                     <span className="text-sm font-medium">Email:</span>
-                    <p className="text-sm text-gray-600">{user.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {user.email}
+                    </p>
                   </div>
                   <div>
                     <span className="text-sm font-medium">Role:</span>
@@ -300,12 +339,16 @@ const UserManagement = () => {
                   </div>
                   <div>
                     <span className="text-sm font-medium">Status:</span>
-                    <div className="mt-1">{getUserStatusBadge(user.status)}</div>
+                    <div className="mt-1">
+                      {getUserStatusBadge(user.status)}
+                    </div>
                   </div>
                   <div>
                     <span className="text-sm font-medium">Joined:</span>
-                    <p className="text-sm text-gray-600">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                    <p className="text-sm text-muted-foreground">
+                      {user.created_at
+                        ? new Date(user.created_at).toLocaleDateString()
+                        : "N/A"}
                     </p>
                   </div>
                 </div>
@@ -317,23 +360,31 @@ const UserManagement = () => {
                 <div className="space-y-2">
                   <div>
                     <span className="text-sm font-medium">Last Login:</span>
-                    <p className="text-sm text-gray-600">
-                      {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+                    <p className="text-sm text-muted-foreground">
+                      {user.last_login
+                        ? new Date(user.last_login).toLocaleString()
+                        : "Never"}
                     </p>
                   </div>
                   <div>
                     <span className="text-sm font-medium">Total Meetings:</span>
-                    <p className="text-sm text-gray-600">{user.total_meetings || 0}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {user.total_meetings || 0}
+                    </p>
                   </div>
                   <div>
                     <span className="text-sm font-medium">Meeting Hours:</span>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {Math.round((user.total_meeting_minutes || 0) / 60)} hours
                     </p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium">Engagement Score:</span>
-                    <p className="text-sm text-gray-600">{user.engagement_score || 0}%</p>
+                    <span className="text-sm font-medium">
+                      Engagement Score:
+                    </span>
+                    <p className="text-sm text-muted-foreground">
+                      {user.engagement_score || 0}%
+                    </p>
                   </div>
                 </div>
               </div>
@@ -354,7 +405,7 @@ const UserManagement = () => {
                   <Icons.Activity />
                   <span className="ml-1">View Activity</span>
                 </Button>
-                {user.status === 'active' ? (
+                {user.status === "active" ? (
                   <Button variant="destructive" size="sm">
                     <Icons.X />
                     <span className="ml-1">Suspend</span>
@@ -369,7 +420,10 @@ const UserManagement = () => {
             </div>
 
             <div className="flex justify-end mt-4">
-              <Button variant="outline" onClick={() => setShowUserDetails(null)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowUserDetails(null)}
+              >
                 Close
               </Button>
             </div>
@@ -387,7 +441,8 @@ const UserManagement = () => {
         <CardContent className="py-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
-              {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
+              {selectedUsers.length} user{selectedUsers.length !== 1 ? "s" : ""}{" "}
+              selected
             </span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
@@ -413,8 +468,8 @@ const UserManagement = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading users...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading users...</p>
         </div>
       </div>
     );
@@ -425,8 +480,8 @@ const UserManagement = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Icons.X />
-          <p className="text-red-600 mt-2">Error loading users</p>
-          <p className="text-sm text-gray-500">{usersError}</p>
+          <p className="text-destructive mt-2">Error loading users</p>
+          <p className="text-sm text-muted-foreground">{usersError}</p>
           <Button onClick={fetchAllUsers} className="mt-4">
             Retry
           </Button>
@@ -440,8 +495,10 @@ const UserManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-muted-foreground">
+            User Management
+          </h1>
+          <p className="text-muted-foreground mt-1">
             Manage users, roles, and permissions
           </p>
         </div>
@@ -464,16 +521,16 @@ const UserManagement = () => {
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 pr-3 py-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-8 pr-3 py-2 w-full border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
-            
+
             {/* Role Filter */}
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="all">All Roles</option>
               <option value="super_admin">Super Admin</option>
@@ -481,12 +538,12 @@ const UserManagement = () => {
               <option value="user">User</option>
               <option value="guest">Guest</option>
             </select>
-            
+
             {/* Status Filter */}
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -494,16 +551,16 @@ const UserManagement = () => {
               <option value="pending">Pending</option>
               <option value="suspended">Suspended</option>
             </select>
-            
+
             {/* Sort */}
             <select
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
-                const [field, order] = e.target.value.split('-');
+                const [field, order] = e.target.value.split("-");
                 setSortBy(field);
                 setSortOrder(order);
               }}
-              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="name-asc">Name A-Z</option>
               <option value="name-desc">Name Z-A</option>
@@ -524,12 +581,15 @@ const UserManagement = () => {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b bg-gray-50">
+              <thead className="border-b bg-muted">
                 <tr>
                   <th className="text-left p-4 w-8">
                     <input
                       type="checkbox"
-                      checked={selectedUsers.length === paginatedUsers.length && paginatedUsers.length > 0}
+                      checked={
+                        selectedUsers.length === paginatedUsers.length &&
+                        paginatedUsers.length > 0
+                      }
                       onChange={handleSelectAll}
                     />
                   </th>
@@ -542,8 +602,8 @@ const UserManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedUsers.map(user => (
-                  <tr key={user.id} className="border-b hover:bg-gray-50">
+                {paginatedUsers.map((user) => (
+                  <tr key={user.id} className="border-b hover:bg-muted">
                     <td className="p-4">
                       <input
                         type="checkbox"
@@ -553,26 +613,29 @@ const UserManagement = () => {
                     </td>
                     <td className="p-4">
                       <div>
-                        <div className="font-medium">{user.name || 'Unnamed User'}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="font-medium">
+                          {user.name || "Unnamed User"}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.email}
+                        </div>
                       </div>
                     </td>
-                    <td className="p-4">
-                      {getRoleBadge(user.role)}
-                    </td>
-                    <td className="p-4">
-                      {getUserStatusBadge(user.status)}
-                    </td>
+                    <td className="p-4">{getRoleBadge(user.role)}</td>
+                    <td className="p-4">{getUserStatusBadge(user.status)}</td>
                     <td className="p-4">
                       <div className="text-sm">
-                        {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                        {user.last_login
+                          ? new Date(user.last_login).toLocaleDateString()
+                          : "Never"}
                       </div>
                     </td>
                     <td className="p-4">
                       <div className="text-sm">
                         <div>{user.total_meetings || 0} meetings</div>
-                        <div className="text-gray-500">
-                          {Math.round((user.total_meeting_minutes || 0) / 60)}h total
+                        <div className="text-muted-foreground">
+                          {Math.round((user.total_meeting_minutes || 0) / 60)}h
+                          total
                         </div>
                       </div>
                     </td>
@@ -599,15 +662,17 @@ const UserManagement = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="p-4 border-t flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
+              <div className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * usersPerPage + 1} to{" "}
+                {Math.min(currentPage * usersPerPage, filteredUsers.length)} of{" "}
+                {filteredUsers.length} users
               </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  onClick={() => setCurrentPage((prev) => prev - 1)}
                 >
                   Previous
                 </Button>
@@ -618,7 +683,7 @@ const UserManagement = () => {
                   variant="outline"
                   size="sm"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
                 >
                   Next
                 </Button>
@@ -632,32 +697,38 @@ const UserManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{users.length}</div>
-            <div className="text-sm text-gray-500">Total Users</div>
+            <div className="text-2xl font-bold text-primary">
+              {users.length}
+            </div>
+            <div className="text-sm text-muted-foreground">Total Users</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {users.filter(u => u.status === 'active').length}
+            <div className="text-2xl font-bold text-success">
+              {users.filter((u) => u.status === "active").length}
             </div>
-            <div className="text-sm text-gray-500">Active Users</div>
+            <div className="text-sm text-muted-foreground">Active Users</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">
-              {users.filter(u => u.status === 'pending').length}
+            <div className="text-2xl font-bold text-warning">
+              {users.filter((u) => u.status === "pending").length}
             </div>
-            <div className="text-sm text-gray-500">Pending Users</div>
+            <div className="text-sm text-muted-foreground">Pending Users</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {users.filter(u => u.role === 'admin' || u.role === 'super_admin').length}
+            <div className="text-2xl font-bold text-primary">
+              {
+                users.filter(
+                  (u) => u.role === "admin" || u.role === "super_admin",
+                ).length
+              }
             </div>
-            <div className="text-sm text-gray-500">Administrators</div>
+            <div className="text-sm text-muted-foreground">Administrators</div>
           </CardContent>
         </Card>
       </div>

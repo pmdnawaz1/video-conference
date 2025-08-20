@@ -1,10 +1,10 @@
-import nodemailer from 'nodemailer';
-import handlebars from 'handlebars';
-import fs from 'fs/promises';
-import path from 'path';
-import { prisma } from './prismaService';
-import config from '../config';
-import { EmailLog } from '../types/interfaces';
+import nodemailer from "nodemailer";
+import handlebars from "handlebars";
+import fs from "fs/promises";
+import path from "path";
+import { prisma } from "./prismaService";
+import config from "../config";
+import { EmailLog } from "../types/interfaces";
 
 export interface EmailTemplate {
   name: string;
@@ -30,12 +30,10 @@ export interface EmailOptions {
     name: string;
     data: Record<string, any>;
   };
-  priority?: 'high' | 'normal' | 'low';
+  priority?: "high" | "normal" | "low";
   tags?: string[];
   metadata?: Record<string, any>;
 }
-
-
 
 export interface BulkEmailOptions {
   template: string;
@@ -60,9 +58,61 @@ export class EmailService {
   private templatesPath: string;
 
   constructor() {
-    this.templatesPath = path.join(__dirname, '../templates/email');
+    this.templatesPath = path.join(__dirname, "../templates/email");
+    this.registerHandlebarsHelpers();
     this.initializeTransporter();
     this.loadTemplates();
+  }
+
+  /**
+   * Register Handlebars helpers for template functionality
+   */
+  private registerHandlebarsHelpers() {
+    // Equality helper for conditionals
+    handlebars.registerHelper("eq", function (a: any, b: any) {
+      return a === b;
+    });
+
+    // Not equal helper
+    handlebars.registerHelper("ne", function (a: any, b: any) {
+      return a !== b;
+    });
+
+    // Greater than helper
+    handlebars.registerHelper("gt", function (a: any, b: any) {
+      return a > b;
+    });
+
+    // Less than helper
+    handlebars.registerHelper("lt", function (a: any, b: any) {
+      return a < b;
+    });
+
+    // Greater than or equal helper
+    handlebars.registerHelper("gte", function (a: any, b: any) {
+      return a >= b;
+    });
+
+    // Less than or equal helper
+    handlebars.registerHelper("lte", function (a: any, b: any) {
+      return a <= b;
+    });
+
+    // Logical AND helper
+    handlebars.registerHelper("and", function (...args: any[]) {
+      // Remove the last argument which is the options object
+      const values = args.slice(0, -1);
+      return values.every(Boolean);
+    });
+
+    // Logical OR helper
+    handlebars.registerHelper("or", function (...args: any[]) {
+      // Remove the last argument which is the options object
+      const values = args.slice(0, -1);
+      return values.some(Boolean);
+    });
+
+    console.log("📧 Handlebars helpers registered successfully");
   }
 
   /**
@@ -70,15 +120,15 @@ export class EmailService {
    */
   private initializeTransporter() {
     const smtpConfig = {
-      host: process.env.SMTP_HOST || 'localhost',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+      host: process.env.SMTP_HOST || "localhost",
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: process.env.NODE_ENV === 'production',
+        rejectUnauthorized: process.env.NODE_ENV === "production",
       },
     };
 
@@ -87,9 +137,9 @@ export class EmailService {
     // Verify connection
     this.transporter.verify((error) => {
       if (error) {
-        console.error('📧 SMTP connection error:', error);
+        console.error("📧 SMTP connection error:", error);
       } else {
-        console.log('📧 SMTP server ready for email sending');
+        console.log("📧 SMTP server ready for email sending");
       }
     });
   }
@@ -104,16 +154,16 @@ export class EmailService {
 
       // Load all .hbs files from templates directory
       const templateFiles = await fs.readdir(this.templatesPath);
-      
+
       for (const file of templateFiles) {
-        if (file.endsWith('.hbs')) {
-          const templateName = path.basename(file, '.hbs');
+        if (file.endsWith(".hbs")) {
+          const templateName = path.basename(file, ".hbs");
           const templatePath = path.join(this.templatesPath, file);
-          const templateContent = await fs.readFile(templatePath, 'utf-8');
-          
+          const templateContent = await fs.readFile(templatePath, "utf-8");
+
           const compiledTemplate = handlebars.compile(templateContent);
           this.templates.set(templateName, compiledTemplate);
-          
+
           console.log(`📧 Loaded email template: ${templateName}`);
         }
       }
@@ -123,7 +173,7 @@ export class EmailService {
         await this.createDefaultTemplates();
       }
     } catch (error) {
-      console.error('📧 Error loading email templates:', error);
+      console.error("📧 Error loading email templates:", error);
       // Create default templates on error
       await this.createDefaultTemplates();
     }
@@ -134,8 +184,8 @@ export class EmailService {
    */
   private async createDefaultTemplates() {
     const defaultTemplates = {
-      'welcome': {
-        subject: 'Welcome to {{clientName}}!',
+      welcome: {
+        subject: "Welcome to {{clientName}}!",
         html: `
         <!DOCTYPE html>
         <html>
@@ -178,11 +228,11 @@ export class EmailService {
             <p>This is an automated email from {{clientName}}. Please do not reply to this email.</p>
           </div>
         </body>
-        </html>`
+        </html>`,
       },
-      
-      'meeting-invitation': {
-        subject: 'Meeting Invitation: {{meetingTitle}}',
+
+      "meeting-invitation": {
+        subject: "Meeting Invitation: {{meetingTitle}}",
         html: `
         <!DOCTYPE html>
         <html>
@@ -253,11 +303,11 @@ export class EmailService {
             <p>This meeting invitation was sent via {{clientName}}. If you cannot attend, please notify the organizer.</p>
           </div>
         </body>
-        </html>`
+        </html>`,
       },
-      
-      'password-reset': {
-        subject: 'Password Reset Request - {{clientName}}',
+
+      "password-reset": {
+        subject: "Password Reset Request - {{clientName}}",
         html: `
         <!DOCTYPE html>
         <html>
@@ -306,11 +356,11 @@ export class EmailService {
             <p>If you need help, please contact our support team.</p>
           </div>
         </body>
-        </html>`
+        </html>`,
       },
-      
-      'meeting-reminder': {
-        subject: 'Meeting Reminder: {{meetingTitle}} starts in {{timeUntil}}',
+
+      "meeting-reminder": {
+        subject: "Meeting Reminder: {{meetingTitle}} starts in {{timeUntil}}",
         html: `
         <!DOCTYPE html>
         <html>
@@ -359,8 +409,8 @@ export class EmailService {
             <p>This reminder was sent via {{clientName}}. You can manage your notification preferences in your account settings.</p>
           </div>
         </body>
-        </html>`
-      }
+        </html>`,
+      },
     };
 
     // Create template files
@@ -380,14 +430,26 @@ export class EmailService {
   /**
    * Send email with template or direct content
    */
-  async sendEmail(options: EmailOptions, clientId: string, userId?: string): Promise<EmailLog> {
+  async sendEmail(
+    options: EmailOptions,
+    clientId: string,
+    userId?: string,
+  ): Promise<EmailLog> {
     const emailLog: Partial<EmailLog> = {
       to: Array.isArray(options.to) ? options.to : [options.to],
-      cc: options.cc ? (Array.isArray(options.cc) ? options.cc : [options.cc]) : undefined,
-      bcc: options.bcc ? (Array.isArray(options.bcc) ? options.bcc : [options.bcc]) : undefined,
+      cc: options.cc
+        ? Array.isArray(options.cc)
+          ? options.cc
+          : [options.cc]
+        : undefined,
+      bcc: options.bcc
+        ? Array.isArray(options.bcc)
+          ? options.bcc
+          : [options.bcc]
+        : undefined,
       subject: options.subject,
       template: options.template?.name,
-      status: 'PENDING',
+      status: "PENDING",
       clientId,
       userId,
       metadata: options.metadata,
@@ -404,10 +466,13 @@ export class EmailService {
         if (!template) {
           throw new Error(`Template '${options.template.name}' not found`);
         }
-        
+
         html = template(options.template.data);
         // Simple text version by stripping HTML tags (basic implementation)
-        text = html?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        text = html
+          ?.replace(/<[^>]*>/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
       }
 
       // Prepare mail options
@@ -420,41 +485,45 @@ export class EmailService {
         html,
         text,
         attachments: options.attachments,
-        priority: options.priority || 'normal',
+        priority: options.priority || "normal",
       };
 
       // Send email
       const info = await this.transporter.sendMail(mailOptions);
 
       // Update log with success
-      emailLog.status = 'SENT';
+      emailLog.status = "SENT";
       emailLog.sentAt = new Date();
       emailLog.messageId = info.messageId;
 
-      console.log(`📧 Email sent successfully to ${emailLog.to}: ${options.subject}`);
-      
+      console.log(
+        `📧 Email sent successfully to ${emailLog.to}: ${options.subject}`,
+      );
     } catch (error) {
       // Update log with failure
-      emailLog.status = 'FAILED';
+      emailLog.status = "FAILED";
       emailLog.failedAt = new Date();
-      emailLog.errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      emailLog.errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       console.error(`📧 Email sending failed:`, error);
       throw error;
     } finally {
       // Save log to database
       const savedLog = await prisma.emailLog.create({
         data: {
-          ...emailLog as any,
+          ...(emailLog as any),
           to: JSON.stringify(emailLog.to),
           cc: emailLog.cc ? JSON.stringify(emailLog.cc) : undefined,
           bcc: emailLog.bcc ? JSON.stringify(emailLog.bcc) : undefined,
-          metadata: emailLog.metadata ? JSON.stringify(emailLog.metadata) : undefined,
-        }
+          metadata: emailLog.metadata
+            ? JSON.stringify(emailLog.metadata)
+            : undefined,
+        },
       });
 
       return {
-        ...emailLog as EmailLog,
+        ...(emailLog as EmailLog),
         id: savedLog.id,
       };
     }
@@ -463,7 +532,9 @@ export class EmailService {
   /**
    * Send bulk emails with rate limiting
    */
-  async sendBulkEmails(options: BulkEmailOptions): Promise<{ sent: number; failed: number; logs: EmailLog[] }> {
+  async sendBulkEmails(
+    options: BulkEmailOptions,
+  ): Promise<{ sent: number; failed: number; logs: EmailLog[] }> {
     const {
       template,
       recipients,
@@ -478,30 +549,36 @@ export class EmailService {
     let sent = 0;
     let failed = 0;
 
-    console.log(`📧 Starting bulk email send: ${recipients.length} recipients using template '${template}'`);
+    console.log(
+      `📧 Starting bulk email send: ${recipients.length} recipients using template '${template}'`,
+    );
 
     // Process recipients in batches
     for (let i = 0; i < recipients.length; i += batchSize) {
       const batch = recipients.slice(i, i + batchSize);
-      
+
       // Send batch in parallel
       const batchPromises = batch.map(async (recipient) => {
         try {
-          const emailLog = await this.sendEmail({
-            to: recipient.email,
-            subject,
-            template: {
-              name: template,
-              data: recipient.data,
+          const emailLog = await this.sendEmail(
+            {
+              to: recipient.email,
+              subject,
+              template: {
+                name: template,
+                data: recipient.data,
+              },
             },
-          }, clientId, userId);
-          
-          if (emailLog.status === 'SENT') {
+            clientId,
+            userId,
+          );
+
+          if (emailLog.status === "SENT") {
             sent++;
           } else {
             failed++;
           }
-          
+
           return emailLog;
         } catch (error) {
           failed++;
@@ -510,9 +587,10 @@ export class EmailService {
             to: [recipient.email],
             subject,
             template,
-            status: 'FAILED' as const,
+            status: "FAILED" as const,
             failedAt: new Date(),
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            errorMessage:
+              error instanceof Error ? error.message : "Unknown error",
             clientId,
             userId,
           };
@@ -524,10 +602,12 @@ export class EmailService {
 
       // Add delay between batches to avoid overwhelming SMTP server
       if (i + batchSize < recipients.length) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
 
-      console.log(`📧 Batch ${Math.floor(i / batchSize) + 1} completed: ${batchResults.length} emails processed`);
+      console.log(
+        `📧 Batch ${Math.floor(i / batchSize) + 1} completed: ${batchResults.length} emails processed`,
+      );
     }
 
     console.log(`📧 Bulk email send completed: ${sent} sent, ${failed} failed`);
@@ -545,12 +625,15 @@ export class EmailService {
   /**
    * Render template with data (for preview)
    */
-  renderTemplate(templateName: string, data: Record<string, any>): string | null {
+  renderTemplate(
+    templateName: string,
+    data: Record<string, any>,
+  ): string | null {
     const template = this.templates.get(templateName);
     if (!template) {
       return null;
     }
-    
+
     return template(data);
   }
 
@@ -560,10 +643,10 @@ export class EmailService {
   async testConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      console.log('📧 SMTP connection test successful');
+      console.log("📧 SMTP connection test successful");
       return true;
     } catch (error) {
-      console.error('📧 SMTP connection test failed:', error);
+      console.error("📧 SMTP connection test failed:", error);
       return false;
     }
   }
@@ -571,14 +654,17 @@ export class EmailService {
   /**
    * Get email logs
    */
-  async getEmailLogs(clientId: string, options: {
-    page?: number;
-    limit?: number;
-    status?: 'pending' | 'SENT' | 'failed' | 'bounced';
-    template?: string;
-    startDate?: Date;
-    endDate?: Date;
-  } = {}): Promise<{
+  async getEmailLogs(
+    clientId: string,
+    options: {
+      page?: number;
+      limit?: number;
+      status?: "pending" | "SENT" | "failed" | "bounced";
+      template?: string;
+      startDate?: Date;
+      endDate?: Date;
+    } = {},
+  ): Promise<{
     logs: EmailLog[];
     pagination: {
       total: number;
@@ -612,13 +698,13 @@ export class EmailService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.emailLog.count({ where }),
     ]);
 
     return {
-      logs: logs.map(log => ({
+      logs: logs.map((log) => ({
         ...log,
         to: JSON.parse(log.to),
         cc: log.cc ? JSON.parse(log.cc) : null,

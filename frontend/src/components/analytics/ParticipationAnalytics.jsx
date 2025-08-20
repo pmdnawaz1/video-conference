@@ -1,36 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
-  RadialBarChart, RadialBar, ScatterChart, Scatter
-} from 'recharts';
-import { 
-  FiTrendingUp, FiTrendingDown, FiMinus, FiDownload, FiShare2, 
-  FiCalendar, FiClock, FiUsers, FiMessageSquare, FiMic, FiVideo,
-  FiTarget, FiAward, FiBarChart, FiPieChart, FiActivity
-} from 'react-icons/fi';
-import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import React, { useState, useEffect } from "react";
+import { Card } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { LoadingSpinner } from "../ui/LoadingSpinner";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+  RadialBarChart,
+  RadialBar,
+  ScatterChart,
+  Scatter,
+} from "recharts";
+import {
+  FiTrendingUp,
+  FiTrendingDown,
+  FiMinus,
+  FiDownload,
+  FiShare2,
+  FiCalendar,
+  FiClock,
+  FiUsers,
+  FiMessageSquare,
+  FiMic,
+  FiVideo,
+  FiTarget,
+  FiAward,
+  FiBarChart,
+  FiPieChart,
+  FiActivity,
+} from "react-icons/fi";
+import {
+  format,
+  subDays,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 
-const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) => {
-  const [selectedMetric, setSelectedMetric] = useState('meetings');
-  const [chartType, setChartType] = useState('line');
+const ParticipationAnalytics = ({
+  analytics,
+  isLoading,
+  timeframe = "month",
+}) => {
+  const [selectedMetric, setSelectedMetric] = useState("meetings");
+  const [chartType, setChartType] = useState("line");
   const [comparisonPeriod, setComparisonPeriod] = useState(null);
 
   // Process data for different chart types and timeframes
   const processTimeSeriesData = () => {
     if (!analytics?.participationTrends) return [];
 
-    return analytics.participationTrends.map(point => ({
-      date: format(new Date(point.date), 'MMM dd'),
+    return analytics.participationTrends.map((point) => ({
+      date: format(new Date(point.date), "MMM dd"),
       meetings: point.meetingsAttended || 0,
       participation: point.participationRate || 0,
       engagement: point.engagementScore || 0,
       speakingTime: point.averageSpeakingTime || 0,
-      messages: point.totalMessages || 0
+      messages: point.totalMessages || 0,
     }));
   };
 
@@ -38,11 +78,31 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
     if (!analytics?.engagementBreakdown) return [];
 
     return [
-      { name: 'Speaking', value: analytics.engagementBreakdown.speaking || 0, color: '#8884d8' },
-      { name: 'Chat Messages', value: analytics.engagementBreakdown.messages || 0, color: '#82ca9d' },
-      { name: 'Reactions', value: analytics.engagementBreakdown.reactions || 0, color: '#ffc658' },
-      { name: 'Screen Share', value: analytics.engagementBreakdown.screenShare || 0, color: '#ff7300' },
-      { name: 'File Share', value: analytics.engagementBreakdown.fileShare || 0, color: '#0088fe' }
+      {
+        name: "Speaking",
+        value: analytics.engagementBreakdown.speaking || 0,
+        color: "#8884d8",
+      },
+      {
+        name: "Chat Messages",
+        value: analytics.engagementBreakdown.messages || 0,
+        color: "#82ca9d",
+      },
+      {
+        name: "Reactions",
+        value: analytics.engagementBreakdown.reactions || 0,
+        color: "#ffc658",
+      },
+      {
+        name: "Screen Share",
+        value: analytics.engagementBreakdown.screenShare || 0,
+        color: "#ff7300",
+      },
+      {
+        name: "File Share",
+        value: analytics.engagementBreakdown.fileShare || 0,
+        color: "#0088fe",
+      },
     ];
   };
 
@@ -50,20 +110,29 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
     if (!analytics?.meetingTypes) return [];
 
     return Object.entries(analytics.meetingTypes).map(([type, count]) => ({
-      type: type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      type: type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()),
       count,
-      percentage: Math.round((count / analytics.totalMeetings) * 100)
+      percentage: Math.round((count / analytics.totalMeetings) * 100),
     }));
   };
 
   const processWeeklyPattern = () => {
     if (!analytics?.weeklyPattern) return [];
 
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return days.map(day => ({
+    const days = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+    return days.map((day) => ({
       day: day.substring(0, 3),
       meetings: analytics.weeklyPattern[day.toLowerCase()] || 0,
-      averageParticipation: analytics.weeklyParticipation?.[day.toLowerCase()] || 0
+      averageParticipation:
+        analytics.weeklyParticipation?.[day.toLowerCase()] || 0,
     }));
   };
 
@@ -71,9 +140,9 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
     if (!analytics?.hourlyPattern) return [];
 
     return Array.from({ length: 24 }, (_, hour) => ({
-      hour: hour.toString().padStart(2, '0') + ':00',
+      hour: hour.toString().padStart(2, "0") + ":00",
       meetings: analytics.hourlyPattern[hour] || 0,
-      engagement: analytics.hourlyEngagement?.[hour] || 0
+      engagement: analytics.hourlyEngagement?.[hour] || 0,
     }));
   };
 
@@ -85,21 +154,21 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
 
   // Calculate insights and trends
   const getTrendDirection = (current, previous) => {
-    if (!previous || previous === 0) return 'stable';
+    if (!previous || previous === 0) return "stable";
     const change = ((current - previous) / previous) * 100;
-    if (change > 5) return 'increasing';
-    if (change < -5) return 'decreasing';
-    return 'stable';
+    if (change > 5) return "increasing";
+    if (change < -5) return "decreasing";
+    return "stable";
   };
 
   const getTrendIcon = (direction) => {
     switch (direction) {
-      case 'increasing':
+      case "increasing":
         return <FiTrendingUp className="w-4 h-4 text-green-500" />;
-      case 'decreasing':
+      case "decreasing":
         return <FiTrendingDown className="w-4 h-4 text-red-500" />;
       default:
-        return <FiMinus className="w-4 h-4 text-gray-500" />;
+        return <FiMinus className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -108,16 +177,16 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
     const reportData = {
       timeframe,
       analytics,
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     };
-    
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { 
-      type: 'application/json' 
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `participation-analytics-${timeframe}-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    a.download = `participation-analytics-${timeframe}-${format(new Date(), "yyyy-MM-dd")}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -128,20 +197,20 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'My Participation Analytics',
+          title: "My Participation Analytics",
           text: `My meeting participation analytics for the last ${timeframe}`,
-          url: window.location.href
+          url: window.location.href,
         });
       } catch (error) {
-        console.error('Error sharing:', error);
+        console.error("Error sharing:", error);
       }
     } else {
       // Fallback to copying URL
       try {
         await navigator.clipboard.writeText(window.location.href);
-        alert('Analytics URL copied to clipboard!');
+        alert("Analytics URL copied to clipboard!");
       } catch (error) {
-        console.error('Error copying to clipboard:', error);
+        console.error("Error copying to clipboard:", error);
       }
     }
   };
@@ -151,7 +220,9 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
       <Card className="p-8">
         <div className="flex flex-col items-center justify-center space-y-4">
           <LoadingSpinner className="w-8 h-8" />
-          <p className="text-muted-foreground">Loading participation analytics...</p>
+          <p className="text-muted-foreground">
+            Loading participation analytics...
+          </p>
         </div>
       </Card>
     );
@@ -165,7 +236,8 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
           <div>
             <h3 className="text-lg font-semibold">No Analytics Data</h3>
             <p className="text-muted-foreground">
-              Analytics will appear here once you start participating in meetings.
+              Analytics will appear here once you start participating in
+              meetings.
             </p>
           </div>
         </div>
@@ -178,12 +250,15 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
       {/* Header with Export Options */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Participation Analytics</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            Participation Analytics
+          </h2>
           <p className="text-muted-foreground">
-            Insights into your meeting participation and engagement over the last {timeframe}
+            Insights into your meeting participation and engagement over the
+            last {timeframe}
           </p>
         </div>
-        
+
         <div className="flex space-x-2">
           <Button variant="outline" size="sm" onClick={exportData}>
             <FiDownload className="w-4 h-4 mr-2" />
@@ -204,7 +279,12 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
               <p className="text-sm text-muted-foreground">Total Meetings</p>
               <p className="text-2xl font-bold">{analytics.totalMeetings}</p>
               <div className="flex items-center space-x-1 mt-1">
-                {getTrendIcon(getTrendDirection(analytics.totalMeetings, analytics.previousTotalMeetings))}
+                {getTrendIcon(
+                  getTrendDirection(
+                    analytics.totalMeetings,
+                    analytics.previousTotalMeetings,
+                  ),
+                )}
                 <span className="text-xs text-muted-foreground">
                   vs previous {timeframe}
                 </span>
@@ -218,12 +298,22 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Avg Participation</p>
-              <p className="text-2xl font-bold">{Math.round(analytics.averageParticipation)}%</p>
+              <p className="text-2xl font-bold">
+                {Math.round(analytics.averageParticipation)}%
+              </p>
               <div className="flex items-center space-x-1 mt-1">
-                {getTrendIcon(getTrendDirection(analytics.averageParticipation, analytics.previousAverageParticipation))}
+                {getTrendIcon(
+                  getTrendDirection(
+                    analytics.averageParticipation,
+                    analytics.previousAverageParticipation,
+                  ),
+                )}
                 <span className="text-xs text-muted-foreground">
-                  {analytics.averageParticipation > 80 ? 'Excellent' : 
-                   analytics.averageParticipation > 60 ? 'Good' : 'Needs improvement'}
+                  {analytics.averageParticipation > 80
+                    ? "Excellent"
+                    : analytics.averageParticipation > 60
+                      ? "Good"
+                      : "Needs improvement"}
                 </span>
               </div>
             </div>
@@ -235,16 +325,30 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Engagement Score</p>
-              <p className="text-2xl font-bold">{Math.round(analytics.engagementScore)}</p>
+              <p className="text-2xl font-bold">
+                {Math.round(analytics.engagementScore)}
+              </p>
               <div className="flex items-center space-x-1 mt-1">
-                {getTrendIcon(getTrendDirection(analytics.engagementScore, analytics.previousEngagementScore))}
-                <Badge className={`text-xs ${
-                  analytics.engagementScore >= 80 ? 'bg-green-100 text-green-800' :
-                  analytics.engagementScore >= 60 ? 'bg-blue-100 text-blue-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {analytics.engagementScore >= 80 ? 'High' :
-                   analytics.engagementScore >= 60 ? 'Medium' : 'Low'}
+                {getTrendIcon(
+                  getTrendDirection(
+                    analytics.engagementScore,
+                    analytics.previousEngagementScore,
+                  ),
+                )}
+                <Badge
+                  className={`text-xs ${
+                    analytics.engagementScore >= 80
+                      ? "bg-green-100 text-green-800"
+                      : analytics.engagementScore >= 60
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {analytics.engagementScore >= 80
+                    ? "High"
+                    : analytics.engagementScore >= 60
+                      ? "Medium"
+                      : "Low"}
                 </Badge>
               </div>
             </div>
@@ -256,11 +360,19 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Minutes</p>
-              <p className="text-2xl font-bold">{Math.round(analytics.totalMinutes)}</p>
+              <p className="text-2xl font-bold">
+                {Math.round(analytics.totalMinutes)}
+              </p>
               <div className="flex items-center space-x-1 mt-1">
-                {getTrendIcon(getTrendDirection(analytics.totalMinutes, analytics.previousTotalMinutes))}
+                {getTrendIcon(
+                  getTrendDirection(
+                    analytics.totalMinutes,
+                    analytics.previousTotalMinutes,
+                  ),
+                )}
                 <span className="text-xs text-muted-foreground">
-                  {Math.round(analytics.totalMinutes / analytics.totalMeetings)} avg/meeting
+                  {Math.round(analytics.totalMinutes / analytics.totalMeetings)}{" "}
+                  avg/meeting
                 </span>
               </div>
             </div>
@@ -273,47 +385,47 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
       <div className="flex flex-wrap items-center space-x-4 space-y-2">
         <div className="flex space-x-2">
           <Button
-            variant={selectedMetric === 'meetings' ? 'default' : 'outline'}
+            variant={selectedMetric === "meetings" ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedMetric('meetings')}
+            onClick={() => setSelectedMetric("meetings")}
           >
             Meetings
           </Button>
           <Button
-            variant={selectedMetric === 'participation' ? 'default' : 'outline'}
+            variant={selectedMetric === "participation" ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedMetric('participation')}
+            onClick={() => setSelectedMetric("participation")}
           >
             Participation
           </Button>
           <Button
-            variant={selectedMetric === 'engagement' ? 'default' : 'outline'}
+            variant={selectedMetric === "engagement" ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedMetric('engagement')}
+            onClick={() => setSelectedMetric("engagement")}
           >
             Engagement
           </Button>
         </div>
-        
+
         <div className="flex space-x-2">
           <Button
-            variant={chartType === 'line' ? 'default' : 'outline'}
+            variant={chartType === "line" ? "default" : "outline"}
             size="sm"
-            onClick={() => setChartType('line')}
+            onClick={() => setChartType("line")}
           >
             Line
           </Button>
           <Button
-            variant={chartType === 'area' ? 'default' : 'outline'}
+            variant={chartType === "area" ? "default" : "outline"}
             size="sm"
-            onClick={() => setChartType('area')}
+            onClick={() => setChartType("area")}
           >
             Area
           </Button>
           <Button
-            variant={chartType === 'bar' ? 'default' : 'outline'}
+            variant={chartType === "bar" ? "default" : "outline"}
             size="sm"
-            onClick={() => setChartType('bar')}
+            onClick={() => setChartType("bar")}
           >
             Bar
           </Button>
@@ -327,44 +439,47 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
         </h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            {chartType === 'line' && (
+            {chartType === "line" && (
               <LineChart data={timeSeriesData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip 
-                  labelStyle={{ color: '#333' }}
-                  contentStyle={{ backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' }}
+                <Tooltip
+                  labelStyle={{ color: "#333" }}
+                  contentStyle={{
+                    backgroundColor: "#f8f9fa",
+                    border: "1px solid #dee2e6",
+                  }}
                 />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey={selectedMetric} 
-                  stroke="#8884d8" 
+                <Line
+                  type="monotone"
+                  dataKey={selectedMetric}
+                  stroke="#8884d8"
                   strokeWidth={2}
-                  dot={{ fill: '#8884d8', strokeWidth: 2 }}
+                  dot={{ fill: "#8884d8", strokeWidth: 2 }}
                   activeDot={{ r: 6 }}
                 />
               </LineChart>
             )}
-            
-            {chartType === 'area' && (
+
+            {chartType === "area" && (
               <AreaChart data={timeSeriesData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
-                <Area 
-                  type="monotone" 
-                  dataKey={selectedMetric} 
-                  stroke="#8884d8" 
-                  fill="#8884d8" 
+                <Area
+                  type="monotone"
+                  dataKey={selectedMetric}
+                  stroke="#8884d8"
+                  fill="#8884d8"
                   fillOpacity={0.3}
                 />
               </AreaChart>
             )}
-            
-            {chartType === 'bar' && (
+
+            {chartType === "bar" && (
               <BarChart data={timeSeriesData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
@@ -390,7 +505,9 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -465,7 +582,7 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
           <FiTarget className="w-5 h-5 mr-2" />
           Insights & Recommendations
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Peak Performance Time */}
           <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
@@ -474,7 +591,8 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
               <h4 className="font-medium">Peak Performance</h4>
             </div>
             <p className="text-sm text-muted-foreground">
-              You're most engaged during {analytics.peakHour || '10:00'} AM meetings
+              You're most engaged during {analytics.peakHour || "10:00"} AM
+              meetings
             </p>
           </div>
 
@@ -485,7 +603,8 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
               <h4 className="font-medium">Most Active Day</h4>
             </div>
             <p className="text-sm text-muted-foreground">
-              {analytics.mostActiveDay || 'Tuesday'} is your most productive meeting day
+              {analytics.mostActiveDay || "Tuesday"} is your most productive
+              meeting day
             </p>
           </div>
 
@@ -505,15 +624,20 @@ const ParticipationAnalytics = ({ analytics, isLoading, timeframe = 'month' }) =
           <div className="flex items-start space-x-2">
             <FiTarget className="w-5 h-5 text-orange-600 mt-0.5" />
             <div>
-              <h4 className="font-medium text-orange-800 dark:text-orange-200">Monthly Goal Progress</h4>
+              <h4 className="font-medium text-orange-800 dark:text-orange-200">
+                Monthly Goal Progress
+              </h4>
               <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                You're {analytics.goalProgress}% towards your monthly engagement goal of 85%. 
-                Keep participating actively in discussions to reach your target!
+                You're {analytics.goalProgress}% towards your monthly engagement
+                goal of 85%. Keep participating actively in discussions to reach
+                your target!
               </p>
               <div className="mt-2 w-full bg-orange-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-orange-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min(analytics.goalProgress || 0, 100)}%` }}
+                  style={{
+                    width: `${Math.min(analytics.goalProgress || 0, 100)}%`,
+                  }}
                 />
               </div>
             </div>

@@ -1,9 +1,9 @@
-import crypto from 'crypto';
-import { prisma } from './prismaService';
-import { emailService } from './emailService';
-import { notificationService } from './notificationService';
-import { authService } from './authService';
-import { InvitationType, InvitationStatus, UserRole } from '@prisma/client';
+import crypto from "crypto";
+import { prisma } from "./prismaService";
+import { emailService } from "./emailService";
+import { notificationService } from "./notificationService";
+import { authService } from "./authService";
+import { InvitationType, InvitationStatus, UserRole } from "@prisma/client";
 
 export interface CreateInvitationOptions {
   email: string;
@@ -14,15 +14,15 @@ export interface CreateInvitationOptions {
   customMessage?: string;
   senderId: string;
   clientId: string;
-  
+
   // Meeting-specific options
   meetingId?: string;
-  meetingRole?: 'participant' | 'moderator';
-  
+  meetingRole?: "participant" | "moderator";
+
   // Group-specific options
   groupId?: string;
-  groupRole?: 'member' | 'admin';
-  
+  groupRole?: "member" | "admin";
+
   // Bulk invitation options
   batchId?: string;
   expirationHours?: number;
@@ -76,7 +76,6 @@ export interface InvitationStats {
  * Handles user invitations, onboarding, and invitation lifecycle management
  */
 export class InvitationService {
-
   /**
    * Create a single invitation
    */
@@ -84,13 +83,13 @@ export class InvitationService {
     try {
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
-        where: { email: options.email }
+        where: { email: options.email },
       });
 
       if (existingUser) {
         // If user exists and is active, don't create invitation
         if (existingUser.isActive) {
-          throw new Error('User already exists and is active');
+          throw new Error("User already exists and is active");
         }
       }
 
@@ -100,12 +99,12 @@ export class InvitationService {
           email: options.email,
           status: InvitationStatus.PENDING,
           clientId: options.clientId,
-          expiresAt: { gt: new Date() }
-        }
+          expiresAt: { gt: new Date() },
+        },
       });
 
       if (existingInvitation) {
-        throw new Error('Pending invitation already exists for this email');
+        throw new Error("Pending invitation already exists for this email");
       }
 
       // Generate secure invitation token
@@ -138,35 +137,36 @@ export class InvitationService {
               firstName: true,
               lastName: true,
               email: true,
-            }
+            },
           },
           client: {
             select: {
               name: true,
-            }
+            },
           },
           meeting: {
             select: {
               title: true,
               startTime: true,
               scheduledStartTime: true,
-            }
+            },
           },
           group: {
             select: {
               name: true,
               description: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
-      console.log(`📨 Invitation created: ${options.email} by ${options.senderId}`);
+      console.log(
+        `📨 Invitation created: ${options.email} by ${options.senderId}`,
+      );
 
       return invitation;
-
     } catch (error) {
-      console.error('Error creating invitation:', error);
+      console.error("Error creating invitation:", error);
       throw error;
     }
   }
@@ -187,7 +187,9 @@ export class InvitationService {
     let created = 0;
     let failed = 0;
 
-    console.log(`📨 Creating bulk invitations: ${options.invitations.length} recipients`);
+    console.log(
+      `📨 Creating bulk invitations: ${options.invitations.length} recipients`,
+    );
 
     for (const invitationData of options.invitations) {
       try {
@@ -204,24 +206,25 @@ export class InvitationService {
 
         invitations.push(invitation);
         created++;
-
       } catch (error) {
         errors.push({
           email: invitationData.email,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : "Unknown error",
         });
         failed++;
       }
     }
 
-    console.log(`📨 Bulk invitations completed: ${created} created, ${failed} failed`);
+    console.log(
+      `📨 Bulk invitations completed: ${created} created, ${failed} failed`,
+    );
 
     return {
       created,
       failed,
       batchId,
       invitations,
-      errors
+      errors,
     };
   }
 
@@ -237,85 +240,92 @@ export class InvitationService {
           client: true,
           meeting: true,
           group: true,
-        }
+        },
       });
 
       if (!invitation) {
-        throw new Error('Invitation not found');
+        throw new Error("Invitation not found");
       }
 
       if (invitation.status !== InvitationStatus.PENDING) {
-        throw new Error('Invitation is not in pending status');
+        throw new Error("Invitation is not in pending status");
       }
 
       if (invitation.expiresAt < new Date()) {
-        throw new Error('Invitation has expired');
+        throw new Error("Invitation has expired");
       }
 
       // Prepare template data based on invitation type
       const baseTemplateData = {
-        firstName: invitation.firstName || invitation.email.split('@')[0],
-        lastName: invitation.lastName || '',
+        firstName: invitation.firstName || invitation.email.split("@")[0],
+        lastName: invitation.lastName || "",
         inviterName: `${invitation.sender.firstName} ${invitation.sender.lastName}`,
         inviterEmail: invitation.sender.email,
         clientName: invitation.client.name,
         invitationUrl: `${process.env.FRONTEND_URL}/accept-invitation?token=${invitation.token}`,
         customMessage: invitation.customMessage,
         expiresAt: invitation.expiresAt.toLocaleDateString(),
-        expirationDays: Math.ceil((invitation.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+        expirationDays: Math.ceil(
+          (invitation.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+        ),
       };
 
-      let templateName = 'invitation';
+      let templateName = "invitation";
       let subject = `You're invited to join ${invitation.client.name}`;
       let templateData: any = baseTemplateData;
 
       // Customize based on invitation type
       switch (invitation.invitationType) {
         case InvitationType.USER:
-          templateName = 'user-invitation';
+          templateName = "user-invitation";
           subject = `${invitation.sender.firstName} invited you to ${invitation.client.name}`;
           break;
 
         case InvitationType.GROUP:
-          templateName = 'group-invitation';
+          templateName = "group-invitation";
           subject = `Join the ${invitation.group?.name} group in ${invitation.client.name}`;
           templateData = {
             ...baseTemplateData,
-            groupName: invitation.group?.name || '',
-            groupDescription: invitation.group?.description || '',
-            groupRole: invitation.groupRole || 'member',
+            groupName: invitation.group?.name || "",
+            groupDescription: invitation.group?.description || "",
+            groupRole: invitation.groupRole || "member",
           };
           break;
 
         case InvitationType.BULK:
-          templateName = 'bulk-invitation';
+          templateName = "bulk-invitation";
           subject = `Welcome to ${invitation.client.name}!`;
           break;
       }
 
       // Send invitation email
-      const emailLog = await emailService.sendEmail({
-        to: invitation.email,
-        subject,
-        template: {
-          name: templateName,
-          data: templateData,
+      const emailLog = await emailService.sendEmail(
+        {
+          to: invitation.email,
+          subject,
+          template: {
+            name: templateName,
+            data: templateData,
+          },
+          priority: "normal",
+          tags: ["invitation", invitation.invitationType.toLowerCase()],
+          metadata: {
+            invitationId: invitation.id,
+            invitationType: invitation.invitationType,
+            senderId: invitation.senderId,
+          },
         },
-        priority: 'normal',
-        tags: ['invitation', invitation.invitationType.toLowerCase()],
-        metadata: {
-          invitationId: invitation.id,
-          invitationType: invitation.invitationType,
-          senderId: invitation.senderId,
-        },
-      }, invitation.clientId, invitation.senderId);
+        invitation.clientId,
+        invitation.senderId,
+      );
 
-      console.log(`📨 Invitation email sent to ${invitation.email}: ${emailLog.status}`);
+      console.log(
+        `📨 Invitation email sent to ${invitation.email}: ${emailLog.status}`,
+      );
 
-      return emailLog.status === 'SENT';
-
+      return emailLog.status === "SENT";
     } catch (error) {
-      console.error('Error sending invitation email:', error);
+      console.error("Error sending invitation email:", error);
       throw error;
     }
   }
@@ -336,38 +346,38 @@ export class InvitationService {
           client: true,
           meeting: true,
           group: true,
-        }
+        },
       });
 
       if (!invitation) {
-        throw new Error('Invalid invitation token');
+        throw new Error("Invalid invitation token");
       }
 
       if (invitation.status !== InvitationStatus.PENDING) {
-        throw new Error('Invitation has already been processed');
+        throw new Error("Invitation has already been processed");
       }
 
       if (invitation.expiresAt < new Date()) {
         // Mark as expired
         await prisma.invitation.update({
           where: { id: invitation.id },
-          data: { status: InvitationStatus.EXPIRED }
+          data: { status: InvitationStatus.EXPIRED },
         });
-        throw new Error('Invitation has expired');
+        throw new Error("Invitation has expired");
       }
 
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
-        where: { email: invitation.email }
+        where: { email: invitation.email },
       });
 
       if (existingUser && existingUser.isActive) {
-        throw new Error('User already exists and is active');
+        throw new Error("User already exists and is active");
       }
 
       // Determine user role
       let userRole: UserRole = UserRole.USER;
-      if (invitation.groupRole === 'admin') {
+      if (invitation.groupRole === "admin") {
         userRole = UserRole.ADMIN;
       }
 
@@ -410,7 +420,7 @@ export class InvitationService {
           status: InvitationStatus.ACCEPTED,
           acceptedAt: new Date(),
           receiverId: user.id,
-        }
+        },
       });
 
       // Handle specific invitation types
@@ -420,9 +430,9 @@ export class InvitationService {
           data: {
             userId: user.id,
             groupId: invitation.groupId,
-            role: invitation.groupRole || 'member',
+            role: invitation.groupRole || "member",
             joinedAt: new Date(),
-          }
+          },
         });
       }
 
@@ -432,8 +442,8 @@ export class InvitationService {
           data: {
             userId: user.id,
             meetingId: invitation.meetingId,
-            isModerator: invitation.meetingRole === 'moderator',
-          }
+            isModerator: invitation.meetingRole === "moderator",
+          },
         });
       }
 
@@ -449,11 +459,10 @@ export class InvitationService {
           id: invitation.id,
           type: invitation.invitationType,
           acceptedAt: new Date(),
-        }
+        },
       };
-
     } catch (error) {
-      console.error('Error accepting invitation:', error);
+      console.error("Error accepting invitation:", error);
       throw error;
     }
   }
@@ -464,15 +473,15 @@ export class InvitationService {
   async declineInvitation(token: string, reason?: string): Promise<boolean> {
     try {
       const invitation = await prisma.invitation.findUnique({
-        where: { token }
+        where: { token },
       });
 
       if (!invitation) {
-        throw new Error('Invalid invitation token');
+        throw new Error("Invalid invitation token");
       }
 
       if (invitation.status !== InvitationStatus.PENDING) {
-        throw new Error('Invitation has already been processed');
+        throw new Error("Invitation has already been processed");
       }
 
       await prisma.invitation.update({
@@ -481,15 +490,14 @@ export class InvitationService {
           status: InvitationStatus.DECLINED,
           declinedAt: new Date(),
           customMessage: reason, // Store decline reason in customMessage
-        }
+        },
       });
 
       console.log(`❌ Invitation declined: ${invitation.email}`);
 
       return true;
-
     } catch (error) {
-      console.error('Error declining invitation:', error);
+      console.error("Error declining invitation:", error);
       throw error;
     }
   }
@@ -500,15 +508,15 @@ export class InvitationService {
   async resendInvitation(invitationId: string): Promise<boolean> {
     try {
       const invitation = await prisma.invitation.findUnique({
-        where: { id: invitationId }
+        where: { id: invitationId },
       });
 
       if (!invitation) {
-        throw new Error('Invitation not found');
+        throw new Error("Invitation not found");
       }
 
       if (invitation.status !== InvitationStatus.PENDING) {
-        throw new Error('Can only resend pending invitations');
+        throw new Error("Can only resend pending invitations");
       }
 
       // Check if invitation has expired
@@ -517,8 +525,8 @@ export class InvitationService {
         await prisma.invitation.update({
           where: { id: invitationId },
           data: {
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-          }
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
         });
       }
 
@@ -528,9 +536,8 @@ export class InvitationService {
       console.log(`🔄 Invitation resent: ${invitation.email}`);
 
       return success;
-
     } catch (error) {
-      console.error('Error resending invitation:', error);
+      console.error("Error resending invitation:", error);
       throw error;
     }
   }
@@ -541,27 +548,26 @@ export class InvitationService {
   async cancelInvitation(invitationId: string): Promise<boolean> {
     try {
       const invitation = await prisma.invitation.findUnique({
-        where: { id: invitationId }
+        where: { id: invitationId },
       });
 
       if (!invitation) {
-        throw new Error('Invitation not found');
+        throw new Error("Invitation not found");
       }
 
       if (invitation.status !== InvitationStatus.PENDING) {
-        throw new Error('Can only cancel pending invitations');
+        throw new Error("Can only cancel pending invitations");
       }
 
       await prisma.invitation.delete({
-        where: { id: invitationId }
+        where: { id: invitationId },
       });
 
       console.log(`🗑️ Invitation cancelled: ${invitation.email}`);
 
       return true;
-
     } catch (error) {
-      console.error('Error cancelling invitation:', error);
+      console.error("Error cancelling invitation:", error);
       throw error;
     }
   }
@@ -579,13 +585,13 @@ export class InvitationService {
               firstName: true,
               lastName: true,
               email: true,
-            }
+            },
           },
           client: {
             select: {
               name: true,
               logo: true,
-            }
+            },
           },
           meeting: {
             select: {
@@ -593,15 +599,15 @@ export class InvitationService {
               startTime: true,
               scheduledStartTime: true,
               description: true,
-            }
+            },
           },
           group: {
             select: {
               name: true,
               description: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       if (!invitation) {
@@ -622,7 +628,7 @@ export class InvitationService {
         // Mark as expired
         await prisma.invitation.update({
           where: { id: invitation.id },
-          data: { status: InvitationStatus.EXPIRED }
+          data: { status: InvitationStatus.EXPIRED },
         });
       }
 
@@ -630,11 +636,15 @@ export class InvitationService {
         ...invitation,
         isExpired,
         isProcessed: false,
-        daysUntilExpiration: isExpired ? 0 : Math.ceil((invitation.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+        daysUntilExpiration: isExpired
+          ? 0
+          : Math.ceil(
+              (invitation.expiresAt.getTime() - Date.now()) /
+                (1000 * 60 * 60 * 24),
+            ),
       };
-
     } catch (error) {
-      console.error('Error getting invitation by token:', error);
+      console.error("Error getting invitation by token:", error);
       return null;
     }
   }
@@ -642,16 +652,19 @@ export class InvitationService {
   /**
    * Get invitations with pagination and filtering
    */
-  async getInvitations(clientId: string, options: {
-    page?: number;
-    limit?: number;
-    status?: InvitationStatus;
-    invitationType?: InvitationType;
-    senderId?: string;
-    search?: string;
-    startDate?: Date;
-    endDate?: Date;
-  } = {}) {
+  async getInvitations(
+    clientId: string,
+    options: {
+      page?: number;
+      limit?: number;
+      status?: InvitationStatus;
+      invitationType?: InvitationType;
+      senderId?: string;
+      search?: string;
+      startDate?: Date;
+      endDate?: Date;
+    } = {},
+  ) {
     const {
       page = 1,
       limit = 50,
@@ -669,12 +682,12 @@ export class InvitationService {
     if (status) where.status = status;
     if (invitationType) where.invitationType = invitationType;
     if (senderId) where.senderId = senderId;
-    
+
     if (search) {
       where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: "insensitive" } },
+        { firstName: { contains: search, mode: "insensitive" } },
+        { lastName: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -689,35 +702,35 @@ export class InvitationService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           sender: {
             select: {
               firstName: true,
               lastName: true,
               email: true,
-            }
+            },
           },
           receiver: {
             select: {
               firstName: true,
               lastName: true,
               email: true,
-            }
+            },
           },
           meeting: {
             select: {
               title: true,
-            }
+            },
           },
           group: {
             select: {
               name: true,
-            }
-          }
-        }
+            },
+          },
+        },
       }),
-      prisma.invitation.count({ where })
+      prisma.invitation.count({ where }),
     ]);
 
     return {
@@ -727,14 +740,18 @@ export class InvitationService {
         page,
         limit,
         pages: Math.ceil(total / limit),
-      }
+      },
     };
   }
 
   /**
    * Get invitation statistics
    */
-  async getInvitationStats(clientId: string, startDate?: Date, endDate?: Date): Promise<InvitationStats> {
+  async getInvitationStats(
+    clientId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<InvitationStats> {
     const dateFilter: any = {};
     if (startDate) dateFilter.gte = startDate;
     if (endDate) dateFilter.lte = endDate;
@@ -751,17 +768,25 @@ export class InvitationService {
       declined,
       expired,
       recentInvitations,
-      invitationTypes
+      invitationTypes,
     ] = await Promise.all([
       prisma.invitation.count({ where: whereClause }),
-      prisma.invitation.count({ where: { ...whereClause, status: InvitationStatus.PENDING } }),
-      prisma.invitation.count({ where: { ...whereClause, status: InvitationStatus.ACCEPTED } }),
-      prisma.invitation.count({ where: { ...whereClause, status: InvitationStatus.DECLINED } }),
-      prisma.invitation.count({ where: { ...whereClause, status: InvitationStatus.EXPIRED } }),
-      
+      prisma.invitation.count({
+        where: { ...whereClause, status: InvitationStatus.PENDING },
+      }),
+      prisma.invitation.count({
+        where: { ...whereClause, status: InvitationStatus.ACCEPTED },
+      }),
+      prisma.invitation.count({
+        where: { ...whereClause, status: InvitationStatus.DECLINED },
+      }),
+      prisma.invitation.count({
+        where: { ...whereClause, status: InvitationStatus.EXPIRED },
+      }),
+
       prisma.invitation.findMany({
         where: whereClause,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: 10,
         select: {
           id: true,
@@ -772,14 +797,14 @@ export class InvitationService {
           invitationType: true,
           createdAt: true,
           acceptedAt: true,
-        }
+        },
       }),
 
       prisma.invitation.groupBy({
         where: whereClause,
-        by: ['invitationType'],
+        by: ["invitationType"],
         _count: { invitationType: true },
-      })
+      }),
     ]);
 
     const acceptanceRate = total > 0 ? Math.round((accepted / total) * 100) : 0;
@@ -792,7 +817,7 @@ export class InvitationService {
       expired,
       acceptanceRate,
       recentInvitations,
-      popularInvitationTypes: invitationTypes.map(type => ({
+      popularInvitationTypes: invitationTypes.map((type) => ({
         type: type.invitationType,
         count: type._count.invitationType,
         percentage: Math.round((type._count.invitationType / total) * 100),
@@ -808,19 +833,18 @@ export class InvitationService {
       const result = await prisma.invitation.updateMany({
         where: {
           status: InvitationStatus.PENDING,
-          expiresAt: { lt: new Date() }
+          expiresAt: { lt: new Date() },
         },
         data: {
           status: InvitationStatus.EXPIRED,
-        }
+        },
       });
 
       console.log(`🧹 Cleaned up ${result.count} expired invitations`);
 
       return result.count;
-
     } catch (error) {
-      console.error('Error cleaning up expired invitations:', error);
+      console.error("Error cleaning up expired invitations:", error);
       throw error;
     }
   }
@@ -829,7 +853,7 @@ export class InvitationService {
    * Helper methods
    */
   private generateInvitationToken(): string {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto.randomBytes(32).toString("hex");
   }
 }
 

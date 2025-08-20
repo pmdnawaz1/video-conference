@@ -1,6 +1,6 @@
-import { google } from 'googleapis';
-import { JWT } from 'google-auth-library';
-import { prisma } from './prismaService';
+import { google } from "googleapis";
+import { JWT } from "google-auth-library";
+import { prisma } from "./prismaService";
 
 export interface CalendarEvent {
   id?: string;
@@ -18,13 +18,13 @@ export interface CalendarEvent {
   attendees?: Array<{
     email: string;
     displayName?: string;
-    responseStatus?: 'needsAction' | 'declined' | 'tentative' | 'accepted';
+    responseStatus?: "needsAction" | "declined" | "tentative" | "accepted";
   }>;
   conferenceData?: {
     createRequest?: {
       requestId: string;
       conferenceSolutionKey: {
-        type: 'hangoutsMeet';
+        type: "hangoutsMeet";
       };
     };
     conferenceSolution?: {
@@ -33,7 +33,7 @@ export interface CalendarEvent {
     };
     conferenceId?: string;
     entryPoints?: Array<{
-      entryPointType: 'video' | 'phone' | 'sip' | 'more';
+      entryPointType: "video" | "phone" | "sip" | "more";
       uri: string;
       label?: string;
       pin?: string;
@@ -43,17 +43,17 @@ export interface CalendarEvent {
   reminders?: {
     useDefault: boolean;
     overrides?: Array<{
-      method: 'email' | 'popup';
+      method: "email" | "popup";
       minutes: number;
     }>;
   };
-  visibility?: 'default' | 'public' | 'private';
-  status?: 'confirmed' | 'tentative' | 'cancelled';
+  visibility?: "default" | "public" | "private";
+  status?: "confirmed" | "tentative" | "cancelled";
   recurrence?: string[];
 }
 
 export interface GoogleCalendarConfig {
-  type: 'service_account';
+  type: "service_account";
   project_id: string;
   private_key_id: string;
   private_key: string;
@@ -86,10 +86,10 @@ export class GoogleCalendarService {
     try {
       // Load service account credentials from environment
       const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-      const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
-      
+      const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
+
       if (!serviceAccountKey) {
-        console.warn('📅 Google Calendar: Service account key not configured');
+        console.warn("📅 Google Calendar: Service account key not configured");
         return;
       }
 
@@ -97,7 +97,7 @@ export class GoogleCalendarService {
       try {
         credentials = JSON.parse(serviceAccountKey);
       } catch (error) {
-        console.error('📅 Google Calendar: Invalid service account key format');
+        console.error("📅 Google Calendar: Invalid service account key format");
         return;
       }
 
@@ -106,22 +106,22 @@ export class GoogleCalendarService {
         email: credentials.client_email,
         key: credentials.private_key,
         scopes: [
-          'https://www.googleapis.com/auth/calendar',
-          'https://www.googleapis.com/auth/calendar.events',
+          "https://www.googleapis.com/auth/calendar",
+          "https://www.googleapis.com/auth/calendar.events",
         ],
       });
 
       // Initialize Calendar API
       this.calendar = google.calendar({
-        version: 'v3',
+        version: "v3",
         auth: this.serviceAccount,
       });
 
       this.calendarId = calendarId;
 
-      console.log('📅 Google Calendar service initialized successfully');
+      console.log("📅 Google Calendar service initialized successfully");
     } catch (error) {
-      console.error('📅 Google Calendar initialization error:', error);
+      console.error("📅 Google Calendar initialization error:", error);
     }
   }
 
@@ -138,10 +138,12 @@ export class GoogleCalendarService {
         calendarId: this.calendarId,
       });
 
-      console.log(`📅 Google Calendar connection successful: ${response.data.summary}`);
+      console.log(
+        `📅 Google Calendar connection successful: ${response.data.summary}`,
+      );
       return true;
     } catch (error) {
-      console.error('📅 Google Calendar connection test failed:', error);
+      console.error("📅 Google Calendar connection test failed:", error);
       return false;
     }
   }
@@ -151,7 +153,9 @@ export class GoogleCalendarService {
    */
   async createEventFromMeeting(meetingId: string): Promise<string | null> {
     if (!this.calendar || !this.calendarId) {
-      console.warn('📅 Google Calendar not configured, skipping event creation');
+      console.warn(
+        "📅 Google Calendar not configured, skipping event creation",
+      );
       return null;
     }
 
@@ -163,15 +167,15 @@ export class GoogleCalendarService {
           creator: true,
           participants: {
             include: {
-              user: true
-            }
+              user: true,
+            },
           },
           room: true,
         },
       });
 
       if (!meeting || !meeting.startTime) {
-        throw new Error('Meeting not found or has no start time');
+        throw new Error("Meeting not found or has no start time");
       }
 
       // Prepare event data
@@ -181,42 +185,45 @@ export class GoogleCalendarService {
         location: `Video Conference - Room: ${meeting.room?.name || meeting.id}`,
         start: {
           dateTime: meeting.startTime.toISOString(),
-          timeZone: meeting.timezone || 'UTC',
+          timeZone: meeting.timezone || "UTC",
         },
         end: {
-          dateTime: meeting.endTime?.toISOString() || 
-            new Date(meeting.startTime.getTime() + (meeting.duration || 60) * 60000).toISOString(),
-          timeZone: meeting.timezone || 'UTC',
+          dateTime:
+            meeting.endTime?.toISOString() ||
+            new Date(
+              meeting.startTime.getTime() + (meeting.duration || 60) * 60000,
+            ).toISOString(),
+          timeZone: meeting.timezone || "UTC",
         },
         attendees: [
           {
             email: meeting.creator.email,
             displayName: `${meeting.creator.firstName} ${meeting.creator.lastName}`,
-            responseStatus: 'accepted',
+            responseStatus: "accepted",
           },
-          ...meeting.participants.map(participant => ({
+          ...meeting.participants.map((participant) => ({
             email: participant.user.email,
             displayName: `${participant.user.firstName} ${participant.user.lastName}`,
-            responseStatus: 'needsAction' as const,
+            responseStatus: "needsAction" as const,
           })),
         ],
         conferenceData: {
           createRequest: {
             requestId: `meet-${meetingId}-${Date.now()}`,
             conferenceSolutionKey: {
-              type: 'hangoutsMeet',
+              type: "hangoutsMeet",
             },
           },
         },
         reminders: {
           useDefault: false,
           overrides: [
-            { method: 'email', minutes: 15 },
-            { method: 'popup', minutes: 10 },
+            { method: "email", minutes: 15 },
+            { method: "popup", minutes: 10 },
           ],
         },
-        visibility: meeting.isPublic ? 'public' : 'private',
-        status: 'confirmed',
+        visibility: meeting.isPublic ? "public" : "private",
+        status: "confirmed",
       };
 
       // Add recurrence if meeting is recurring
@@ -229,25 +236,28 @@ export class GoogleCalendarService {
         calendarId: this.calendarId,
         resource: eventData,
         conferenceDataVersion: 1, // Required for Meet integration
-        sendUpdates: 'all', // Send invitations to all attendees
+        sendUpdates: "all", // Send invitations to all attendees
       });
 
       const eventId = response.data.id;
-      
+
       // Update meeting with calendar event ID
       await prisma.meeting.update({
         where: { id: meetingId },
         data: {
           calendarEventId: eventId,
-          meetingUrl: response.data.conferenceData?.entryPoints?.[0]?.uri || meeting.meetingUrl,
+          meetingUrl:
+            response.data.conferenceData?.entryPoints?.[0]?.uri ||
+            meeting.meetingUrl,
         },
       });
 
-      console.log(`📅 Google Calendar event created: ${eventId} for meeting ${meetingId}`);
+      console.log(
+        `📅 Google Calendar event created: ${eventId} for meeting ${meetingId}`,
+      );
       return eventId;
-      
     } catch (error) {
-      console.error('📅 Error creating Google Calendar event:', error);
+      console.error("📅 Error creating Google Calendar event:", error);
       throw error;
     }
   }
@@ -267,8 +277,8 @@ export class GoogleCalendarService {
           creator: true,
           participants: {
             include: {
-              user: true
-            }
+              user: true,
+            },
           },
           room: true,
         },
@@ -284,23 +294,26 @@ export class GoogleCalendarService {
         location: `Video Conference - Room: ${meeting.room?.name || meeting.id}`,
         start: {
           dateTime: meeting.startTime.toISOString(),
-          timeZone: meeting.timezone || 'UTC',
+          timeZone: meeting.timezone || "UTC",
         },
         end: {
-          dateTime: meeting.endTime?.toISOString() || 
-            new Date(meeting.startTime.getTime() + (meeting.duration || 60) * 60000).toISOString(),
-          timeZone: meeting.timezone || 'UTC',
+          dateTime:
+            meeting.endTime?.toISOString() ||
+            new Date(
+              meeting.startTime.getTime() + (meeting.duration || 60) * 60000,
+            ).toISOString(),
+          timeZone: meeting.timezone || "UTC",
         },
         attendees: [
           {
             email: meeting.creator.email,
             displayName: `${meeting.creator.firstName} ${meeting.creator.lastName}`,
-            responseStatus: 'accepted',
+            responseStatus: "accepted",
           },
-          ...meeting.participants.map(participant => ({
+          ...meeting.participants.map((participant) => ({
             email: participant.user.email,
             displayName: `${participant.user.firstName} ${participant.user.lastName}`,
-            responseStatus: 'needsAction' as const,
+            responseStatus: "needsAction" as const,
           })),
         ],
       };
@@ -309,14 +322,15 @@ export class GoogleCalendarService {
         calendarId: this.calendarId,
         eventId: meeting.calendarEventId,
         resource: eventData,
-        sendUpdates: 'all',
+        sendUpdates: "all",
       });
 
-      console.log(`📅 Google Calendar event updated: ${meeting.calendarEventId} for meeting ${meetingId}`);
+      console.log(
+        `📅 Google Calendar event updated: ${meeting.calendarEventId} for meeting ${meetingId}`,
+      );
       return true;
-      
     } catch (error) {
-      console.error('📅 Error updating Google Calendar event:', error);
+      console.error("📅 Error updating Google Calendar event:", error);
       return false;
     }
   }
@@ -342,7 +356,7 @@ export class GoogleCalendarService {
       await this.calendar.events.delete({
         calendarId: this.calendarId,
         eventId: meeting.calendarEventId,
-        sendUpdates: 'all',
+        sendUpdates: "all",
       });
 
       // Clear calendar event ID from meeting
@@ -351,11 +365,12 @@ export class GoogleCalendarService {
         data: { calendarEventId: null },
       });
 
-      console.log(`📅 Google Calendar event deleted: ${meeting.calendarEventId} for meeting ${meetingId}`);
+      console.log(
+        `📅 Google Calendar event deleted: ${meeting.calendarEventId} for meeting ${meetingId}`,
+      );
       return true;
-      
     } catch (error) {
-      console.error('📅 Error deleting Google Calendar event:', error);
+      console.error("📅 Error deleting Google Calendar event:", error);
       return false;
     }
   }
@@ -374,13 +389,13 @@ export class GoogleCalendarService {
         timeMin: startDate.toISOString(),
         timeMax: endDate.toISOString(),
         singleEvents: true,
-        orderBy: 'startTime',
+        orderBy: "startTime",
         maxResults: 250,
       });
 
       return response.data.items || [];
     } catch (error) {
-      console.error('📅 Error fetching calendar events:', error);
+      console.error("📅 Error fetching calendar events:", error);
       return [];
     }
   }
@@ -398,13 +413,16 @@ export class GoogleCalendarService {
       return null;
     }
     const startDate = new Date(meeting.startTime);
-    const endDate = meeting.endTime 
-      ? new Date(meeting.endTime) 
+    const endDate = meeting.endTime
+      ? new Date(meeting.endTime)
       : new Date(startDate.getTime() + (meeting.duration || 60) * 60000);
 
     // Format dates for calendar URLs
     const formatDateForCalendar = (date: Date) => {
-      return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+      return date
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\.\d{3}/, "");
     };
 
     const startFormatted = formatDateForCalendar(startDate);
@@ -412,18 +430,20 @@ export class GoogleCalendarService {
 
     const title = encodeURIComponent(meeting.title);
     const description = encodeURIComponent(
-      this.formatMeetingDescription(meeting, false) + 
-      `\n\nJoin meeting: ${meeting.meetingUrl || meeting.joinUrl || ''}`
+      this.formatMeetingDescription(meeting, false) +
+        `\n\nJoin meeting: ${meeting.meetingUrl || meeting.joinUrl || ""}`,
     );
-    const location = encodeURIComponent(meeting.room?.name || 'Video Conference');
+    const location = encodeURIComponent(
+      meeting.room?.name || "Video Conference",
+    );
 
     return {
       google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startFormatted}/${endFormatted}&details=${description}&location=${location}`,
-      
+
       outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${startFormatted}&enddt=${endFormatted}&body=${description}&location=${location}`,
-      
+
       yahoo: `https://calendar.yahoo.com/?v=60&view=d&type=20&title=${title}&st=${startFormatted}&et=${endFormatted}&desc=${description}&in_loc=${location}`,
-      
+
       ical: `data:text/calendar;charset=utf8,BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Video Conference//Event//EN
@@ -433,7 +453,7 @@ DTSTART:${startFormatted}
 DTEND:${endFormatted}
 SUMMARY:${meeting.title}
 DESCRIPTION:${this.formatMeetingDescription(meeting, false)}
-LOCATION:${meeting.room?.name || 'Video Conference'}
+LOCATION:${meeting.room?.name || "Video Conference"}
 STATUS:CONFIRMED
 END:VEVENT
 END:VCALENDAR`,
@@ -443,26 +463,30 @@ END:VCALENDAR`,
   /**
    * Format meeting description for calendar
    */
-  private formatMeetingDescription(meeting: any, includeHtml: boolean = true): string {
-    const lineBreak = includeHtml ? '<br>' : '\n';
-    const bold = (text: string) => includeHtml ? `<strong>${text}</strong>` : text;
-    
-    let description = '';
-    
+  private formatMeetingDescription(
+    meeting: any,
+    includeHtml: boolean = true,
+  ): string {
+    const lineBreak = includeHtml ? "<br>" : "\n";
+    const bold = (text: string) =>
+      includeHtml ? `<strong>${text}</strong>` : text;
+
+    let description = "";
+
     if (meeting.description) {
       description += `${meeting.description}${lineBreak}${lineBreak}`;
     }
-    
-    description += `${bold('Meeting Details:')}${lineBreak}`;
-    description += `${bold('Meeting ID:')} ${meeting.id}${lineBreak}`;
-    description += `${bold('Organizer:')} ${meeting.creator?.firstName} ${meeting.creator?.lastName} (${meeting.creator?.email})${lineBreak}`;
-    
+
+    description += `${bold("Meeting Details:")}${lineBreak}`;
+    description += `${bold("Meeting ID:")} ${meeting.id}${lineBreak}`;
+    description += `${bold("Organizer:")} ${meeting.creator?.firstName} ${meeting.creator?.lastName} (${meeting.creator?.email})${lineBreak}`;
+
     if (meeting.meetingUrl || meeting.joinUrl) {
-      description += `${bold('Join URL:')} ${meeting.meetingUrl || meeting.joinUrl}${lineBreak}`;
+      description += `${bold("Join URL:")} ${meeting.meetingUrl || meeting.joinUrl}${lineBreak}`;
     }
-    
+
     if (meeting.agenda) {
-      description += `${lineBreak}${bold('Agenda:')}${lineBreak}`;
+      description += `${lineBreak}${bold("Agenda:")}${lineBreak}`;
       if (Array.isArray(meeting.agenda)) {
         meeting.agenda.forEach((item: string, index: number) => {
           description += `${index + 1}. ${item}${lineBreak}`;
@@ -471,12 +495,12 @@ END:VCALENDAR`,
         description += `${meeting.agenda}${lineBreak}`;
       }
     }
-    
-    description += `${lineBreak}${bold('Meeting Tips:')}${lineBreak}`;
+
+    description += `${lineBreak}${bold("Meeting Tips:")}${lineBreak}`;
     description += `• Join a few minutes early to test your audio/video${lineBreak}`;
     description += `• Use a stable internet connection for best quality${lineBreak}`;
     description += `• Mute your microphone when not speaking${lineBreak}`;
-    
+
     return description;
   }
 

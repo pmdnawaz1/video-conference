@@ -1,24 +1,31 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
-import { Button } from '../../components/ui/button';
-import { Checkbox } from '../../components/ui/checkbox';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../../components/ui/dialog";
+import { Button } from "../../components/ui/button";
+import { Checkbox } from "../../components/ui/checkbox";
+import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
 
 const PermissionRequestModal = ({ isOpen, onClose, onSendRequest }) => {
   const [requestVideo, setRequestVideo] = useState(false);
   const [requestAudio, setRequestAudio] = useState(false);
   const [requestScreen, setRequestScreen] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
 
   const handleSubmit = () => {
     const requestedPermissions = [];
-    if (requestVideo) requestedPermissions.push('video');
-    if (requestAudio) requestedPermissions.push('audio');
-    if (requestScreen) requestedPermissions.push('screen');
+    if (requestVideo) requestedPermissions.push("video");
+    if (requestAudio) requestedPermissions.push("audio");
+    if (requestScreen) requestedPermissions.push("screen");
 
     if (requestedPermissions.length === 0) {
-      alert('Please select at least one permission to request.');
+      alert("Please select at least one permission to request.");
       return;
     }
 
@@ -32,7 +39,8 @@ const PermissionRequestModal = ({ isOpen, onClose, onSendRequest }) => {
         <DialogHeader>
           <DialogTitle>Request Permission</DialogTitle>
           <DialogDescription>
-            Ask the meeting admin for permission to use your camera, microphone, or share your screen.
+            Ask the meeting admin for permission to use your camera, microphone,
+            or share your screen.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -70,9 +78,7 @@ const PermissionRequestModal = ({ isOpen, onClose, onSendRequest }) => {
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>
-            Send Request
-          </Button>
+          <Button onClick={handleSubmit}>Send Request</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

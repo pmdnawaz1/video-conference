@@ -100,6 +100,7 @@ model Client {
   recordings      Recording[]
   analytics       UserAnalytics[]
   emailLogs       EmailLog[]
+  files           File[]
 
   @@map("clients")
 }
@@ -114,6 +115,8 @@ model User {
   role            UserRole  @default(USER)
   isActive        Boolean   @default(true)
   isEmailVerified Boolean   @default(false)
+  verificationToken String? // Email verification token
+  verificationExpires DateTime? // Token expiration
   passwordHash    String?   // nullable for OAuth users
   lastLoginAt     DateTime?
   timezone        String    @default("UTC")
@@ -141,6 +144,7 @@ model User {
   emailLogs       EmailLog[] @relation("EmailLogUser")
   meetingReactions MeetingReaction[]
   meetingInteractions MeetingInteraction[]
+  uploadedFiles   File[] @relation("UploadedFiles")
 
   @@map("users")
   @@index([email])
@@ -245,6 +249,7 @@ model Meeting {
   analytics       MeetingAnalytics[]
   reactions       MeetingReaction[]
   interactions    MeetingInteraction[]
+  files           File[]       @relation("MeetingFiles")
 
   @@map("meetings")
   @@index([createdBy])
@@ -628,4 +633,46 @@ model MeetingInteraction {
   @@index([userId])
   @@index([type])
   @@index([timestamp])
+}
+
+// File upload and storage model
+model File {
+  id            String   @id @default(cuid())
+  
+  // File metadata
+  fileName      String
+  originalName  String
+  mimeType      String
+  fileSize      BigInt
+  filePath      String?
+  fileUrl       String
+  
+  // File categorization
+  category      String   @default("general") // chat, meeting, profile, etc.
+  isPublic      Boolean  @default(false)
+  
+  // Usage tracking
+  downloadCount Int      @default(0)
+  viewCount     Int      @default(0)
+  
+  // File relationships
+  uploadedBy    String
+  clientId      String
+  meetingId     String?  // Optional association with meeting
+  messageId     String?  // Optional association with chat message
+  
+  // Relationships
+  uploader      User     @relation("UploadedFiles", fields: [uploadedBy], references: [id], onDelete: Cascade)
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  meeting       Meeting? @relation("MeetingFiles", fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("files")
+  @@index([uploadedBy])
+  @@index([clientId])
+  @@index([meetingId])
+  @@index([category])
+  @@index([createdAt])
 }

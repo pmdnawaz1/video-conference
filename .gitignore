@@ -199,6 +199,19 @@ coverage/
 *.o
 *.a
 
+# Critical: Build directories that should NEVER be in git
+/backend/dist/
+/frontend/dist/
+/frontend/dev-dist/
+
+# Environment files specific to this project
+/backend/.env
+/backend/.env.local
+/backend/.env.dev
+/backend/.env.production
+/frontend/.env
+/frontend/.env.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -232,11 +245,18 @@ Desktop.ini
 *.psd
 *.ai
 
-# Project specific
-# Logs from the video conference
+# Project specific uploads and recordings
+/backend/uploads/
+/backend/recordings/
 meeting-logs/
 recordings/
 uploads/
+
+# Application-specific temporary files
+/backend/admin_token.txt
+/backend/token.txt
+/backend/prisma/dev.db
+/backend/prisma/dev.db-journal
 
 # Development files
 scratch/
@@ -254,14 +274,25 @@ private/
 # Local development certificates
 localhost.pem
 localhost-key.pem
+certs/
 
 # Migration backups
 migrations/backup/
+backup_*
+backups/
 
 # Generated documentation
 docs/generated/
 
-# Package manager lock files (uncomment if you want to ignore)
+# Test artifacts and reports
+test-results/
+playwright-report/
+
+# Docker volumes (if using bind mounts)
+docker-volumes/
+
+# Package manager lock files (keeping them for dependency consistency)
+# Uncomment if you want to ignore them:
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml

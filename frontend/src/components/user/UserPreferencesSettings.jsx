@@ -1,54 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Switch } from '../ui/switch';
-import { Separator } from '../ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Badge } from '../ui/badge';
-import { Slider } from '../ui/slider';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { 
-  Settings, 
-  Bell, 
-  Camera, 
-  Mic, 
-  Volume2, 
-  Monitor, 
-  Globe, 
-  Palette, 
-  Shield, 
-  Download,
-  Upload,
-  Save,
-  RefreshCw,
-  Loader2,
-  Check,
-  AlertCircle,
-  Info,
-  Smartphone,
-  Mail,
-  MessageSquare,
-  Calendar,
-  Clock,
-  Moon,
-  Sun,
-  Eye,
-  Headphones
-} from 'lucide-react';
-import userAnalyticsService from '../../services/UserAnalyticsService';
-import useUserStore from '../../stores/userStore';
-import useUIStore from '../../stores/uiStore';
-import useAuthStore from '../../stores/authStore';
-import LoadingSpinner from '../ui/LoadingSpinner';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Switch } from "../ui/switch";
+import { Separator } from "../ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Badge } from "../ui/badge";
+import { Slider } from "../ui/slider";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import {
+  FiBell,
+  FiMail,
+  FiSmartphone,
+  FiMonitor,
+  FiUsers,
+  FiMessageSquare,
+  FiCalendar,
+  FiVideo,
+  FiMic,
+  FiSettings,
+  FiVolume2,
+  FiVolumeX,
+  FiSave,
+  FiRefreshCw,
+  FiX,
+  FiClock,
+  FiAlertCircle,
+} from "react-icons/fi";
+import { FaCheckCircle } from "react-icons/fa";
+import userAnalyticsService from "../../services/UserAnalyticsService";
+import useUserStore from "../../stores/userStore";
+import useUIStore from "../../stores/uiStore";
+import useAuthStore from "../../stores/authStore";
+import LoadingSpinner from "../ui/LoadingSpinner";
 
 const UserPreferencesSettings = ({ open, onOpenChange }) => {
   const { user } = useAuthStore();
   const { preferences, updatePreferences, isLoading } = useUserStore();
-  const { theme, setTheme, notifications, devices, updateNotificationSettings, updateDeviceSettings } = useUIStore();
-  
+  const {
+    theme,
+    setTheme,
+    notifications,
+    devices,
+    updateNotificationSettings,
+    updateDeviceSettings,
+  } = useUIStore();
+
   const [localPreferences, setLocalPreferences] = useState({});
   const [isUpdating, setIsUpdating] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -57,7 +68,7 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
   const [availableDevices, setAvailableDevices] = useState({
     cameras: [],
     microphones: [],
-    speakers: []
+    speakers: [],
   });
 
   // Initialize preferences
@@ -69,59 +80,72 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
           email: preferences.notifications?.email !== false,
           browser: preferences.notifications?.browser !== false,
           mobile: preferences.notifications?.mobile !== false,
-          meetingReminders: preferences.notifications?.meetingReminders !== false,
+          meetingReminders:
+            preferences.notifications?.meetingReminders !== false,
           meetingInvites: preferences.notifications?.meetingInvites !== false,
           chatMessages: preferences.notifications?.chatMessages !== false,
           systemUpdates: preferences.notifications?.systemUpdates !== false,
           soundEnabled: preferences.notifications?.soundEnabled !== false,
-          quietHours: preferences.notifications?.quietHours || { enabled: false, start: '22:00', end: '08:00' }
+          quietHours: preferences.notifications?.quietHours || {
+            enabled: false,
+            start: "22:00",
+            end: "08:00",
+          },
         },
-        
+
         // Meeting preferences
         meeting: {
           defaultAudio: preferences.meeting?.defaultAudio !== false,
           defaultVideo: preferences.meeting?.defaultVideo !== false,
           autoJoin: preferences.meeting?.autoJoin !== false,
           backgroundBlur: preferences.meeting?.backgroundBlur !== false,
-          timezone: preferences.meeting?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timezone:
+            preferences.meeting?.timezone ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
           joinEarlyMinutes: preferences.meeting?.joinEarlyMinutes || 5,
-          defaultQuality: preferences.meeting?.defaultQuality || 'auto',
+          defaultQuality: preferences.meeting?.defaultQuality || "auto",
           echoCancellation: preferences.meeting?.echoCancellation !== false,
           noiseSuppression: preferences.meeting?.noiseSuppression !== false,
           speakingIndicator: preferences.meeting?.speakingIndicator !== false,
-          recordingConsent: preferences.meeting?.recordingConsent || 'ask',
-          virtualBackground: preferences.meeting?.virtualBackground || 'none'
+          recordingConsent: preferences.meeting?.recordingConsent || "ask",
+          virtualBackground: preferences.meeting?.virtualBackground || "none",
         },
-        
+
         // Privacy preferences
         privacy: {
           showOnlineStatus: preferences.privacy?.showOnlineStatus !== false,
-          allowDirectMessages: preferences.privacy?.allowDirectMessages !== false,
-          shareParticipationStats: preferences.privacy?.shareParticipationStats !== false,
+          allowDirectMessages:
+            preferences.privacy?.allowDirectMessages !== false,
+          shareParticipationStats:
+            preferences.privacy?.shareParticipationStats !== false,
           dataCollection: preferences.privacy?.dataCollection !== false,
-          profileVisibility: preferences.privacy?.profileVisibility || 'organization',
-          activityTracking: preferences.privacy?.activityTracking !== false
+          profileVisibility:
+            preferences.privacy?.profileVisibility || "organization",
+          activityTracking: preferences.privacy?.activityTracking !== false,
         },
-        
+
         // Accessibility preferences
         accessibility: {
           highContrast: preferences.accessibility?.highContrast !== false,
           largeText: preferences.accessibility?.largeText !== false,
           screenReader: preferences.accessibility?.screenReader !== false,
-          keyboardNavigation: preferences.accessibility?.keyboardNavigation !== false,
+          keyboardNavigation:
+            preferences.accessibility?.keyboardNavigation !== false,
           reduceMotion: preferences.accessibility?.reduceMotion !== false,
           captionsEnabled: preferences.accessibility?.captionsEnabled !== false,
-          fontSize: preferences.accessibility?.fontSize || 'medium'
+          fontSize: preferences.accessibility?.fontSize || "medium",
         },
-        
+
         // Language and region
         localization: {
-          language: preferences.localization?.language || 'en',
-          dateFormat: preferences.localization?.dateFormat || 'MM/DD/YYYY',
-          timeFormat: preferences.localization?.timeFormat || '12',
-          timezone: preferences.localization?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-          currency: preferences.localization?.currency || 'USD'
-        }
+          language: preferences.localization?.language || "en",
+          dateFormat: preferences.localization?.dateFormat || "MM/DD/YYYY",
+          timeFormat: preferences.localization?.timeFormat || "12",
+          timezone:
+            preferences.localization?.timezone ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+          currency: preferences.localization?.currency || "USD",
+        },
       });
     }
   }, [preferences]);
@@ -134,31 +158,31 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
   const loadAvailableDevices = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      
+
       setAvailableDevices({
-        cameras: devices.filter(device => device.kind === 'videoinput'),
-        microphones: devices.filter(device => device.kind === 'audioinput'),
-        speakers: devices.filter(device => device.kind === 'audiooutput')
+        cameras: devices.filter((device) => device.kind === "videoinput"),
+        microphones: devices.filter((device) => device.kind === "audioinput"),
+        speakers: devices.filter((device) => device.kind === "audiooutput"),
       });
     } catch (error) {
-      console.error('Error loading devices:', error);
+      console.error("Error loading devices:", error);
     }
   };
 
   const handlePreferenceChange = (section, key, value) => {
-    setLocalPreferences(prev => ({
+    setLocalPreferences((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
-        [key]: value
-      }
+        [key]: value,
+      },
     }));
     setHasChanges(true);
     setSuccess(false);
-    
+
     // Clear any existing errors for this field
     if (errors[`${section}.${key}`]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[`${section}.${key}`];
         return newErrors;
@@ -179,12 +203,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
       }
 
       // Update preferences via service
-      const result = await userAnalyticsService.updateUserPreferences(localPreferences);
-      
+      const result =
+        await userAnalyticsService.updateUserPreferences(localPreferences);
+
       if (result.success) {
         // Update local stores
         await updatePreferences(localPreferences);
-        
+
         // Update UI store settings
         updateNotificationSettings(localPreferences.notifications);
         updateDeviceSettings({
@@ -193,24 +218,24 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
           preferredSpeaker: localPreferences.meeting?.preferredSpeaker,
           autoJoinAudio: localPreferences.meeting?.defaultAudio,
           autoJoinVideo: localPreferences.meeting?.defaultVideo,
-          backgroundBlur: localPreferences.meeting?.backgroundBlur
+          backgroundBlur: localPreferences.meeting?.backgroundBlur,
         });
 
         setSuccess(true);
         setHasChanges(false);
-        
+
         // Track preference update
-        userAnalyticsService.trackEvent('preferences_updated', {
+        userAnalyticsService.trackEvent("preferences_updated", {
           sections_updated: Object.keys(localPreferences),
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setErrors({ general: result.error || 'Failed to update preferences' });
+        setErrors({ general: result.error || "Failed to update preferences" });
       }
     } catch (error) {
-      setErrors({ general: 'Network error - please try again' });
+      setErrors({ general: "Network error - please try again" });
     } finally {
       setIsUpdating(false);
     }
@@ -218,24 +243,26 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
 
   const validatePreferences = () => {
     const errors = {};
-    
+
     // Validate timezone
     if (!localPreferences.localization?.timezone) {
-      errors['localization.timezone'] = 'Timezone is required';
+      errors["localization.timezone"] = "Timezone is required";
     }
-    
+
     // Validate quiet hours
     if (localPreferences.notifications?.quietHours?.enabled) {
       const { start, end } = localPreferences.notifications.quietHours;
       if (!start || !end) {
-        errors['notifications.quietHours'] = 'Quiet hours start and end times are required';
+        errors["notifications.quietHours"] =
+          "Quiet hours start and end times are required";
       }
     }
-    
+
     // Validate join early minutes
     const joinEarly = localPreferences.meeting?.joinEarlyMinutes;
     if (joinEarly < 0 || joinEarly > 30) {
-      errors['meeting.joinEarlyMinutes'] = 'Join early minutes must be between 0 and 30';
+      errors["meeting.joinEarlyMinutes"] =
+        "Join early minutes must be between 0 and 30";
     }
 
     return errors;
@@ -253,22 +280,22 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
   const handleExportPreferences = async () => {
     try {
       const data = JSON.stringify(localPreferences, null, 2);
-      const blob = new Blob([data], { type: 'application/json' });
+      const blob = new Blob([data], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
+
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `preferences-${user?.first_name}-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `preferences-${user?.first_name}-${new Date().toISOString().split("T")[0]}.json`;
       a.click();
-      
+
       URL.revokeObjectURL(url);
-      
-      userAnalyticsService.trackEvent('preferences_exported', {
-        export_format: 'json',
-        timestamp: Date.now()
+
+      userAnalyticsService.trackEvent("preferences_exported", {
+        export_format: "json",
+        timestamp: Date.now(),
       });
     } catch (error) {
-      setErrors({ general: 'Failed to export preferences' });
+      setErrors({ general: "Failed to export preferences" });
     }
   };
 
@@ -282,39 +309,39 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
         const importedPrefs = JSON.parse(e.target.result);
         setLocalPreferences(importedPrefs);
         setHasChanges(true);
-        
-        userAnalyticsService.trackEvent('preferences_imported', {
-          import_format: 'json',
-          timestamp: Date.now()
+
+        userAnalyticsService.trackEvent("preferences_imported", {
+          import_format: "json",
+          timestamp: Date.now(),
         });
       } catch (error) {
-        setErrors({ general: 'Invalid preferences file format' });
+        setErrors({ general: "Invalid preferences file format" });
       }
     };
     reader.readAsText(file);
   };
 
   const availableTimezones = [
-    { value: 'America/New_York', label: 'Eastern Time (ET)' },
-    { value: 'America/Chicago', label: 'Central Time (CT)' },
-    { value: 'America/Denver', label: 'Mountain Time (MT)' },
-    { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
-    { value: 'Europe/London', label: 'Greenwich Mean Time (GMT)' },
-    { value: 'Europe/Paris', label: 'Central European Time (CET)' },
-    { value: 'Asia/Tokyo', label: 'Japan Standard Time (JST)' },
-    { value: 'Asia/Shanghai', label: 'China Standard Time (CST)' },
-    { value: 'Australia/Sydney', label: 'Australian Eastern Time (AET)' }
+    { value: "America/New_York", label: "Eastern Time (ET)" },
+    { value: "America/Chicago", label: "Central Time (CT)" },
+    { value: "America/Denver", label: "Mountain Time (MT)" },
+    { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+    { value: "Europe/London", label: "Greenwich Mean Time (GMT)" },
+    { value: "Europe/Paris", label: "Central European Time (CET)" },
+    { value: "Asia/Tokyo", label: "Japan Standard Time (JST)" },
+    { value: "Asia/Shanghai", label: "China Standard Time (CST)" },
+    { value: "Australia/Sydney", label: "Australian Eastern Time (AET)" },
   ];
 
   const availableLanguages = [
-    { value: 'en', label: 'English' },
-    { value: 'es', label: 'Español' },
-    { value: 'fr', label: 'Français' },
-    { value: 'de', label: 'Deutsch' },
-    { value: 'it', label: 'Italiano' },
-    { value: 'pt', label: 'Português' },
-    { value: 'ja', label: '日本語' },
-    { value: 'zh', label: '中文' }
+    { value: "en", label: "English" },
+    { value: "es", label: "Español" },
+    { value: "fr", label: "Français" },
+    { value: "de", label: "Deutsch" },
+    { value: "it", label: "Italiano" },
+    { value: "pt", label: "Português" },
+    { value: "ja", label: "日本語" },
+    { value: "zh", label: "中文" },
   ];
 
   if (isLoading || Object.keys(localPreferences).length === 0) {
@@ -339,7 +366,7 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
             Customize your meeting experience and notification settings
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleExportPreferences}>
             <Download className="w-4 h-4 mr-2" />
@@ -385,7 +412,10 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
 
       <Tabs defaultValue="notifications" className="space-y-4">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
+          <TabsTrigger
+            value="notifications"
+            className="flex items-center gap-2"
+          >
             <Bell className="w-4 h-4" />
             <span className="hidden sm:inline">Notifications</span>
           </TabsTrigger>
@@ -397,7 +427,10 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
             <Shield className="w-4 h-4" />
             <span className="hidden sm:inline">Privacy</span>
           </TabsTrigger>
-          <TabsTrigger value="accessibility" className="flex items-center gap-2">
+          <TabsTrigger
+            value="accessibility"
+            className="flex items-center gap-2"
+          >
             <Eye className="w-4 h-4" />
             <span className="hidden sm:inline">Accessibility</span>
           </TabsTrigger>
@@ -428,13 +461,23 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <div className="flex items-center space-x-3">
                       <Mail className="w-5 h-5 text-blue-500" />
                       <div>
-                        <Label className="text-sm font-medium">Email Notifications</Label>
-                        <p className="text-xs text-muted-foreground">Receive notifications via email</p>
+                        <Label className="text-sm font-medium">
+                          Email Notifications
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Receive notifications via email
+                        </p>
                       </div>
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.email}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'email', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "email",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -442,13 +485,23 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <div className="flex items-center space-x-3">
                       <Monitor className="w-5 h-5 text-green-500" />
                       <div>
-                        <Label className="text-sm font-medium">Browser Notifications</Label>
-                        <p className="text-xs text-muted-foreground">Show desktop notifications</p>
+                        <Label className="text-sm font-medium">
+                          Browser Notifications
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Show desktop notifications
+                        </p>
                       </div>
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.browser}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'browser', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "browser",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -456,13 +509,23 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <div className="flex items-center space-x-3">
                       <Smartphone className="w-5 h-5 text-purple-500" />
                       <div>
-                        <Label className="text-sm font-medium">Mobile Notifications</Label>
-                        <p className="text-xs text-muted-foreground">Push notifications on mobile</p>
+                        <Label className="text-sm font-medium">
+                          Mobile Notifications
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Push notifications on mobile
+                        </p>
                       </div>
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.mobile}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'mobile', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "mobile",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -470,13 +533,23 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <div className="flex items-center space-x-3">
                       <Volume2 className="w-5 h-5 text-orange-500" />
                       <div>
-                        <Label className="text-sm font-medium">Sound Notifications</Label>
-                        <p className="text-xs text-muted-foreground">Play sounds for notifications</p>
+                        <Label className="text-sm font-medium">
+                          Sound Notifications
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Play sounds for notifications
+                        </p>
                       </div>
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.soundEnabled}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'soundEnabled', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "soundEnabled",
+                          checked,
+                        )
+                      }
                     />
                   </div>
                 </div>
@@ -495,7 +568,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.meetingReminders}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'meetingReminders', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "meetingReminders",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -506,7 +585,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.meetingInvites}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'meetingInvites', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "meetingInvites",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -517,18 +602,30 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.chatMessages}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'chatMessages', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "chatMessages",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <Settings className="w-4 h-4 text-gray-500" />
+                      <Settings className="w-4 h-4 text-muted-foreground" />
                       <Label>System updates</Label>
                     </div>
                     <Switch
                       checked={localPreferences.notifications?.systemUpdates}
-                      onCheckedChange={(checked) => handlePreferenceChange('notifications', 'systemUpdates', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "notifications",
+                          "systemUpdates",
+                          checked,
+                        )
+                      }
                     />
                   </div>
                 </div>
@@ -544,14 +641,20 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                       <Moon className="w-4 h-4" />
                       Quiet Hours
                     </h3>
-                    <p className="text-sm text-muted-foreground">Disable notifications during specific hours</p>
+                    <p className="text-sm text-muted-foreground">
+                      Disable notifications during specific hours
+                    </p>
                   </div>
                   <Switch
-                    checked={localPreferences.notifications?.quietHours?.enabled}
-                    onCheckedChange={(checked) => handlePreferenceChange('notifications', 'quietHours', {
-                      ...localPreferences.notifications?.quietHours,
-                      enabled: checked
-                    })}
+                    checked={
+                      localPreferences.notifications?.quietHours?.enabled
+                    }
+                    onCheckedChange={(checked) =>
+                      handlePreferenceChange("notifications", "quietHours", {
+                        ...localPreferences.notifications?.quietHours,
+                        enabled: checked,
+                      })
+                    }
                   />
                 </div>
 
@@ -562,11 +665,19 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                       <Input
                         id="quietStart"
                         type="time"
-                        value={localPreferences.notifications?.quietHours?.start}
-                        onChange={(e) => handlePreferenceChange('notifications', 'quietHours', {
-                          ...localPreferences.notifications?.quietHours,
-                          start: e.target.value
-                        })}
+                        value={
+                          localPreferences.notifications?.quietHours?.start
+                        }
+                        onChange={(e) =>
+                          handlePreferenceChange(
+                            "notifications",
+                            "quietHours",
+                            {
+                              ...localPreferences.notifications?.quietHours,
+                              start: e.target.value,
+                            },
+                          )
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -575,17 +686,25 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                         id="quietEnd"
                         type="time"
                         value={localPreferences.notifications?.quietHours?.end}
-                        onChange={(e) => handlePreferenceChange('notifications', 'quietHours', {
-                          ...localPreferences.notifications?.quietHours,
-                          end: e.target.value
-                        })}
+                        onChange={(e) =>
+                          handlePreferenceChange(
+                            "notifications",
+                            "quietHours",
+                            {
+                              ...localPreferences.notifications?.quietHours,
+                              end: e.target.value,
+                            },
+                          )
+                        }
                       />
                     </div>
                   </div>
                 )}
-                
-                {errors['notifications.quietHours'] && (
-                  <p className="text-sm text-red-500 ml-6">{errors['notifications.quietHours']}</p>
+
+                {errors["notifications.quietHours"] && (
+                  <p className="text-sm text-red-500 ml-6">
+                    {errors["notifications.quietHours"]}
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -616,7 +735,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.meeting?.defaultAudio}
-                      onCheckedChange={(checked) => handlePreferenceChange('meeting', 'defaultAudio', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "meeting",
+                          "defaultAudio",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -627,7 +752,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.meeting?.defaultVideo}
-                      onCheckedChange={(checked) => handlePreferenceChange('meeting', 'defaultVideo', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "meeting",
+                          "defaultVideo",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -638,7 +769,9 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.meeting?.autoJoin}
-                      onCheckedChange={(checked) => handlePreferenceChange('meeting', 'autoJoin', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange("meeting", "autoJoin", checked)
+                      }
                     />
                   </div>
 
@@ -649,7 +782,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.meeting?.backgroundBlur}
-                      onCheckedChange={(checked) => handlePreferenceChange('meeting', 'backgroundBlur', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "meeting",
+                          "backgroundBlur",
+                          checked,
+                        )
+                      }
                     />
                   </div>
                 </div>
@@ -668,7 +807,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.meeting?.echoCancellation}
-                      onCheckedChange={(checked) => handlePreferenceChange('meeting', 'echoCancellation', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "meeting",
+                          "echoCancellation",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -679,7 +824,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.meeting?.noiseSuppression}
-                      onCheckedChange={(checked) => handlePreferenceChange('meeting', 'noiseSuppression', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "meeting",
+                          "noiseSuppression",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -690,7 +841,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     </div>
                     <Switch
                       checked={localPreferences.meeting?.speakingIndicator}
-                      onCheckedChange={(checked) => handlePreferenceChange('meeting', 'speakingIndicator', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "meeting",
+                          "speakingIndicator",
+                          checked,
+                        )
+                      }
                     />
                   </div>
                 </div>
@@ -699,7 +856,8 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
               <Separator />
 
               {/* Device Preferences */}
-              {(availableDevices.cameras.length > 0 || availableDevices.microphones.length > 0) && (
+              {(availableDevices.cameras.length > 0 ||
+                availableDevices.microphones.length > 0) && (
                 <div className="space-y-4">
                   <h3 className="font-medium">Preferred Devices</h3>
                   <div className="grid grid-cols-1 gap-4">
@@ -707,17 +865,29 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                       <div className="space-y-2">
                         <Label>Camera</Label>
                         <Select
-                          value={localPreferences.meeting?.preferredCamera || ''}
-                          onValueChange={(value) => handlePreferenceChange('meeting', 'preferredCamera', value)}
+                          value={
+                            localPreferences.meeting?.preferredCamera || ""
+                          }
+                          onValueChange={(value) =>
+                            handlePreferenceChange(
+                              "meeting",
+                              "preferredCamera",
+                              value,
+                            )
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select camera" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="">Default</SelectItem>
-                            {availableDevices.cameras.map(device => (
-                              <SelectItem key={device.deviceId} value={device.deviceId}>
-                                {device.label || `Camera ${device.deviceId.substr(0, 8)}`}
+                            {availableDevices.cameras.map((device) => (
+                              <SelectItem
+                                key={device.deviceId}
+                                value={device.deviceId}
+                              >
+                                {device.label ||
+                                  `Camera ${device.deviceId.substr(0, 8)}`}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -729,17 +899,29 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                       <div className="space-y-2">
                         <Label>Microphone</Label>
                         <Select
-                          value={localPreferences.meeting?.preferredMicrophone || ''}
-                          onValueChange={(value) => handlePreferenceChange('meeting', 'preferredMicrophone', value)}
+                          value={
+                            localPreferences.meeting?.preferredMicrophone || ""
+                          }
+                          onValueChange={(value) =>
+                            handlePreferenceChange(
+                              "meeting",
+                              "preferredMicrophone",
+                              value,
+                            )
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select microphone" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="">Default</SelectItem>
-                            {availableDevices.microphones.map(device => (
-                              <SelectItem key={device.deviceId} value={device.deviceId}>
-                                {device.label || `Microphone ${device.deviceId.substr(0, 8)}`}
+                            {availableDevices.microphones.map((device) => (
+                              <SelectItem
+                                key={device.deviceId}
+                                value={device.deviceId}
+                              >
+                                {device.label ||
+                                  `Microphone ${device.deviceId.substr(0, 8)}`}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -751,17 +933,29 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                       <div className="space-y-2">
                         <Label>Speaker</Label>
                         <Select
-                          value={localPreferences.meeting?.preferredSpeaker || ''}
-                          onValueChange={(value) => handlePreferenceChange('meeting', 'preferredSpeaker', value)}
+                          value={
+                            localPreferences.meeting?.preferredSpeaker || ""
+                          }
+                          onValueChange={(value) =>
+                            handlePreferenceChange(
+                              "meeting",
+                              "preferredSpeaker",
+                              value,
+                            )
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select speaker" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="">Default</SelectItem>
-                            {availableDevices.speakers.map(device => (
-                              <SelectItem key={device.deviceId} value={device.deviceId}>
-                                {device.label || `Speaker ${device.deviceId.substr(0, 8)}`}
+                            {availableDevices.speakers.map((device) => (
+                              <SelectItem
+                                key={device.deviceId}
+                                value={device.deviceId}
+                              >
+                                {device.label ||
+                                  `Speaker ${device.deviceId.substr(0, 8)}`}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -782,7 +976,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Default video quality</Label>
                     <Select
                       value={localPreferences.meeting?.defaultQuality}
-                      onValueChange={(value) => handlePreferenceChange('meeting', 'defaultQuality', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "meeting",
+                          "defaultQuality",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -800,8 +1000,16 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Join early (minutes)</Label>
                     <div className="space-y-2">
                       <Slider
-                        value={[localPreferences.meeting?.joinEarlyMinutes || 5]}
-                        onValueChange={(value) => handlePreferenceChange('meeting', 'joinEarlyMinutes', value[0])}
+                        value={[
+                          localPreferences.meeting?.joinEarlyMinutes || 5,
+                        ]}
+                        onValueChange={(value) =>
+                          handlePreferenceChange(
+                            "meeting",
+                            "joinEarlyMinutes",
+                            value[0],
+                          )
+                        }
                         max={30}
                         min={0}
                         step={1}
@@ -809,12 +1017,17 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>0 min</span>
-                        <span>{localPreferences.meeting?.joinEarlyMinutes || 5} minutes</span>
+                        <span>
+                          {localPreferences.meeting?.joinEarlyMinutes || 5}{" "}
+                          minutes
+                        </span>
                         <span>30 min</span>
                       </div>
                     </div>
-                    {errors['meeting.joinEarlyMinutes'] && (
-                      <p className="text-sm text-red-500">{errors['meeting.joinEarlyMinutes']}</p>
+                    {errors["meeting.joinEarlyMinutes"] && (
+                      <p className="text-sm text-red-500">
+                        {errors["meeting.joinEarlyMinutes"]}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -829,7 +1042,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                   <Label>Recording consent</Label>
                   <RadioGroup
                     value={localPreferences.meeting?.recordingConsent}
-                    onValueChange={(value) => handlePreferenceChange('meeting', 'recordingConsent', value)}
+                    onValueChange={(value) =>
+                      handlePreferenceChange(
+                        "meeting",
+                        "recordingConsent",
+                        value,
+                      )
+                    }
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="always" id="always" />
@@ -871,7 +1090,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Show online status</Label>
                     <Switch
                       checked={localPreferences.privacy?.showOnlineStatus}
-                      onCheckedChange={(checked) => handlePreferenceChange('privacy', 'showOnlineStatus', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "privacy",
+                          "showOnlineStatus",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -879,7 +1104,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Allow direct messages</Label>
                     <Switch
                       checked={localPreferences.privacy?.allowDirectMessages}
-                      onCheckedChange={(checked) => handlePreferenceChange('privacy', 'allowDirectMessages', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "privacy",
+                          "allowDirectMessages",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -887,14 +1118,22 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Profile visibility</Label>
                     <Select
                       value={localPreferences.privacy?.profileVisibility}
-                      onValueChange={(value) => handlePreferenceChange('privacy', 'profileVisibility', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "privacy",
+                          "profileVisibility",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="public">Public</SelectItem>
-                        <SelectItem value="organization">Organization only</SelectItem>
+                        <SelectItem value="organization">
+                          Organization only
+                        </SelectItem>
                         <SelectItem value="private">Private</SelectItem>
                       </SelectContent>
                     </Select>
@@ -911,33 +1150,59 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Share participation statistics</Label>
-                      <p className="text-xs text-muted-foreground">Allow admins to see your meeting participation stats</p>
+                      <p className="text-xs text-muted-foreground">
+                        Allow admins to see your meeting participation stats
+                      </p>
                     </div>
                     <Switch
-                      checked={localPreferences.privacy?.shareParticipationStats}
-                      onCheckedChange={(checked) => handlePreferenceChange('privacy', 'shareParticipationStats', checked)}
+                      checked={
+                        localPreferences.privacy?.shareParticipationStats
+                      }
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "privacy",
+                          "shareParticipationStats",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Activity tracking</Label>
-                      <p className="text-xs text-muted-foreground">Track activity for analytics and improvements</p>
+                      <p className="text-xs text-muted-foreground">
+                        Track activity for analytics and improvements
+                      </p>
                     </div>
                     <Switch
                       checked={localPreferences.privacy?.activityTracking}
-                      onCheckedChange={(checked) => handlePreferenceChange('privacy', 'activityTracking', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "privacy",
+                          "activityTracking",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Data collection for insights</Label>
-                      <p className="text-xs text-muted-foreground">Help improve the platform with usage data</p>
+                      <p className="text-xs text-muted-foreground">
+                        Help improve the platform with usage data
+                      </p>
                     </div>
                     <Switch
                       checked={localPreferences.privacy?.dataCollection}
-                      onCheckedChange={(checked) => handlePreferenceChange('privacy', 'dataCollection', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "privacy",
+                          "dataCollection",
+                          checked,
+                        )
+                      }
                     />
                   </div>
                 </div>
@@ -967,7 +1232,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>High contrast mode</Label>
                     <Switch
                       checked={localPreferences.accessibility?.highContrast}
-                      onCheckedChange={(checked) => handlePreferenceChange('accessibility', 'highContrast', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "accessibility",
+                          "highContrast",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -975,7 +1246,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Large text</Label>
                     <Switch
                       checked={localPreferences.accessibility?.largeText}
-                      onCheckedChange={(checked) => handlePreferenceChange('accessibility', 'largeText', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "accessibility",
+                          "largeText",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -983,7 +1260,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Reduce motion</Label>
                     <Switch
                       checked={localPreferences.accessibility?.reduceMotion}
-                      onCheckedChange={(checked) => handlePreferenceChange('accessibility', 'reduceMotion', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "accessibility",
+                          "reduceMotion",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
@@ -991,7 +1274,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Font size</Label>
                     <Select
                       value={localPreferences.accessibility?.fontSize}
-                      onValueChange={(value) => handlePreferenceChange('accessibility', 'fontSize', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "accessibility",
+                          "fontSize",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1016,33 +1305,59 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Screen reader support</Label>
-                      <p className="text-xs text-muted-foreground">Optimize for screen readers</p>
+                      <p className="text-xs text-muted-foreground">
+                        Optimize for screen readers
+                      </p>
                     </div>
                     <Switch
                       checked={localPreferences.accessibility?.screenReader}
-                      onCheckedChange={(checked) => handlePreferenceChange('accessibility', 'screenReader', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "accessibility",
+                          "screenReader",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Keyboard navigation</Label>
-                      <p className="text-xs text-muted-foreground">Enhanced keyboard support</p>
+                      <p className="text-xs text-muted-foreground">
+                        Enhanced keyboard support
+                      </p>
                     </div>
                     <Switch
-                      checked={localPreferences.accessibility?.keyboardNavigation}
-                      onCheckedChange={(checked) => handlePreferenceChange('accessibility', 'keyboardNavigation', checked)}
+                      checked={
+                        localPreferences.accessibility?.keyboardNavigation
+                      }
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "accessibility",
+                          "keyboardNavigation",
+                          checked,
+                        )
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Auto-generated captions</Label>
-                      <p className="text-xs text-muted-foreground">Show captions during meetings</p>
+                      <p className="text-xs text-muted-foreground">
+                        Show captions during meetings
+                      </p>
                     </div>
                     <Switch
                       checked={localPreferences.accessibility?.captionsEnabled}
-                      onCheckedChange={(checked) => handlePreferenceChange('accessibility', 'captionsEnabled', checked)}
+                      onCheckedChange={(checked) =>
+                        handlePreferenceChange(
+                          "accessibility",
+                          "captionsEnabled",
+                          checked,
+                        )
+                      }
                     />
                   </div>
                 </div>
@@ -1072,13 +1387,19 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Interface language</Label>
                     <Select
                       value={localPreferences.localization?.language}
-                      onValueChange={(value) => handlePreferenceChange('localization', 'language', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "localization",
+                          "language",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableLanguages.map(lang => (
+                        {availableLanguages.map((lang) => (
                           <SelectItem key={lang.value} value={lang.value}>
                             {lang.label}
                           </SelectItem>
@@ -1091,21 +1412,29 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Timezone</Label>
                     <Select
                       value={localPreferences.localization?.timezone}
-                      onValueChange={(value) => handlePreferenceChange('localization', 'timezone', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "localization",
+                          "timezone",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableTimezones.map(tz => (
+                        {availableTimezones.map((tz) => (
                           <SelectItem key={tz.value} value={tz.value}>
                             {tz.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors['localization.timezone'] && (
-                      <p className="text-sm text-red-500">{errors['localization.timezone']}</p>
+                    {errors["localization.timezone"] && (
+                      <p className="text-sm text-red-500">
+                        {errors["localization.timezone"]}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1121,7 +1450,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Date format</Label>
                     <Select
                       value={localPreferences.localization?.dateFormat}
-                      onValueChange={(value) => handlePreferenceChange('localization', 'dateFormat', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "localization",
+                          "dateFormat",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1139,7 +1474,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Time format</Label>
                     <Select
                       value={localPreferences.localization?.timeFormat}
-                      onValueChange={(value) => handlePreferenceChange('localization', 'timeFormat', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "localization",
+                          "timeFormat",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1155,7 +1496,13 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
                     <Label>Currency</Label>
                     <Select
                       value={localPreferences.localization?.currency}
-                      onValueChange={(value) => handlePreferenceChange('localization', 'currency', value)}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          "localization",
+                          "currency",
+                          value,
+                        )
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1183,15 +1530,22 @@ const UserPreferencesSettings = ({ open, onOpenChange }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {hasChanges && (
-                <Badge variant="outline" className="text-orange-600 border-orange-300">
+                <Badge
+                  variant="outline"
+                  className="text-orange-600 border-orange-300"
+                >
                   <Info className="w-3 h-3 mr-1" />
                   You have unsaved changes
                 </Badge>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={handleReset} disabled={!hasChanges || isUpdating}>
+              <Button
+                variant="outline"
+                onClick={handleReset}
+                disabled={!hasChanges || isUpdating}
+              >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Reset
               </Button>

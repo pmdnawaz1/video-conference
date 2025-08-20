@@ -1,9 +1,9 @@
-import express from 'express';
-import { authenticate } from '../middleware/authMiddleware';
-import { adminMiddleware } from '../middleware/adminMiddleware';
-import { invitationService } from '../services/invitationService';
-import { InvitationType, UserRole } from '@prisma/client';
-import { AuthenticatedRequest } from '../types';
+import express from "express";
+import { authenticate } from "../middleware/authMiddleware";
+import { adminMiddleware } from "../middleware/adminMiddleware";
+import { invitationService } from "../services/invitationService";
+import { InvitationType, UserRole } from "@prisma/client";
+import { AuthenticatedRequest } from "../types";
 
 const router = express.Router();
 
@@ -12,10 +12,10 @@ const router = express.Router();
  * @desc Create a new invitation
  * @access Private (Admin/User)
  */
-router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
+router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      return res.status(401).json({ error: "User not authenticated" });
     }
     const {
       email,
@@ -28,11 +28,11 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
       meetingRole,
       groupId,
       groupRole,
-      expirationHours
+      expirationHours,
     } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+      return res.status(400).json({ error: "Email is required" });
     }
 
     const invitation = await invitationService.createInvitation({
@@ -55,7 +55,7 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
     try {
       await invitationService.sendInvitationEmail(invitation.id);
     } catch (emailError) {
-      console.warn('Failed to send invitation email:', emailError);
+      console.warn("Failed to send invitation email:", emailError);
       // Don't fail the request if email fails
     }
 
@@ -77,9 +77,10 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
       },
     });
   } catch (error) {
-    console.error('Error creating invitation:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to create invitation' 
+    console.error("Error creating invitation:", error);
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : "Failed to create invitation",
     });
   }
 });
@@ -89,163 +90,201 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
  * @desc Create bulk invitations
  * @access Private (Admin)
  */
-router.post('/bulk', authenticate, adminMiddleware, async (req: AuthenticatedRequest, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-    const {
-      invitations,
-      invitationType = InvitationType.BULK,
-      groupId,
-      meetingId,
-      expirationHours
-    } = req.body;
-
-    if (!invitations || !Array.isArray(invitations) || invitations.length === 0) {
-      return res.status(400).json({ error: 'Invitations array is required and must not be empty' });
-    }
-
-    if (invitations.length > 100) {
-      return res.status(400).json({ error: 'Maximum 100 invitations per bulk request' });
-    }
-
-    const result = await invitationService.createBulkInvitations({
-      invitations,
-      invitationType,
-      senderId: req.user.id,
-      clientId: req.user.clientId,
-      groupId,
-      meetingId,
-      expirationHours,
-    });
-
-    // Send invitation emails for successful invitations
-    for (const invitation of result.invitations) {
-      try {
-        await invitationService.sendInvitationEmail(invitation.id);
-      } catch (emailError) {
-        console.warn(`Failed to send invitation email to ${invitation.email}:`, emailError);
+router.post(
+  "/bulk",
+  authenticate,
+  adminMiddleware,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "User not authenticated" });
       }
-    }
+      const {
+        invitations,
+        invitationType = InvitationType.BULK,
+        groupId,
+        meetingId,
+        expirationHours,
+      } = req.body;
 
-    res.status(201).json({
-      success: true,
-      result: {
-        created: result.created,
-        failed: result.failed,
-        batchId: result.batchId,
-        totalInvitations: result.invitations.length,
-        errors: result.errors,
-      },
-    });
-  } catch (error) {
-    console.error('Error creating bulk invitations:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to create bulk invitations' 
-    });
-  }
-});
+      if (
+        !invitations ||
+        !Array.isArray(invitations) ||
+        invitations.length === 0
+      ) {
+        return res.status(400).json({
+          error: "Invitations array is required and must not be empty",
+        });
+      }
+
+      if (invitations.length > 100) {
+        return res
+          .status(400)
+          .json({ error: "Maximum 100 invitations per bulk request" });
+      }
+
+      const result = await invitationService.createBulkInvitations({
+        invitations,
+        invitationType,
+        senderId: req.user.id,
+        clientId: req.user.clientId,
+        groupId,
+        meetingId,
+        expirationHours,
+      });
+
+      // Send invitation emails for successful invitations
+      for (const invitation of result.invitations) {
+        try {
+          await invitationService.sendInvitationEmail(invitation.id);
+        } catch (emailError) {
+          console.warn(
+            `Failed to send invitation email to ${invitation.email}:`,
+            emailError,
+          );
+        }
+      }
+
+      res.status(201).json({
+        success: true,
+        result: {
+          created: result.created,
+          failed: result.failed,
+          batchId: result.batchId,
+          totalInvitations: result.invitations.length,
+          errors: result.errors,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating bulk invitations:", error);
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create bulk invitations",
+      });
+    }
+  },
+);
 
 /**
  * @route GET /api/invitations
  * @desc Get invitations with pagination and filtering
  * @access Private (Admin)
  */
-router.get('/', authenticate, adminMiddleware, async (req: AuthenticatedRequest, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
+router.get(
+  "/",
+  authenticate,
+  adminMiddleware,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      const {
+        page = 1,
+        limit = 50,
+        status,
+        invitationType,
+        senderId,
+        search,
+        startDate,
+        endDate,
+      } = req.query;
+
+      const options: any = {
+        page: parseInt(page as string),
+        limit: Math.min(parseInt(limit as string), 100), // Max 100 per page
+      };
+
+      if (status) options.status = status;
+      if (invitationType) options.invitationType = invitationType;
+      if (senderId) options.senderId = senderId as string;
+      if (search) options.search = search as string;
+      if (startDate) options.startDate = new Date(startDate as string);
+      if (endDate) options.endDate = new Date(endDate as string);
+
+      const result = await invitationService.getInvitations(
+        req.user.clientId,
+        options,
+      );
+
+      res.json({
+        success: true,
+        invitations: result.invitations,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      console.error("Error fetching invitations:", error);
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch invitations",
+      });
     }
-    const {
-      page = 1,
-      limit = 50,
-      status,
-      invitationType,
-      senderId,
-      search,
-      startDate,
-      endDate,
-    } = req.query;
-
-    const options: any = {
-      page: parseInt(page as string),
-      limit: Math.min(parseInt(limit as string), 100), // Max 100 per page
-    };
-
-    if (status) options.status = status;
-    if (invitationType) options.invitationType = invitationType;
-    if (senderId) options.senderId = senderId as string;
-    if (search) options.search = search as string;
-    if (startDate) options.startDate = new Date(startDate as string);
-    if (endDate) options.endDate = new Date(endDate as string);
-
-    const result = await invitationService.getInvitations(req.user.clientId, options);
-
-    res.json({
-      success: true,
-      invitations: result.invitations,
-      pagination: result.pagination,
-    });
-  } catch (error) {
-    console.error('Error fetching invitations:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to fetch invitations' 
-    });
-  }
-});
+  },
+);
 
 /**
  * @route GET /api/invitations/stats
  * @desc Get invitation statistics
  * @access Private (Admin)
  */
-router.get('/stats', authenticate, adminMiddleware, async (req: AuthenticatedRequest, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
+router.get(
+  "/stats",
+  authenticate,
+  adminMiddleware,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      const { startDate, endDate } = req.query;
+
+      const options: { startDate?: Date; endDate?: Date } = {};
+      if (startDate) options.startDate = new Date(startDate as string);
+      if (endDate) options.endDate = new Date(endDate as string);
+
+      const stats = await invitationService.getInvitationStats(
+        req.user.clientId,
+        options.startDate,
+        options.endDate,
+      );
+
+      res.json({
+        success: true,
+        stats,
+      });
+    } catch (error) {
+      console.error("Error fetching invitation stats:", error);
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch invitation stats",
+      });
     }
-    const { startDate, endDate } = req.query;
-    
-    const options: { startDate?: Date; endDate?: Date } = {};
-    if (startDate) options.startDate = new Date(startDate as string);
-    if (endDate) options.endDate = new Date(endDate as string);
-
-    const stats = await invitationService.getInvitationStats(
-      req.user.clientId,
-      options.startDate,
-      options.endDate
-    );
-
-    res.json({
-      success: true,
-      stats,
-    });
-  } catch (error) {
-    console.error('Error fetching invitation stats:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to fetch invitation stats' 
-    });
-  }
-});
+  },
+);
 
 /**
  * @route GET /api/invitations/token/:token
  * @desc Get invitation details by token (for accept page)
  * @access Public
  */
-router.get('/token/:token', async (req, res) => {
+router.get("/token/:token", async (req, res) => {
   try {
     const { token } = req.params;
 
     if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
+      return res.status(400).json({ error: "Token is required" });
     }
 
     const invitation = await invitationService.getInvitationByToken(token);
 
     if (!invitation) {
-      return res.status(404).json({ error: 'Invitation not found or expired' });
+      return res.status(404).json({ error: "Invitation not found or expired" });
     }
 
     res.json({
@@ -268,9 +307,10 @@ router.get('/token/:token', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching invitation by token:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to fetch invitation' 
+    console.error("Error fetching invitation by token:", error);
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : "Failed to fetch invitation",
     });
   }
 });
@@ -280,17 +320,22 @@ router.get('/token/:token', async (req, res) => {
  * @desc Accept invitation and create user account
  * @access Public
  */
-router.post('/accept', async (req, res) => {
+router.post("/accept", async (req, res) => {
   try {
     const { token, userData } = req.body;
 
     if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
+      return res.status(400).json({ error: "Token is required" });
     }
 
-    if (!userData || !userData.firstName || !userData.lastName || !userData.password) {
-      return res.status(400).json({ 
-        error: 'User data (firstName, lastName, password) is required' 
+    if (
+      !userData ||
+      !userData.firstName ||
+      !userData.lastName ||
+      !userData.password
+    ) {
+      return res.status(400).json({
+        error: "User data (firstName, lastName, password) is required",
       });
     }
 
@@ -301,7 +346,7 @@ router.post('/accept', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Invitation accepted successfully',
+      message: "Invitation accepted successfully",
       user: {
         id: result.user.id,
         email: result.user.email,
@@ -315,9 +360,10 @@ router.post('/accept', async (req, res) => {
       invitation: result.invitation,
     });
   } catch (error) {
-    console.error('Error accepting invitation:', error);
-    res.status(400).json({ 
-      error: error instanceof Error ? error.message : 'Failed to accept invitation' 
+    console.error("Error accepting invitation:", error);
+    res.status(400).json({
+      error:
+        error instanceof Error ? error.message : "Failed to accept invitation",
     });
   }
 });
@@ -327,24 +373,25 @@ router.post('/accept', async (req, res) => {
  * @desc Decline invitation
  * @access Public
  */
-router.post('/decline', async (req, res) => {
+router.post("/decline", async (req, res) => {
   try {
     const { token, reason } = req.body;
 
     if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
+      return res.status(400).json({ error: "Token is required" });
     }
 
     const success = await invitationService.declineInvitation(token, reason);
 
     res.json({
       success,
-      message: 'Invitation declined successfully',
+      message: "Invitation declined successfully",
     });
   } catch (error) {
-    console.error('Error declining invitation:', error);
-    res.status(400).json({ 
-      error: error instanceof Error ? error.message : 'Failed to decline invitation' 
+    console.error("Error declining invitation:", error);
+    res.status(400).json({
+      error:
+        error instanceof Error ? error.message : "Failed to decline invitation",
     });
   }
 });
@@ -354,39 +401,48 @@ router.post('/decline', async (req, res) => {
  * @desc Resend invitation email
  * @access Private (Admin or Sender)
  */
-router.post('/:id/resend', authenticate, async (req: AuthenticatedRequest, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
+router.post(
+  "/:id/resend",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      const { id } = req.params;
+
+      // TODO: Add check to ensure user can resend this invitation
+      // (either admin or sender)
+
+      const success = await invitationService.resendInvitation(id);
+
+      res.json({
+        success,
+        message: success
+          ? "Invitation resent successfully"
+          : "Failed to resend invitation",
+      });
+    } catch (error) {
+      console.error("Error resending invitation:", error);
+      res.status(400).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to resend invitation",
+      });
     }
-    const { id } = req.params;
-
-    // TODO: Add check to ensure user can resend this invitation
-    // (either admin or sender)
-
-    const success = await invitationService.resendInvitation(id);
-
-    res.json({
-      success,
-      message: success ? 'Invitation resent successfully' : 'Failed to resend invitation',
-    });
-  } catch (error) {
-    console.error('Error resending invitation:', error);
-    res.status(400).json({ 
-      error: error instanceof Error ? error.message : 'Failed to resend invitation' 
-    });
-  }
-});
+  },
+);
 
 /**
  * @route DELETE /api/invitations/:id
  * @desc Cancel invitation
  * @access Private (Admin or Sender)
  */
-router.delete('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+router.delete("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      return res.status(401).json({ error: "User not authenticated" });
     }
     const { id } = req.params;
 
@@ -397,12 +453,15 @@ router.delete('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
 
     res.json({
       success,
-      message: success ? 'Invitation cancelled successfully' : 'Failed to cancel invitation',
+      message: success
+        ? "Invitation cancelled successfully"
+        : "Failed to cancel invitation",
     });
   } catch (error) {
-    console.error('Error cancelling invitation:', error);
-    res.status(400).json({ 
-      error: error instanceof Error ? error.message : 'Failed to cancel invitation' 
+    console.error("Error cancelling invitation:", error);
+    res.status(400).json({
+      error:
+        error instanceof Error ? error.message : "Failed to cancel invitation",
     });
   }
 });
@@ -412,21 +471,29 @@ router.delete('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
  * @desc Clean up expired invitations
  * @access Private (Admin)
  */
-router.post('/cleanup', authenticate, adminMiddleware, async (req: AuthenticatedRequest, res) => {
-  try {
-    const count = await invitationService.cleanupExpiredInvitations();
+router.post(
+  "/cleanup",
+  authenticate,
+  adminMiddleware,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const count = await invitationService.cleanupExpiredInvitations();
 
-    res.json({
-      success: true,
-      message: `Cleaned up ${count} expired invitations`,
-      expiredCount: count,
-    });
-  } catch (error) {
-    console.error('Error cleaning up expired invitations:', error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Failed to cleanup expired invitations' 
-    });
-  }
-});
+      res.json({
+        success: true,
+        message: `Cleaned up ${count} expired invitations`,
+        expiredCount: count,
+      });
+    } catch (error) {
+      console.error("Error cleaning up expired invitations:", error);
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to cleanup expired invitations",
+      });
+    }
+  },
+);
 
 export default router;

@@ -1,5 +1,5 @@
-import { prisma } from './prismaService';
-import { EventEmitter } from 'events';
+import { prisma } from "./prismaService";
+import { EventEmitter } from "events";
 
 export interface RoomStats {
   totalRooms: number;
@@ -29,11 +29,14 @@ export class RoomManagementService extends EventEmitter {
 
   constructor() {
     super();
-    
+
     // Start periodic cleanup every 5 minutes
-    this.cleanupInterval = setInterval(async () => {
-      await this.performMaintenance();
-    }, 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      async () => {
+        await this.performMaintenance();
+      },
+      5 * 60 * 1000,
+    );
   }
 
   /**
@@ -62,26 +65,28 @@ export class RoomManagementService extends EventEmitter {
             select: {
               name: true,
               domain: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // Link to meeting if provided
       if (data.meetingId) {
         await prisma.meeting.update({
           where: { id: data.meetingId },
-          data: { roomId: room.id }
+          data: { roomId: room.id },
         });
       }
 
-      this.emit('roomCreated', { room, createdBy: data.createdBy });
-      
-      console.log(`🏠 Room created: ${room.name} (${room.id}) for client ${room.client.name}`);
+      this.emit("roomCreated", { room, createdBy: data.createdBy });
+
+      console.log(
+        `🏠 Room created: ${room.name} (${room.id}) for client ${room.client.name}`,
+      );
       return room;
     } catch (error) {
-      console.error('Error creating room:', error);
-      throw new Error('Failed to create room');
+      console.error("Error creating room:", error);
+      throw new Error("Failed to create room");
     }
   }
 
@@ -98,7 +103,7 @@ export class RoomManagementService extends EventEmitter {
               name: true,
               domain: true,
               features: true,
-            }
+            },
           },
           meeting: {
             select: {
@@ -111,7 +116,7 @@ export class RoomManagementService extends EventEmitter {
               isRecordingEnabled: true,
               allowScreenShare: true,
               allowChat: true,
-            }
+            },
           },
           participants: {
             where: { isPresent: true },
@@ -123,25 +128,25 @@ export class RoomManagementService extends EventEmitter {
                   lastName: true,
                   displayName: true,
                   avatar: true,
-                }
-              }
+                },
+              },
             },
-            orderBy: { joinedAt: 'asc' }
+            orderBy: { joinedAt: "asc" },
           },
           chatMessages: {
             take: 50,
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             include: {
               user: {
                 select: {
                   firstName: true,
                   lastName: true,
                   displayName: true,
-                }
-              }
-            }
-          }
-        }
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!room) {
@@ -162,8 +167,8 @@ export class RoomManagementService extends EventEmitter {
         chatMessages: room.chatMessages.reverse(), // Show oldest first
       };
     } catch (error) {
-      console.error('Error getting room details:', error);
-      throw new Error('Failed to get room details');
+      console.error("Error getting room details:", error);
+      throw new Error("Failed to get room details");
     }
   }
 
@@ -180,15 +185,17 @@ export class RoomManagementService extends EventEmitter {
       // Check if room exists and has capacity
       const room = await prisma.room.findUnique({
         where: { id: data.roomId },
-        include: { _count: { select: { participants: { where: { isPresent: true } } } } }
+        include: {
+          _count: { select: { participants: { where: { isPresent: true } } } },
+        },
       });
 
       if (!room) {
-        throw new Error('Room not found');
+        throw new Error("Room not found");
       }
 
       if (room._count.participants >= room.maxParticipants) {
-        throw new Error('Room is full');
+        throw new Error("Room is full");
       }
 
       // Add participant
@@ -196,12 +203,12 @@ export class RoomManagementService extends EventEmitter {
         where: {
           userId_meetingId: {
             userId: data.userId,
-            meetingId: data.meetingId || 'instant-' + data.roomId, // Use room ID if no meeting
+            meetingId: data.meetingId || "instant-" + data.roomId, // Use room ID if no meeting
           },
         },
         create: {
           userId: data.userId,
-          meetingId: data.meetingId || 'instant-' + data.roomId,
+          meetingId: data.meetingId || "instant-" + data.roomId,
           roomId: data.roomId,
           isPresent: true,
           joinedAt: new Date(),
@@ -218,20 +225,22 @@ export class RoomManagementService extends EventEmitter {
               firstName: true,
               lastName: true,
               displayName: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // Update room participant count
       await this.updateRoomParticipantCount(data.roomId);
 
-      this.emit('userJoinedRoom', { participant, room });
-      
-      console.log(`👤 User ${participant.user.displayName} joined room ${room.name}`);
+      this.emit("userJoinedRoom", { participant, room });
+
+      console.log(
+        `👤 User ${participant.user.displayName} joined room ${room.name}`,
+      );
       return participant;
     } catch (error) {
-      console.error('Error adding user to room:', error);
+      console.error("Error adding user to room:", error);
       throw error;
     }
   }
@@ -257,34 +266,41 @@ export class RoomManagementService extends EventEmitter {
       if (updated.count > 0) {
         // Update room participant count
         await this.updateRoomParticipantCount(roomId);
-        
+
         // Get user info for logging
         const user = await prisma.user.findUnique({
           where: { id: userId },
-          select: { displayName: true, firstName: true, lastName: true }
+          select: { displayName: true, firstName: true, lastName: true },
         });
 
-        this.emit('userLeftRoom', { userId, roomId, userName: user?.displayName });
-        
+        this.emit("userLeftRoom", {
+          userId,
+          roomId,
+          userName: user?.displayName,
+        });
+
         console.log(`👤 User ${user?.displayName} left room ${roomId}`);
       }
 
       return updated.count > 0;
     } catch (error) {
-      console.error('Error removing user from room:', error);
-      throw new Error('Failed to remove user from room');
+      console.error("Error removing user from room:", error);
+      throw new Error("Failed to remove user from room");
     }
   }
 
   /**
    * Update room settings
    */
-  async updateRoomSettings(roomId: string, updates: {
-    isLocked?: boolean;
-    isRecording?: boolean;
-    screenShareUserId?: string | null;
-    maxParticipants?: number;
-  }) {
+  async updateRoomSettings(
+    roomId: string,
+    updates: {
+      isLocked?: boolean;
+      isRecording?: boolean;
+      screenShareUserId?: string | null;
+      maxParticipants?: number;
+    },
+  ) {
     try {
       const room = await prisma.room.update({
         where: { id: roomId },
@@ -294,12 +310,12 @@ export class RoomManagementService extends EventEmitter {
         },
       });
 
-      this.emit('roomUpdated', { room, updates });
-      
+      this.emit("roomUpdated", { room, updates });
+
       return room;
     } catch (error) {
-      console.error('Error updating room settings:', error);
-      throw new Error('Failed to update room settings');
+      console.error("Error updating room settings:", error);
+      throw new Error("Failed to update room settings");
     }
   }
 
@@ -334,18 +350,18 @@ export class RoomManagementService extends EventEmitter {
       await prisma.meeting.updateMany({
         where: { roomId },
         data: {
-          status: 'ENDED',
+          status: "ENDED",
           actualEndTime: new Date(),
         },
       });
 
-      this.emit('roomEnded', { room, endedBy });
-      
+      this.emit("roomEnded", { room, endedBy });
+
       console.log(`🏠 Room ended: ${room.name} (${roomId})`);
       return room;
     } catch (error) {
-      console.error('Error ending room:', error);
-      throw new Error('Failed to end room');
+      console.error("Error ending room:", error);
+      throw new Error("Failed to end room");
     }
   }
 
@@ -361,46 +377,51 @@ export class RoomManagementService extends EventEmitter {
         activeRooms,
         participantCounts,
         recordingRooms,
-        screenShareRooms
+        screenShareRooms,
       ] = await Promise.all([
         prisma.room.count({ where: whereClause }),
         prisma.room.count({ where: { ...whereClause, isActive: true } }),
         prisma.room.aggregate({
           where: { ...whereClause, isActive: true },
           _sum: { currentParticipants: true },
-          _count: { id: true }
+          _count: { id: true },
         }),
         prisma.room.count({ where: { ...whereClause, isRecording: true } }),
-        prisma.room.count({ 
-          where: { 
-            ...whereClause, 
-            screenShareUserId: { not: null } 
-          } 
-        })
+        prisma.room.count({
+          where: {
+            ...whereClause,
+            screenShareUserId: { not: null },
+          },
+        }),
       ]);
 
       const totalParticipants = participantCounts._sum.currentParticipants || 0;
       const roomCountObj = participantCounts._count;
-      const roomCount = typeof roomCountObj === 'number' ? roomCountObj : (roomCountObj?.id || 0);
+      const roomCount =
+        typeof roomCountObj === "number" ? roomCountObj : roomCountObj?.id || 0;
 
       return {
         totalRooms,
         activeRooms,
         totalParticipants,
-        averageParticipantsPerRoom: roomCount > 0 ? totalParticipants / roomCount : 0,
+        averageParticipantsPerRoom:
+          roomCount > 0 ? totalParticipants / roomCount : 0,
         roomsWithRecording: recordingRooms,
         roomsWithScreenShare: screenShareRooms,
       };
     } catch (error) {
-      console.error('Error getting room stats:', error);
-      throw new Error('Failed to get room statistics');
+      console.error("Error getting room stats:", error);
+      throw new Error("Failed to get room statistics");
     }
   }
 
   /**
    * Get recent room activity
    */
-  async getRecentActivity(clientId?: string, limit: number = 10): Promise<RoomActivity[]> {
+  async getRecentActivity(
+    clientId?: string,
+    limit: number = 10,
+  ): Promise<RoomActivity[]> {
     try {
       const whereClause = clientId ? { clientId } : {};
 
@@ -409,15 +430,15 @@ export class RoomManagementService extends EventEmitter {
         include: {
           _count: {
             select: {
-              participants: { where: { isPresent: true } }
-            }
-          }
+              participants: { where: { isPresent: true } },
+            },
+          },
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updatedAt: "desc" },
         take: limit,
       });
 
-      return rooms.map(room => ({
+      return rooms.map((room) => ({
         roomId: room.id,
         roomName: room.name,
         participantCount: room._count.participants,
@@ -427,8 +448,8 @@ export class RoomManagementService extends EventEmitter {
         lastActivity: room.updatedAt,
       }));
     } catch (error) {
-      console.error('Error getting recent activity:', error);
-      throw new Error('Failed to get recent activity');
+      console.error("Error getting recent activity:", error);
+      throw new Error("Failed to get recent activity");
     }
   }
 
@@ -437,11 +458,11 @@ export class RoomManagementService extends EventEmitter {
    */
   private async performMaintenance() {
     try {
-      console.log('🧹 Performing room maintenance...');
+      console.log("🧹 Performing room maintenance...");
 
       // Clean up inactive rooms older than 1 hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      
+
       const inactiveRooms = await prisma.room.findMany({
         where: {
           isActive: true,
@@ -451,7 +472,7 @@ export class RoomManagementService extends EventEmitter {
       });
 
       for (const room of inactiveRooms) {
-        await this.endRoom(room.id, 'system-cleanup');
+        await this.endRoom(room.id, "system-cleanup");
       }
 
       // Clean up stale participants
@@ -469,16 +490,18 @@ export class RoomManagementService extends EventEmitter {
       // Update room participant counts
       const activeRooms = await prisma.room.findMany({
         where: { isActive: true },
-        select: { id: true }
+        select: { id: true },
       });
 
       for (const room of activeRooms) {
         await this.updateRoomParticipantCount(room.id);
       }
 
-      console.log(`🧹 Maintenance completed. Cleaned up ${inactiveRooms.length} inactive rooms`);
+      console.log(
+        `🧹 Maintenance completed. Cleaned up ${inactiveRooms.length} inactive rooms`,
+      );
     } catch (error) {
-      console.error('Error during maintenance:', error);
+      console.error("Error during maintenance:", error);
     }
   }
 
@@ -507,13 +530,15 @@ export class RoomManagementService extends EventEmitter {
   private async calculateRoomDuration(roomId: string): Promise<number> {
     const room = await prisma.room.findUnique({
       where: { id: roomId },
-      select: { createdAt: true, updatedAt: true, isActive: true }
+      select: { createdAt: true, updatedAt: true, isActive: true },
     });
 
     if (!room) return 0;
 
     const endTime = room.isActive ? new Date() : room.updatedAt;
-    return Math.round((endTime.getTime() - room.createdAt.getTime()) / 1000 / 60); // minutes
+    return Math.round(
+      (endTime.getTime() - room.createdAt.getTime()) / 1000 / 60,
+    ); // minutes
   }
 
   /**
@@ -523,7 +548,7 @@ export class RoomManagementService extends EventEmitter {
     // This would require a separate analytics table in a real implementation
     // For now, return current max or estimated based on total participants
     const totalParticipants = await prisma.meetingParticipant.count({
-      where: { roomId }
+      where: { roomId },
     });
 
     return Math.max(totalParticipants, 1);

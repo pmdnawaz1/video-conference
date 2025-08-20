@@ -1,16 +1,20 @@
-import React from 'react';
+import React from "react";
 
 // Simple test page to verify Tailwind CSS is working
 const TestPage = () => {
   return (
     <div className="min-h-screen bg-blue-100 p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-blue-900 mb-8">Tailwind CSS v4 Test</h1>
-        
+        <h1 className="text-4xl font-bold text-blue-900 mb-8">
+          Tailwind CSS v4 Test
+        </h1>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Test Card 1 */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Colors Test</h2>
+          <div className="bg-card rounded-lg shadow-lg p-6 border border-border">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Colors Test
+            </h2>
             <div className="space-y-2">
               <div className="bg-red-500 text-white p-2 rounded">Red</div>
               <div className="bg-green-500 text-white p-2 rounded">Green</div>
@@ -19,28 +23,32 @@ const TestPage = () => {
           </div>
 
           {/* Test Card 2 */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Buttons Test</h2>
+          <div className="bg-card rounded-lg shadow-lg p-6 border border-border">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Buttons Test
+            </h2>
             <div className="space-y-2">
               <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Primary Button
               </button>
-              <button className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+              <button className="w-full bg-muted0 hover:bg-muted0 text-white font-bold py-2 px-4 rounded">
                 Secondary Button
               </button>
             </div>
           </div>
 
           {/* Test Card 3 */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Form Test</h2>
+          <div className="bg-card rounded-lg shadow-lg p-6 border border-border">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Form Test
+            </h2>
             <div className="space-y-2">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Test input"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <textarea 
+              <textarea
                 placeholder="Test textarea"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows="3"
@@ -50,9 +58,11 @@ const TestPage = () => {
         </div>
 
         {/* Video Element Test */}
-        <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Video Element Test</h2>
-          <div className="bg-gray-800 rounded-lg h-48 flex items-center justify-center">
+        <div className="mt-8 bg-card rounded-lg shadow-lg p-6 border border-border">
+          <h2 className="text-xl font-semibold text-foreground mb-4">
+            Video Element Test
+          </h2>
+          <div className="bg-muted0 rounded-lg h-48 flex items-center justify-center">
             <p className="text-white">Video placeholder (480x192)</p>
           </div>
         </div>

@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { 
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Progress } from "../ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import {
   Clock,
   Calendar,
   AlertTriangle,
@@ -20,22 +26,22 @@ import {
   Bell,
   ArrowLeft,
   CalendarDays,
-  Loader2
-} from 'lucide-react';
-import meetingAccessService from '../../services/MeetingAccessService';
-import userAnalyticsService from '../../services/UserAnalyticsService';
-import LoadingSpinner from '../ui/LoadingSpinner';
+  Loader2,
+} from "lucide-react";
+import meetingAccessService from "../../services/MeetingAccessService";
+import userAnalyticsService from "../../services/UserAnalyticsService";
+import LoadingSpinner from "../ui/LoadingSpinner";
 
-const MeetingTimeRestriction = ({ 
-  meetingId, 
-  meetingInfo, 
-  timeRestrictions, 
-  onRetryAccess, 
-  onBackToDashboard 
+const MeetingTimeRestriction = ({
+  meetingId,
+  meetingInfo,
+  timeRestrictions,
+  onRetryAccess,
+  onBackToDashboard,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [timeUntilAvailable, setTimeUntilAvailable] = useState(null);
-  const [restrictionType, setRestrictionType] = useState('unknown');
+  const [restrictionType, setRestrictionType] = useState("unknown");
   const [isChecking, setIsChecking] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -54,17 +60,21 @@ const MeetingTimeRestriction = ({
   }, [timeRestrictions, currentTime]);
 
   useEffect(() => {
-    userAnalyticsService.trackEvent('meeting_time_restriction_viewed', {
+    userAnalyticsService.trackEvent("meeting_time_restriction_viewed", {
       meeting_id: meetingId,
       restriction_type: restrictionType,
       time_until_available: timeUntilAvailable,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }, [restrictionType]);
 
   useEffect(() => {
     let autoRefreshInterval;
-    if (autoRefresh && timeUntilAvailable !== null && timeUntilAvailable <= 60) {
+    if (
+      autoRefresh &&
+      timeUntilAvailable !== null &&
+      timeUntilAvailable <= 60
+    ) {
       // Auto-refresh when very close to meeting time
       autoRefreshInterval = setInterval(() => {
         handleCheckAccess();
@@ -84,10 +94,12 @@ const MeetingTimeRestriction = ({
     const scheduledEnd = new Date(timeRestrictions.scheduledEnd).getTime();
     const bufferTime = (timeRestrictions.bufferTime || 0) * 60 * 1000; // Convert minutes to ms
 
-    if (timeRestrictions.status === 'not_started') {
+    if (timeRestrictions.status === "not_started") {
       const availableTime = scheduledStart - bufferTime;
-      setTimeUntilAvailable(Math.max(0, Math.floor((availableTime - now) / 1000)));
-    } else if (timeRestrictions.status === 'ended') {
+      setTimeUntilAvailable(
+        Math.max(0, Math.floor((availableTime - now) / 1000)),
+      );
+    } else if (timeRestrictions.status === "ended") {
       setTimeUntilAvailable(0);
     } else {
       setTimeUntilAvailable(0);
@@ -96,38 +108,39 @@ const MeetingTimeRestriction = ({
 
   const determineRestrictionType = () => {
     if (!timeRestrictions) {
-      setRestrictionType('unknown');
+      setRestrictionType("unknown");
       return;
     }
 
     switch (timeRestrictions.status) {
-      case 'not_started':
-        setRestrictionType('too_early');
+      case "not_started":
+        setRestrictionType("too_early");
         break;
-      case 'ended':
-        setRestrictionType('too_late');
+      case "ended":
+        setRestrictionType("too_late");
         break;
-      case 'cancelled':
-        setRestrictionType('cancelled');
+      case "cancelled":
+        setRestrictionType("cancelled");
         break;
-      case 'locked':
-        setRestrictionType('locked');
+      case "locked":
+        setRestrictionType("locked");
         break;
       default:
-        setRestrictionType('unknown');
+        setRestrictionType("unknown");
     }
   };
 
   const handleCheckAccess = async () => {
     setIsChecking(true);
     try {
-      const result = await meetingAccessService.checkTimeRestrictions(meetingId);
-      
+      const result =
+        await meetingAccessService.checkTimeRestrictions(meetingId);
+
       if (result.success && result.data.canJoin) {
-        userAnalyticsService.trackEvent('meeting_time_restriction_resolved', {
+        userAnalyticsService.trackEvent("meeting_time_restriction_resolved", {
           meeting_id: meetingId,
-          resolution_type: 'can_join_now',
-          timestamp: Date.now()
+          resolution_type: "can_join_now",
+          timestamp: Date.now(),
         });
         onRetryAccess?.();
       } else {
@@ -137,15 +150,15 @@ const MeetingTimeRestriction = ({
         }
       }
     } catch (error) {
-      console.error('Time check error:', error);
+      console.error("Time check error:", error);
     } finally {
       setIsChecking(false);
     }
   };
 
   const formatTimeRemaining = (seconds) => {
-    if (seconds <= 0) return '0s';
-    
+    if (seconds <= 0) return "0s";
+
     const days = Math.floor(seconds / (24 * 60 * 60));
     const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
     const minutes = Math.floor((seconds % (60 * 60)) / 60);
@@ -163,57 +176,62 @@ const MeetingTimeRestriction = ({
   };
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getRestrictionInfo = () => {
     switch (restrictionType) {
-      case 'too_early':
+      case "too_early":
         return {
           icon: <Timer className="w-12 h-12 text-blue-500" />,
-          title: 'Meeting Not Started Yet',
-          description: 'This meeting is scheduled for a future time. Please come back when it\'s time to join.',
-          color: 'blue',
-          showCountdown: true
+          title: "Meeting Not Started Yet",
+          description:
+            "This meeting is scheduled for a future time. Please come back when it's time to join.",
+          color: "blue",
+          showCountdown: true,
         };
-      case 'too_late':
+      case "too_late":
         return {
           icon: <XCircle className="w-12 h-12 text-red-500" />,
-          title: 'Meeting Has Ended',
-          description: 'Unfortunately, this meeting has already concluded. You may be able to view recordings if available.',
-          color: 'red',
-          showCountdown: false
+          title: "Meeting Has Ended",
+          description:
+            "Unfortunately, this meeting has already concluded. You may be able to view recordings if available.",
+          color: "red",
+          showCountdown: false,
         };
-      case 'cancelled':
+      case "cancelled":
         return {
-          icon: <XCircle className="w-12 h-12 text-gray-500" />,
-          title: 'Meeting Cancelled',
-          description: 'This meeting has been cancelled by the organizer. Please contact them for more information.',
-          color: 'gray',
-          showCountdown: false
+          icon: <XCircle className="w-12 h-12 text-muted-foreground" />,
+          title: "Meeting Cancelled",
+          description:
+            "This meeting has been cancelled by the organizer. Please contact them for more information.",
+          color: "gray",
+          showCountdown: false,
         };
-      case 'locked':
+      case "locked":
         return {
           icon: <AlertTriangle className="w-12 h-12 text-yellow-500" />,
-          title: 'Meeting Locked',
-          description: 'The organizer has locked this meeting and is not accepting new participants at this time.',
-          color: 'yellow',
-          showCountdown: false
+          title: "Meeting Locked",
+          description:
+            "The organizer has locked this meeting and is not accepting new participants at this time.",
+          color: "yellow",
+          showCountdown: false,
         };
       default:
         return {
-          icon: <AlertTriangle className="w-12 h-12 text-gray-500" />,
-          title: 'Access Restricted',
-          description: 'There appears to be a restriction preventing you from joining this meeting right now.',
-          color: 'gray',
-          showCountdown: false
+          icon: <AlertTriangle className="w-12 h-12 text-muted-foreground" />,
+          title: "Access Restricted",
+          description:
+            "There appears to be a restriction preventing you from joining this meeting right now.",
+          color: "gray",
+          showCountdown: false,
         };
     }
   };
@@ -236,38 +254,43 @@ const MeetingTimeRestriction = ({
           <div className="space-y-4">
             {restriction.icon}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-3xl font-bold text-muted-foreground dark:text-white">
                 {restriction.title}
               </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">
+              <p className="text-lg text-muted-foreground dark:text-muted-foreground mt-2">
                 {restriction.description}
               </p>
             </div>
           </div>
 
           {/* Countdown Timer */}
-          {restriction.showCountdown && timeUntilAvailable !== null && timeUntilAvailable > 0 && (
-            <Card className="inline-block">
-              <CardContent className="pt-6">
-                <div className="text-center space-y-3">
-                  <div className="text-4xl font-mono font-bold text-blue-600">
-                    {formatTimeRemaining(timeUntilAvailable)}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    until you can join
-                  </div>
-                  {timeUntilAvailable <= 300 && ( // Show progress bar when less than 5 minutes
-                    <div className="w-64 mx-auto">
-                      <Progress 
-                        value={Math.max(0, 100 - (timeUntilAvailable / 300) * 100)} 
-                        className="w-full" 
-                      />
+          {restriction.showCountdown &&
+            timeUntilAvailable !== null &&
+            timeUntilAvailable > 0 && (
+              <Card className="inline-block">
+                <CardContent className="pt-6">
+                  <div className="text-center space-y-3">
+                    <div className="text-4xl font-mono font-bold text-blue-600">
+                      {formatTimeRemaining(timeUntilAvailable)}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    <div className="text-sm text-muted-foreground">
+                      until you can join
+                    </div>
+                    {timeUntilAvailable <= 300 && ( // Show progress bar when less than 5 minutes
+                      <div className="w-64 mx-auto">
+                        <Progress
+                          value={Math.max(
+                            0,
+                            100 - (timeUntilAvailable / 300) * 100,
+                          )}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -285,10 +308,12 @@ const MeetingTimeRestriction = ({
                   <div>
                     <h3 className="font-medium text-lg">{meetingInfo.title}</h3>
                     {meetingInfo.description && (
-                      <p className="text-sm text-gray-600 mt-1">{meetingInfo.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {meetingInfo.description}
+                      </p>
                     )}
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-3 text-sm">
                     <div className="flex items-center gap-2">
                       <Building className="w-4 h-4 text-orange-500" />
@@ -296,7 +321,10 @@ const MeetingTimeRestriction = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-purple-500" />
-                      <span>{meetingInfo.participants_count || 0} participants expected</span>
+                      <span>
+                        {meetingInfo.participants_count || 0} participants
+                        expected
+                      </span>
                     </div>
                   </div>
                 </>
@@ -316,14 +344,16 @@ const MeetingTimeRestriction = ({
               {timeRestrictions && (
                 <div className="space-y-3">
                   <div className="flex justify-between items-start">
-                    <span className="text-sm font-medium">Scheduled Start:</span>
+                    <span className="text-sm font-medium">
+                      Scheduled Start:
+                    </span>
                     <div className="text-right">
                       <div className="text-sm">
                         {formatDateTime(timeRestrictions.scheduledStart)}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-between items-start">
                     <span className="text-sm font-medium">Scheduled End:</span>
                     <div className="text-right">
@@ -333,21 +363,26 @@ const MeetingTimeRestriction = ({
                     </div>
                   </div>
 
-                  {timeRestrictions.bufferTime && timeRestrictions.bufferTime > 0 && (
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm font-medium">Early Join:</span>
-                      <div className="text-right">
-                        <div className="text-sm">
-                          {timeRestrictions.bufferTime} minutes before start
+                  {timeRestrictions.bufferTime &&
+                    timeRestrictions.bufferTime > 0 && (
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-medium">Early Join:</span>
+                        <div className="text-right">
+                          <div className="text-sm">
+                            {timeRestrictions.bufferTime} minutes before start
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <div className="flex justify-between items-start">
                     <span className="text-sm font-medium">Current Status:</span>
-                    <Badge variant={restriction.color === 'blue' ? 'default' : 'secondary'}>
-                      {timeRestrictions.status.replace('_', ' ')}
+                    <Badge
+                      variant={
+                        restriction.color === "blue" ? "default" : "secondary"
+                      }
+                    >
+                      {timeRestrictions.status.replace("_", " ")}
                     </Badge>
                   </div>
                 </div>
@@ -368,12 +403,12 @@ const MeetingTimeRestriction = ({
                 <div className="text-2xl font-mono font-bold">
                   {currentTime.toLocaleTimeString()}
                 </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {currentTime.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+                <div className="text-sm text-muted-foreground mt-1">
+                  {currentTime.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
                   })}
                 </div>
               </div>
@@ -389,30 +424,33 @@ const MeetingTimeRestriction = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {restrictionType === 'too_early' && (
+              {restrictionType === "too_early" && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertTitle>Set a Reminder</AlertTitle>
                   <AlertDescription>
-                    Consider setting a calendar reminder for {formatDateTime(timeRestrictions.scheduledStart)}
+                    Consider setting a calendar reminder for{" "}
+                    {formatDateTime(timeRestrictions.scheduledStart)}
                   </AlertDescription>
                 </Alert>
               )}
 
-              {restrictionType === 'too_late' && (
+              {restrictionType === "too_late" && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertTitle>Check for Recordings</AlertTitle>
                   <AlertDescription>
-                    You may be able to view meeting recordings or get a summary from the organizer.
+                    You may be able to view meeting recordings or get a summary
+                    from the organizer.
                   </AlertDescription>
                 </Alert>
               )}
 
               <div className="space-y-2">
-                {(restrictionType === 'too_early' || restrictionType === 'locked') && (
-                  <Button 
-                    className="w-full" 
+                {(restrictionType === "too_early" ||
+                  restrictionType === "locked") && (
+                  <Button
+                    className="w-full"
                     onClick={handleCheckAccess}
                     disabled={isChecking}
                   >
@@ -430,8 +468,8 @@ const MeetingTimeRestriction = ({
                   </Button>
                 )}
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={onBackToDashboard}
                 >
@@ -439,7 +477,7 @@ const MeetingTimeRestriction = ({
                   Back to Dashboard
                 </Button>
 
-                {restrictionType === 'too_early' && (
+                {restrictionType === "too_early" && (
                   <div className="flex items-center justify-center gap-2 mt-4">
                     <input
                       type="checkbox"
@@ -448,7 +486,10 @@ const MeetingTimeRestriction = ({
                       onChange={(e) => setAutoRefresh(e.target.checked)}
                       className="rounded"
                     />
-                    <label htmlFor="auto-refresh" className="text-sm text-gray-600">
+                    <label
+                      htmlFor="auto-refresh"
+                      className="text-sm text-muted-foreground"
+                    >
                       Auto-check when meeting time approaches
                     </label>
                   </div>
@@ -459,7 +500,7 @@ const MeetingTimeRestriction = ({
         </div>
 
         {/* Tips for Different Scenarios */}
-        {restrictionType === 'too_early' && timeUntilAvailable > 3600 && (
+        {restrictionType === "too_early" && timeUntilAvailable > 3600 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

@@ -1,49 +1,70 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meeting Reminder: {{meetingTitle}}</title>
+  </head>
+  <body
+    style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;"
+  >
+    <div
+      style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); padding: 30px 20px; text-align: center; color: white; border-radius: 10px 10px 0 0;"
+    >
+      <h1 style="margin: 0; font-size: 24px;">⏰ Meeting Reminder</h1>
+      <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your meeting
+        starts in
+        {{timeUntil}}</p>
+    </div>
 
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Meeting Reminder: {{meetingTitle}}</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); padding: 30px 20px; text-align: center; color: white; border-radius: 10px 10px 0 0;">
-            <h1 style="margin: 0; font-size: 24px;">⏰ Meeting Reminder</h1>
-            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your meeting starts in {{timeUntil}}</p>
-          </div>
-          
-          <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h2 style="color: #ffc107; margin-top: 0;">{{meetingTitle}}</h2>
-            
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #856404;">📋 Meeting Details</h3>
-              <p><strong>🕒 Starts:</strong> {{meetingDate}} at {{meetingTime}} {{timezone}}</p>
-              <p><strong>⏱️ Duration:</strong> {{duration}} minutes</p>
-              <p><strong>👤 Organizer:</strong> {{organizerName}}</p>
-              <p><strong>🔗 Meeting ID:</strong> {{meetingId}}</p>
-            </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="{{joinUrl}}" style="background: #ffc107; color: #212529; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">🚀 Join Now</a>
-            </div>
-            
-            <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0; font-size: 14px;">
-              <h4 style="margin-top: 0; color: #155724;">✅ Pre-Meeting Checklist:</h4>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li>Test your camera and microphone</li>
-                <li>Ensure stable internet connection</li>
-                <li>Have meeting materials ready</li>
-                <li>Find a quiet space</li>
-              </ul>
-            </div>
-            
-            <p>We look forward to seeing you in the meeting!</p>
-            
-            <p>Best regards,<br>{{organizerName}}</p>
-          </div>
-          
-          <div style="text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px;">
-            <p>This reminder was sent via {{clientName}}. You can manage your notification preferences in your account settings.</p>
-          </div>
-        </body>
-        </html>
+    <div
+      style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
+    >
+      <h2 style="color: #ffc107; margin-top: 0;">{{meetingTitle}}</h2>
+
+      <div
+        style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin: 20px 0;"
+      >
+        <h3 style="margin-top: 0; color: #856404;">📋 Meeting Details</h3>
+        <p><strong>🕒 Starts:</strong>
+          {{meetingDate}}
+          at
+          {{meetingTime}}
+          {{timezone}}</p>
+        <p><strong>⏱️ Duration:</strong> {{duration}} minutes</p>
+        <p><strong>👤 Organizer:</strong> {{organizerName}}</p>
+        <p><strong>🔗 Meeting ID:</strong> {{meetingId}}</p>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a
+          href="{{joinUrl}}"
+          style="background: #ffc107; color: #212529; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;"
+        >🚀 Join Now</a>
+      </div>
+
+      <div
+        style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0; font-size: 14px;"
+      >
+        <h4 style="margin-top: 0; color: #155724;">✅ Pre-Meeting Checklist:</h4>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Test your camera and microphone</li>
+          <li>Ensure stable internet connection</li>
+          <li>Have meeting materials ready</li>
+          <li>Find a quiet space</li>
+        </ul>
+      </div>
+
+      <p>We look forward to seeing you in the meeting!</p>
+
+      <p>Best regards,<br />{{organizerName}}</p>
+    </div>
+
+    <div
+      style="text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 12px;"
+    >
+      <p>This reminder was sent via
+        {{clientName}}. You can manage your notification preferences in your
+        account settings.</p>
+    </div>
+  </body>
+</html>
